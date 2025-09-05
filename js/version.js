@@ -17,13 +17,21 @@ window.App.Version = (function() {
 
     // 当前版本信息
     const VERSION_INFO = {
-        current: '1.2.1',
+        current: '1.2.2',
         releaseDate: '2025-09-05',
-        buildNumber: '20250905004'
+        buildNumber: '20250905005'
     };
 
     // 版本历史记录
     const VERSION_HISTORY = [
+        {
+            version: '1.2.2',
+            date: '2025-09-05',
+            changes: [
+                '障碍主题通道顺序更换'
+            ],
+            type: 'minor'
+        },
         {
             version: '1.2.1',
             date: '2025-09-05',

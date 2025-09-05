@@ -1,8 +1,18 @@
 {
-  "sheetName": "Sheet1",
-  "exportTime": "2025-09-04T03:13:30.662Z",
-  "totalRows": 33,
-  "totalColumns": 7,
+  "metadata": {
+    "fileName": "对比.xls",
+    "sheetName": "Sheet1",
+    "totalRows": 33,
+    "totalColumns": 7,
+    "exportTime": "2025-09-05T11:14:18.613Z",
+    "options": {
+      "includeHeader": true,
+      "skipEmptyRows": true,
+      "trimWhitespace": true,
+      "jsonFormat": "nested",
+      "emptyValue": "empty"
+    }
+  },
   "headers": [
     "RC现在的主题通道",
     "作用",
@@ -38,7 +48,7 @@
       "和RC联系": "P5"
     },
     {
-      "RC现在的主题通道": "G1",
+      "RC现在的主题通道": "G3",
       "作用": "装饰颜色1",
       "列3": "",
       "AI工具导出的颜色表格式": "核心颜色",
@@ -46,7 +56,7 @@
       "和RC联系": "G1"
     },
     {
-      "RC现在的主题通道": "G2",
+      "RC现在的主题通道": "G1",
       "作用": "装饰颜色2",
       "列3": "",
       "AI工具导出的颜色表格式": "核心颜色",
@@ -54,7 +64,7 @@
       "和RC联系": "G2"
     },
     {
-      "RC现在的主题通道": "G3",
+      "RC现在的主题通道": "G2",
       "作用": "装饰颜色3",
       "列3": "",
       "AI工具导出的颜色表格式": "核心颜色",
