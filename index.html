@@ -17,8 +17,16 @@
     <div class="container">
         <!-- 头部标题区域 -->
         <header class="header">
-            <h1>颜色主题管理工具</h1>
-            <p class="subtitle">Unity项目颜色主题配置管理</p>
+            <div class="header-top">
+                <div class="title-section">
+                    <h1>颜色主题管理工具</h1>
+                    <p class="subtitle">Unity项目颜色主题配置管理</p>
+                </div>
+                <div class="version-section">
+                    <span class="version-label">版本</span>
+                    <span class="version-number" id="versionNumber">v1.0.0</span>
+                </div>
+            </div>
 
             <!-- 浏览器兼容性提示 -->
             <div id="browserCompatibility" style="margin: 10px 0; padding: 10px; border-radius: 5px; font-size: 14px;">
@@ -218,6 +226,7 @@
     </div>
 
     <!-- 引入JavaScript模块文件 -->
+    <script src="js/version.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/fileHandler.js"></script>
     <script src="js/dataParser.js"></script>

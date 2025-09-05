@@ -105,6 +105,7 @@ window.App.Main = (function() {
      */
     function initializeModules() {
         const modules = [
+            { name: 'Version', module: App.Version },
             { name: 'Utils', module: App.Utils },
             { name: 'FileHandler', module: App.FileHandler },
             { name: 'DataParser', module: App.DataParser },
@@ -127,6 +128,13 @@ window.App.Main = (function() {
                 throw new Error(`${name}模块未找到`);
             }
         });
+
+        // 显示版本更新通知
+        setTimeout(() => {
+            if (App.Version && typeof App.Version.showUpdateNotification === 'function') {
+                App.Version.showUpdateNotification();
+            }
+        }, 1000);
     }
 
     /**
