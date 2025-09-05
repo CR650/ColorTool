@@ -111,9 +111,9 @@ class FileSystemManager {
         }
 
         try {
-            // 生成Excel文件的二进制数据
+            // 生成Excel文件的二进制数据 (使用xls格式以兼容Unity工具)
             const excelBuffer = XLSX.write(updatedWorkbook, {
-                bookType: 'xlsx',
+                bookType: 'xls',
                 type: 'array'
             });
 

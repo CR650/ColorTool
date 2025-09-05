@@ -1562,9 +1562,9 @@ window.App.ThemeManager = (function() {
                 return false;
             }
 
-            // 生成Excel文件数据
+            // 生成Excel文件数据 (使用xls格式以兼容Unity工具)
             const excelBuffer = XLSX.write(workbook, {
-                bookType: 'xlsx',
+                bookType: 'xls',
                 type: 'array'
             });
 
@@ -1608,20 +1608,20 @@ window.App.ThemeManager = (function() {
      */
     async function downloadFileTraditionally(workbook, themeName, ugcResult) {
         try {
-            // 下载RSC_Theme文件
+            // 下载RSC_Theme文件 (使用xls格式以兼容Unity工具)
             const excelBuffer = XLSX.write(workbook, {
-                bookType: 'xlsx',
+                bookType: 'xls',
                 type: 'array'
             });
 
             const blob = new Blob([excelBuffer], {
-                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                type: 'application/vnd.ms-excel'
             });
 
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `RSC_Theme_Updated_${themeName}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            link.download = `RSC_Theme_Updated_${themeName}_${new Date().toISOString().slice(0, 10)}.xls`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -1635,18 +1635,18 @@ window.App.ThemeManager = (function() {
                 console.log('开始下载UGC文件...');
 
                 const ugcExcelBuffer = XLSX.write(ugcResult.workbook, {
-                    bookType: 'xlsx',
+                    bookType: 'xls',
                     type: 'array'
                 });
 
                 const ugcBlob = new Blob([ugcExcelBuffer], {
-                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                    type: 'application/vnd.ms-excel'
                 });
 
                 const ugcUrl = URL.createObjectURL(ugcBlob);
                 const ugcLink = document.createElement('a');
                 ugcLink.href = ugcUrl;
-                ugcLink.download = `UGCTheme_Updated_${themeName}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                ugcLink.download = `UGCTheme_Updated_${themeName}_${new Date().toISOString().slice(0, 10)}.xls`;
                 document.body.appendChild(ugcLink);
                 ugcLink.click();
                 document.body.removeChild(ugcLink);
@@ -1785,10 +1785,10 @@ window.App.ThemeManager = (function() {
                 }
             }
 
-            // 生成Excel数据
+            // 生成Excel数据 (使用xls格式以兼容Unity工具)
             console.log('生成Excel数据...');
             const excelBuffer = XLSX.write(workbook, {
-                bookType: 'xlsx',
+                bookType: 'xls',
                 type: 'array'
             });
             console.log('Excel数据大小:', excelBuffer.byteLength, 'bytes');
@@ -1842,15 +1842,15 @@ window.App.ThemeManager = (function() {
             // 显示详细错误信息
             showSaveErrorDetails(error);
 
-            // 回退到下载方式
+            // 回退到下载方式 (使用xls格式以兼容Unity工具)
             console.log('回退到传统下载方式...');
-            const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+            const wbout = XLSX.write(workbook, { bookType: 'xls', type: 'array' });
             const blob = new Blob([wbout], { type: 'application/octet-stream' });
 
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = rscThemeData.fileName || 'RSC_Theme_Updated.xlsx';
+            a.download = rscThemeData.fileName || 'RSC_Theme_Updated.xls';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

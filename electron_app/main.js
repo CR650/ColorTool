@@ -106,14 +106,14 @@ class ElectronThemeManager {
                 const newWorksheet = XLSX.utils.aoa_to_sheet(data);
                 XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Sheet1');
 
-                // 生成文件缓冲区
+                // 生成文件缓冲区 (使用xls格式以兼容Unity工具)
                 const fileBuffer = XLSX.write(newWorkbook, {
                     type: 'buffer',
-                    bookType: 'xlsx'
+                    bookType: 'xls'
                 });
 
-                // 创建备份
-                const backupPath = filePath.replace(/\.xlsx?$/, '_backup_' + Date.now() + '.xlsx');
+                // 创建备份 (保持xls格式)
+                const backupPath = filePath.replace(/\.xlsx?$/, '_backup_' + Date.now() + '.xls');
                 try {
                     const originalBuffer = await fs.readFile(filePath);
                     await fs.writeFile(backupPath, originalBuffer);

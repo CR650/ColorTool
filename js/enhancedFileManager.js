@@ -111,9 +111,9 @@ class EnhancedFileManager {
                 throw new Error('无法获取文件写入权限');
             }
 
-            // 生成Excel数据
+            // 生成Excel数据 (使用xls格式以兼容Unity工具)
             const excelBuffer = XLSX.write(workbook, {
-                bookType: 'xlsx',
+                bookType: 'xls',
                 type: 'array'
             });
 
@@ -139,22 +139,22 @@ class EnhancedFileManager {
      */
     async saveWithDownload(workbook, options = {}) {
         try {
-            // 生成Excel数据
+            // 生成Excel数据 (使用xls格式以兼容Unity工具)
             const excelBuffer = XLSX.write(workbook, {
-                bookType: 'xlsx',
+                bookType: 'xls',
                 type: 'array'
             });
 
-            // 创建Blob
+            // 创建Blob (使用xls格式的MIME类型)
             const blob = new Blob([excelBuffer], {
-                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                type: 'application/vnd.ms-excel'
             });
 
             // 创建下载链接
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = options.fileName || 'RSC_Theme_Updated.xlsx';
+            a.download = options.fileName || 'RSC_Theme_Updated.xls';
             
             // 触发下载
             document.body.appendChild(a);
