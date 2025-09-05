@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表格转JSON工具 - Table to JSON Converter</title>
+    <meta name="description" content="将Excel、CSV等表格文件转换为JSON格式的在线工具">
+    <meta name="keywords" content="表格转换,Excel转JSON,CSV转JSON,数据转换">
+    
+    <!-- 引入SheetJS库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- 引入样式文件 -->
+    <link rel="stylesheet" href="css/table-to-json.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部标题区域 -->
+        <header class="header">
+            <div class="title-section">
+                <h1>📊 表格转JSON工具</h1>
+                <p class="subtitle">将Excel、CSV等表格文件快速转换为JSON格式</p>
+            </div>
+            <div class="feature-badges">
+                <span class="badge">支持Excel</span>
+                <span class="badge">支持CSV</span>
+                <span class="badge">多种格式</span>
+                <span class="badge">实时预览</span>
+            </div>
+        </header>
+
+        <!-- 使用说明区域 -->
+        <section class="usage-guide">
+            <h3>📋 使用步骤</h3>
+            <div class="steps">
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <span class="step-text">选择或拖拽表格文件（支持 .xlsx, .xls, .csv 格式）</span>
+                </div>
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <span class="step-text">选择工作表（Excel文件）并配置转换选项</span>
+                </div>
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <span class="step-text">预览数据并选择JSON输出格式</span>
+                </div>
+                <div class="step">
+                    <span class="step-number">4</span>
+                    <span class="step-text">下载转换后的JSON文件</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 文件上传区域 -->
+        <section class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-content">
+                    <div class="upload-icon">📁</div>
+                    <h3>选择表格文件</h3>
+                    <p>支持 Excel (.xlsx, .xls) 和 CSV (.csv) 格式</p>
+                    <p class="upload-hint">点击选择文件或直接拖拽文件到此区域</p>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display: none;">
+                    <button class="upload-btn" id="selectFileBtn">
+                        选择文件
+                    </button>
+                </div>
+                <div class="upload-progress" id="uploadProgress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">处理中...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 文件信息区域 -->
+        <section class="file-info" id="fileInfo" style="display: none;">
+            <h3>📄 文件信息</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">文件名:</span>
+                    <span class="info-value" id="fileName">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">文件大小:</span>
+                    <span class="info-value" id="fileSize">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">文件类型:</span>
+                    <span class="info-value" id="fileType">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">工作表数量:</span>
+                    <span class="info-value" id="sheetCount">-</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 工作表选择区域 -->
+        <section class="sheet-selection" id="sheetSelection" style="display: none;">
+            <h3>📋 选择工作表</h3>
+            <div class="sheet-selector">
+                <label for="sheetSelect">工作表:</label>
+                <select id="sheetSelect">
+                    <option value="">请选择工作表</option>
+                </select>
+                <div class="sheet-info" id="sheetInfo"></div>
+            </div>
+        </section>
+
+        <!-- 转换选项区域 -->
+        <section class="conversion-options" id="conversionOptions" style="display: none;">
+            <h3>⚙️ 转换选项</h3>
+            <div class="options-grid">
+                <div class="option-group">
+                    <h4>数据处理</h4>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="includeHeader" checked>
+                        <span class="checkmark"></span>
+                        包含表头作为键名
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="skipEmptyRows" checked>
+                        <span class="checkmark"></span>
+                        跳过空行
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="trimWhitespace" checked>
+                        <span class="checkmark"></span>
+                        去除首尾空格
+                    </label>
+                </div>
+                
+                <div class="option-group">
+                    <h4>JSON格式</h4>
+                    <label class="radio-label">
+                        <input type="radio" name="jsonFormat" value="array" checked>
+                        <span class="radiomark"></span>
+                        对象数组格式
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="jsonFormat" value="keyValue">
+                        <span class="radiomark"></span>
+                        键值对格式
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="jsonFormat" value="nested">
+                        <span class="radiomark"></span>
+                        嵌套对象格式
+                    </label>
+                </div>
+                
+                <div class="option-group">
+                    <h4>空值处理</h4>
+                    <label class="radio-label">
+                        <input type="radio" name="emptyValue" value="null" checked>
+                        <span class="radiomark"></span>
+                        转换为 null
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="emptyValue" value="empty">
+                        <span class="radiomark"></span>
+                        转换为空字符串
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="emptyValue" value="skip">
+                        <span class="radiomark"></span>
+                        跳过空值字段
+                    </label>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="convertBtn" disabled>
+                    🔄 转换为JSON
+                </button>
+                <button class="btn btn-secondary" id="resetBtn">
+                    🔄 重置
+                </button>
+            </div>
+        </section>
+
+        <!-- 数据预览区域 -->
+        <section class="data-preview" id="dataPreview" style="display: none;">
+            <h3>👀 数据预览</h3>
+            <div class="preview-tabs">
+                <button class="tab-btn active" data-tab="table">表格数据</button>
+                <button class="tab-btn" data-tab="json">JSON预览</button>
+            </div>
+
+            <div class="tab-content">
+                <!-- 表格预览 -->
+                <div class="tab-pane active" id="tableTab">
+                    <div class="table-stats" id="tableStats"></div>
+                    <div class="table-container">
+                        <table id="previewTable">
+                            <thead id="previewTableHead"></thead>
+                            <tbody id="previewTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- JSON预览 -->
+                <div class="tab-pane" id="jsonTab">
+                    <div class="json-stats" id="jsonStats"></div>
+                    <div class="json-container">
+                        <pre id="jsonPreview"></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 下载区域 -->
+        <section class="download-section" id="downloadSection" style="display: none;">
+            <h3>💾 下载结果</h3>
+            <div class="download-options">
+                <div class="download-info">
+                    <div class="info-item">
+                        <span class="info-label">转换状态:</span>
+                        <span class="info-value" id="conversionStatus">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">数据行数:</span>
+                        <span class="info-value" id="dataRows">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">JSON大小:</span>
+                        <span class="info-value" id="jsonSize">-</span>
+                    </div>
+                </div>
+
+                <div class="download-buttons">
+                    <button class="btn btn-success" id="downloadJsonBtn" disabled>
+                        📥 下载JSON文件
+                    </button>
+                    <button class="btn btn-info" id="copyJsonBtn" disabled>
+                        📋 复制到剪贴板
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 状态提示区域 -->
+        <div class="status-message" id="statusMessage"></div>
+
+        <!-- 帮助信息 -->
+        <section class="help-section">
+            <details>
+                <summary>❓ 帮助信息</summary>
+                <div class="help-content">
+                    <h4>支持的文件格式</h4>
+                    <ul>
+                        <li><strong>Excel文件:</strong> .xlsx, .xls (支持多工作表)</li>
+                        <li><strong>CSV文件:</strong> .csv (逗号分隔值)</li>
+                    </ul>
+
+                    <h4>JSON输出格式说明</h4>
+                    <ul>
+                        <li><strong>对象数组格式:</strong> [{"列1": "值1", "列2": "值2"}, ...]</li>
+                        <li><strong>键值对格式:</strong> {"行1": {"列1": "值1"}, "行2": {"列2": "值2"}}</li>
+                        <li><strong>嵌套对象格式:</strong> {"数据": [...], "元信息": {...}}</li>
+                    </ul>
+
+                    <h4>使用技巧</h4>
+                    <ul>
+                        <li>大文件处理可能需要一些时间，请耐心等待</li>
+                        <li>建议在转换前预览数据以确保格式正确</li>
+                        <li>可以通过转换选项自定义输出格式</li>
+                    </ul>
+                </div>
+            </details>
+        </section>
+    </div>
+
+    <!-- 引入JavaScript文件 -->
+    <script src="js/table-to-json.js"></script>
+</body>
+</html>
