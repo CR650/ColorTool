@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>颜色主题管理工具 - ColorTool Connect</title>
+    <meta name="description" content="Unity项目颜色主题管理工具，支持颜色配置的导入和更新">
+    <meta name="keywords" content="颜色主题,Unity,主题管理,颜色配置">
+    
+    <!-- 引入SheetJS库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- 引入样式文件 -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部标题区域 -->
+        <header class="header">
+            <h1>颜色主题管理工具</h1>
+            <p class="subtitle">Unity项目颜色主题配置管理</p>
+
+            <!-- 浏览器兼容性提示 -->
+            <div id="browserCompatibility" style="margin: 10px 0; padding: 10px; border-radius: 5px; font-size: 14px;">
+                <!-- 将通过JavaScript动态填充 -->
+            </div>
+            <div class="usage-guide">
+                <h4>📋 使用步骤：</h4>
+                <ol>
+                    <li>选择包含完整配色表的Excel源数据文件</li>
+                    <li>选择Unity项目RSC_Theme.xls和UGCTheme.xls文件</li>
+                    <li>输入主题名称，如果已存在该主题，就覆盖更新，如果没有就新增主题</li>
+                    <li>点击处理按钮生成更新后的主题文件</li>
+                </ol>
+
+            </div>
+        </header>
+
+        <!-- 源数据文件选择区域 -->
+        <section class="upload-section">
+            <div class="upload-area" id="sourceUploadArea">
+                <div class="upload-content">
+                    <div class="upload-icon">🎨</div>
+                    <h3>选择源数据文件</h3>
+                    <p>包含完整配色表的Excel文件 (.xlsx, .xls)</p>
+                    <input type="file" id="sourceFileInput" accept=".xlsx,.xls" style="display: none;">
+                    <button class="upload-btn">
+                        选择源数据文件
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Unity项目路径选择区域 -->
+        <section class="upload-section">
+            <div class="upload-options">
+                <h3>选择Unity项目rs_ugc2\RS_UGC_Unity_2021.3.31\Tools\xlsx下的RSC_Theme.xls文件</h3>
+                <p>选择RSC_Theme.xls文件并启用直接保存功能：</p>
+
+                <!-- 直接文件保存 -->
+                <div class="upload-area" id="directSaveUploadArea" style="border: 2px dashed #28a745; background-color: #f8fff9;">
+                    <div class="upload-content">
+                        <div class="upload-icon">🚀</div>
+                        <h4>选择RSC_Theme文件并启用直接保存</h4>
+                        <p>支持Chrome/Edge浏览器，可直接覆盖原文件，无需手动替换</p>
+                        <div class="help-text">
+                            <small>✅ 最佳体验：处理完成后自动保存到原位置</small>
+                        </div>
+                        <button class="upload-btn primary" id="enableDirectSaveBtn" style="background: #28a745;">
+                            🎯 选择RSC_Theme文件并启用直接保存
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- UGCTheme文件选择区域 -->
+        <section class="upload-section">
+            <div class="upload-options">
+                <h3>选择Unity项目rs_ugc2\RS_UGC_Unity_2021.3.31\Tools\xlsx下的UGCTheme.xls文件</h3>
+                <p>选择UGCTheme.xls文件并启用直接保存功能：</p>
+
+                <!-- UGC直接文件保存 -->
+                <div class="upload-area" id="ugcDirectSaveUploadArea" style="border: 2px dashed #17a2b8; background-color: #f0f9ff;">
+                    <div class="upload-content">
+                        <div class="upload-icon">🎨</div>
+                        <h4>选择UGCTheme文件并启用直接保存</h4>
+                        <p>支持Chrome/Edge浏览器，可直接覆盖原文件，无需手动替换</p>
+                        <div class="help-text">
+                            <small>✅ 新增主题时会自动添加新行到所有sheet</small>
+                        </div>
+                        <button class="upload-btn primary" id="enableUGCDirectSaveBtn" style="background: #17a2b8;">
+                            🎯 选择UGCTheme文件并启用直接保存
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 主题名称输入区域 -->
+        <section class="theme-input-section" id="themeInputSection" style="display: none;">
+            <div class="theme-input-card">
+                <h3>主题配置</h3>
+                <div class="input-group">
+                    <label for="themeNameInput">主题名称：</label>
+                    <input type="text" id="themeNameInput" placeholder="请输入主题名称" maxlength="50">
+                </div>
+                <div class="action-group">
+                    <button class="action-btn primary" id="processThemeBtn">处理主题数据</button>
+                    <button class="action-btn secondary" id="resetBtn">重置</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 文件状态信息区域 -->
+        <section class="file-status" id="fileStatus" style="display: none;">
+            <h3>文件状态</h3>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-label">源数据文件:</span>
+                    <span class="status-value" id="sourceFileStatus">未选择</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">RSC_Theme.xls:</span>
+                    <span class="status-value" id="rscThemeStatus">未找到</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">UGCTheme.xls:</span>
+                    <span class="status-value" id="ugcThemeStatus">未找到</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">对比映射文件:</span>
+                    <span class="status-value" id="mappingStatus">未加载</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 处理结果展示区域 -->
+        <section class="result-display" id="resultDisplay" style="display: none;">
+            <div class="result-header">
+                <h3>处理结果</h3>
+            </div>
+            <div class="result-content">
+                <div class="result-summary" id="resultSummary"></div>
+                <div class="result-details" id="resultDetails"></div>
+            </div>
+
+            <!-- Sheet选择器区域 -->
+            <div class="sheet-selector-section" id="sheetSelectorSection" style="display: none; margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;">
+                <div class="sheet-selector-header" style="margin-bottom: 10px;">
+                    <h4 style="margin: 0; color: #333;">📊 数据文件预览</h4>
+                    <p style="margin: 5px 0 0 0; font-size: 14px; color: #666;">选择要查看的文件和工作表：</p>
+                </div>
+                <div class="sheet-selector-controls" style="margin-bottom: 15px;">
+                    <label for="fileTypeSelect" style="font-weight: bold; margin-right: 10px;">文件类型：</label>
+                    <select id="fileTypeSelect" style="padding: 5px 10px; border: 1px solid #ccc; border-radius: 3px; font-size: 14px; min-width: 120px; margin-right: 20px;">
+                        <option value="rsc">RSC_Theme</option>
+                        <option value="ugc">UGCTheme</option>
+                    </select>
+                    <label for="rscSheetSelect" style="font-weight: bold; margin-right: 10px;">工作表：</label>
+                    <select id="rscSheetSelect" style="padding: 5px 10px; border: 1px solid #ccc; border-radius: 3px; font-size: 14px; min-width: 150px;">
+                        <option value="">请选择工作表</option>
+                    </select>
+                    <span id="rscSheetInfo" style="margin-left: 15px; font-size: 12px; color: #888;"></span>
+                </div>
+                <div class="sheet-data-container" id="sheetDataContainer" style="display: none;">
+                    <div class="sheet-data-stats" id="sheetDataStats" style="margin-bottom: 10px; padding: 8px; background-color: #e8f4f8; border-radius: 3px; font-size: 13px;"></div>
+                    <div class="sheet-table-container" style="max-height: 400px; overflow: auto; border: 1px solid #ddd; border-radius: 3px;">
+                        <table id="rscSheetTable" style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <thead id="rscSheetTableHead" style="background-color: #f5f5f5; position: sticky; top: 0;"></thead>
+                            <tbody id="rscSheetTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 数据预览区域 -->
+        <section class="data-preview" id="dataPreview" style="display: none;">
+            <div class="preview-header">
+                <h3>数据预览</h3>
+                <div class="preview-tabs">
+                    <button class="tab-btn active" data-tab="source">源数据</button>
+                    <button class="tab-btn" data-tab="mapping">映射关系</button>
+                    <button class="tab-btn" data-tab="target">目标数据</button>
+                </div>
+            </div>
+            <div class="tab-content">
+                <div class="tab-pane active" id="sourceTab">
+                    <div class="table-container">
+                        <table id="sourceTable">
+                            <thead id="sourceTableHead"></thead>
+                            <tbody id="sourceTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane" id="mappingTab">
+                    <div class="table-container">
+                        <table id="mappingTable">
+                            <thead id="mappingTableHead"></thead>
+                            <tbody id="mappingTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane" id="targetTab">
+                    <div class="table-container">
+                        <table id="targetTable">
+                            <thead id="targetTableHead"></thead>
+                            <tbody id="targetTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 状态提示区域 -->
+        <div class="status-message" id="statusMessage"></div>
+    </div>
+
+    <!-- 引入JavaScript模块文件 -->
+    <script src="js/utils.js"></script>
+    <script src="js/fileHandler.js"></script>
+    <script src="js/dataParser.js"></script>
+    <script src="js/tableRenderer.js"></script>
+    <script src="js/exportUtils.js"></script>
+    <script src="js/themeManager.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
