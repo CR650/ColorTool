@@ -17,16 +17,16 @@ window.App.Version = (function() {
 
     // 当前版本信息
     const VERSION_INFO = {
-        current: '1.1.0',
-        releaseDate: '2025-01-09',
-        buildNumber: '20250109001'
+        current: '1.1.1',
+        releaseDate: '2025-09-05',
+        buildNumber: '20250905002'
     };
 
     // 版本历史记录
     const VERSION_HISTORY = [
         {
-            version: '1.1.0',
-            date: '2025-01-09',
+            version: '1.1.1',
+            date: '2025-09-05',
             changes: [
                 '修复Excel文件格式兼容性问题',
                 '统一使用.xls格式以兼容Unity工具',
