@@ -17,18 +17,22 @@ window.App.Version = (function() {
 
     // 当前版本信息
     const VERSION_INFO = {
-        current: '1.2.2',
+        current: '1.2.3',
         releaseDate: '2025-09-05',
-        buildNumber: '20250905005'
+        buildNumber: '20250905006'
     };
 
     // 版本历史记录
     const VERSION_HISTORY = [
         {
-            version: '1.2.2',
+            version: '1.2.3',
             date: '2025-09-05',
             changes: [
-                '障碍主题通道顺序更换'
+                '重构映射逻辑：优先检查颜色代码，再验证RC通道有效性',
+                '改进映射处理：支持更灵活的颜色代码到RC通道的映射',
+                '优化跳过逻辑：只有颜色代码为空时才跳过，RC通道无效时使用默认值',
+                '增强日志输出：提供更详细的映射处理统计信息',
+                '提升映射覆盖率：处理更多映射表中的有效颜色代码'
             ],
             type: 'minor'
         },

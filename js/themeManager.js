@@ -193,17 +193,17 @@ window.App.ThemeManager = (function() {
                     "颜色代码": "P2"
                 },
                 {
-                    "RC现在的主题通道": "G1",
+                    "RC现在的主题通道": "G3",
                     "作用": "装饰颜色1",
                     "颜色代码": "G1"
                 },
                 {
-                    "RC现在的主题通道": "G2",
+                    "RC现在的主题通道": "G1",
                     "作用": "装饰颜色2",
                     "颜色代码": "G2"
                 },
                 {
-                    "RC现在的主题通道": "G3",
+                    "RC现在的主题通道": "G2",
                     "作用": "装饰颜色3",
                     "颜色代码": "G3"
                 },
@@ -990,7 +990,7 @@ window.App.ThemeManager = (function() {
         console.log('映射数据:', mappingData.data);
         console.log('RSC_Theme表头:', headerRow);
 
-        // 遍历映射数据
+        // 遍历映射数据 - 新逻辑：优先检查颜色代码
         mappingData.data.forEach((mapping, index) => {
             const rcChannel = mapping['RC现在的主题通道'];
             const colorCode = mapping['颜色代码'];
@@ -1001,29 +1001,28 @@ window.App.ThemeManager = (function() {
                 作用: mapping['作用']
             });
 
-            // 跳过空的RC通道或标记为"占不导入"的项目
-            if (!rcChannel || rcChannel === '占不导入' || rcChannel === '' || rcChannel === '暂不导入') {
-                console.log(`跳过映射: RC通道为空或标记为不导入 (${rcChannel})`);
+            // 新逻辑：首先检查颜色代码是否存在
+            if (!colorCode || colorCode === '' || colorCode === null || colorCode === undefined) {
+                console.log(`跳过映射: 颜色代码为空 (${colorCode})`);
                 return;
             }
+
+            // 检查RC通道是否有效
+            const isValidRCChannel = rcChannel &&
+                                   rcChannel !== '' &&
+                                   rcChannel !== '占不导入' &&
+                                   rcChannel !== '暂不导入' &&
+                                   rcChannel !== null &&
+                                   rcChannel !== undefined;
+
+            console.log(`颜色代码 ${colorCode} 对应的RC通道: ${rcChannel}, 有效性: ${isValidRCChannel}`);
 
             summary.total++;
 
             try {
-                // 在RSC_Theme表头中查找对应的列
-                const columnIndex = headerRow.findIndex(col => col === rcChannel);
-
-                if (columnIndex === -1) {
-                    const error = `未找到列: ${rcChannel}`;
-                    console.error(error);
-                    summary.errors.push(error);
-                    return;
-                }
-
-                console.log(`找到目标列: ${rcChannel} (索引: ${columnIndex})`);
-
                 // 从源数据中查找对应的颜色值
                 const colorValue = findColorValue(colorCode);
+                console.log(`源数据中查找颜色代码 ${colorCode} 的结果: ${colorValue}`);
 
                 // 确保颜色值处理的健壮性
                 let finalColorValue = null;
@@ -1045,31 +1044,71 @@ window.App.ThemeManager = (function() {
                     isDefault = true;
                 }
 
-                // 确保数据更新到正确的位置
-                if (themeRow && columnIndex >= 0 && columnIndex < themeRow.length) {
-                    themeRow[columnIndex] = finalColorValue;
-                    console.log(`📝 数据更新: 行${rowIndex}, 列${columnIndex}(${rcChannel}) = ${finalColorValue}`);
+                // 新逻辑：根据RC通道有效性决定处理方式
+                let columnIndex = -1;
+                if (isValidRCChannel) {
+                    // RC通道有效，查找对应列
+                    columnIndex = headerRow.findIndex(col => col === rcChannel);
+
+                    if (columnIndex === -1) {
+                        const error = `未找到列: ${rcChannel}`;
+                        console.error(error);
+                        summary.errors.push(error);
+                        return;
+                    }
+
+                    console.log(`找到目标列: ${rcChannel} (索引: ${columnIndex})`);
                 } else {
-                    console.error(`❌ 数据更新失败: 无效的行或列索引 - 行:${rowIndex}, 列:${columnIndex}`);
-                    throw new Error(`无效的数据位置: 行${rowIndex}, 列${columnIndex}`);
+                    // RC通道无效，记录但不更新数据
+                    console.log(`RC通道无效 (${rcChannel})，颜色代码 ${colorCode} 使用默认处理`);
+                    finalColorValue = 'FFFFFF';
+                    isDefault = true;
                 }
 
-                // 记录更新结果
-                updatedColors.push({
-                    channel: rcChannel,
-                    colorCode: colorCode,
-                    value: finalColorValue,
-                    isDefault: isDefault,
-                    rowIndex: rowIndex,
-                    columnIndex: columnIndex
-                });
+                // 根据RC通道有效性决定是否更新数据
+                if (isValidRCChannel && columnIndex !== -1) {
 
-                if (isDefault) {
-                    summary.notFound++;
-                    console.warn(`⚠️ 使用默认值: ${rcChannel} = ${finalColorValue} (颜色代码: ${colorCode})`);
+                    // 确保数据更新到正确的位置
+                    if (themeRow && columnIndex >= 0 && columnIndex < themeRow.length) {
+                        themeRow[columnIndex] = finalColorValue;
+                        console.log(`📝 数据更新: 行${rowIndex}, 列${columnIndex}(${rcChannel}) = ${finalColorValue}`);
+
+                        // 记录更新结果
+                        updatedColors.push({
+                            channel: rcChannel,
+                            colorCode: colorCode,
+                            value: finalColorValue,
+                            isDefault: isDefault,
+                            rowIndex: rowIndex,
+                            columnIndex: columnIndex
+                        });
+
+                        if (isDefault) {
+                            summary.notFound++;
+                            console.warn(`⚠️ 使用默认值: ${rcChannel} = ${finalColorValue} (颜色代码: ${colorCode})`);
+                        } else {
+                            summary.updated++;
+                            console.log(`✅ 成功更新: ${rcChannel} = ${finalColorValue} (颜色代码: ${colorCode})`);
+                        }
+                    } else {
+                        console.error(`❌ 数据更新失败: 无效的行或列索引 - 行:${rowIndex}, 列:${columnIndex}`);
+                        throw new Error(`无效的数据位置: 行${rowIndex}, 列${columnIndex}`);
+                    }
                 } else {
-                    summary.updated++;
-                    console.log(`✅ 成功更新: ${rcChannel} = ${finalColorValue} (颜色代码: ${colorCode})`);
+                    // RC通道无效，只记录但不更新实际数据
+                    console.log(`🔄 跳过数据更新: RC通道无效 (${rcChannel}), 颜色代码: ${colorCode}`);
+
+                    // 记录跳过的项目（用于统计）
+                    updatedColors.push({
+                        channel: rcChannel || '无效通道',
+                        colorCode: colorCode,
+                        value: finalColorValue,
+                        isDefault: true,
+                        skipped: true,
+                        reason: 'RC通道无效'
+                    });
+
+                    summary.notFound++;
                 }
             } catch (error) {
                 const errorMsg = `处理${rcChannel}时出错: ${error.message}`;
@@ -1078,7 +1117,13 @@ window.App.ThemeManager = (function() {
             }
         });
 
-        console.log('\n颜色映射处理完成:', summary);
+        console.log('\n=== 颜色映射处理完成 ===');
+        console.log('处理统计:', summary);
+        console.log('有效映射数量:', updatedColors.filter(c => !c.skipped).length);
+        console.log('跳过映射数量:', updatedColors.filter(c => c.skipped).length);
+        console.log('成功更新数量:', summary.updated);
+        console.log('使用默认值数量:', summary.notFound);
+        console.log('错误数量:', summary.errors.length);
 
         // 处理所有颜色通道，确保没有映射的通道也有默认值
         processAllColorChannels(headerRow, themeRow, rowIndex, updatedColors, summary);
