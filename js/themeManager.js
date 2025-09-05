@@ -1563,10 +1563,13 @@ window.App.ThemeManager = (function() {
             }
 
             // 生成Excel文件数据 (使用xls格式以兼容Unity工具)
-            const excelBuffer = XLSX.write(workbook, {
+            console.log('UGC原文件名:', ugcThemeData.fileName);
+            const cleanWorkbook = createCleanWorkbook(workbook);
+            const excelBuffer = XLSX.write(cleanWorkbook, {
                 bookType: 'xls',
                 type: 'array'
             });
+            console.log('UGC文件已强制转换为.xls格式');
 
             console.log('UGC文件数据大小:', excelBuffer.byteLength, 'bytes');
 
@@ -1609,7 +1612,8 @@ window.App.ThemeManager = (function() {
     async function downloadFileTraditionally(workbook, themeName, ugcResult) {
         try {
             // 下载RSC_Theme文件 (使用xls格式以兼容Unity工具)
-            const excelBuffer = XLSX.write(workbook, {
+            const cleanWorkbook = createCleanWorkbook(workbook);
+            const excelBuffer = XLSX.write(cleanWorkbook, {
                 bookType: 'xls',
                 type: 'array'
             });
@@ -1634,7 +1638,8 @@ window.App.ThemeManager = (function() {
             if (ugcResult && ugcResult.success && ugcResult.workbook) {
                 console.log('开始下载UGC文件...');
 
-                const ugcExcelBuffer = XLSX.write(ugcResult.workbook, {
+                const cleanUgcWorkbook = createCleanWorkbook(ugcResult.workbook);
+                const ugcExcelBuffer = XLSX.write(cleanUgcWorkbook, {
                     bookType: 'xls',
                     type: 'array'
                 });
@@ -1717,6 +1722,40 @@ window.App.ThemeManager = (function() {
     }
 
     /**
+     * 创建清理后的工作簿
+     * 移除SheetJS无法处理的复杂属性，只保留纯数据
+     * @param {Object} originalWorkbook - 原始工作簿
+     * @returns {Object} 清理后的工作簿
+     */
+    function createCleanWorkbook(originalWorkbook) {
+        console.log('开始清理工作簿数据...');
+        const cleanWb = XLSX.utils.book_new();
+
+        // 清理并重建每个工作表
+        originalWorkbook.SheetNames.forEach(sheetName => {
+            const worksheet = originalWorkbook.Sheets[sheetName];
+
+            // 提取纯数据（移除所有格式和特殊属性）
+            const data = XLSX.utils.sheet_to_json(worksheet, {
+                header: 1,
+                defval: '',
+                raw: false  // 确保数据为字符串格式
+            });
+
+            console.log(`清理工作表 "${sheetName}"，数据行数: ${data.length}`);
+
+            // 从纯数据重建工作表
+            const newWorksheet = XLSX.utils.aoa_to_sheet(data);
+
+            // 添加到新工作簿
+            XLSX.utils.book_append_sheet(cleanWb, newWorksheet, sheetName);
+        });
+
+        console.log('工作簿清理完成，工作表数量:', cleanWb.SheetNames.length);
+        return cleanWb;
+    }
+
+    /**
      * 直接保存文件到原位置（增强版，包含详细调试）
      */
     async function saveFileDirectly(workbook) {
@@ -1785,9 +1824,12 @@ window.App.ThemeManager = (function() {
                 }
             }
 
-            // 生成Excel数据 (使用xls格式以兼容Unity工具)
+            // 清理工作簿数据并生成Excel数据
+            console.log('开始清理工作簿数据...');
+            const cleanWorkbook = createCleanWorkbook(workbook);
+
             console.log('生成Excel数据...');
-            const excelBuffer = XLSX.write(workbook, {
+            const excelBuffer = XLSX.write(cleanWorkbook, {
                 bookType: 'xls',
                 type: 'array'
             });
@@ -1844,7 +1886,8 @@ window.App.ThemeManager = (function() {
 
             // 回退到下载方式 (使用xls格式以兼容Unity工具)
             console.log('回退到传统下载方式...');
-            const wbout = XLSX.write(workbook, { bookType: 'xls', type: 'array' });
+            const cleanWorkbook = createCleanWorkbook(workbook);
+            const wbout = XLSX.write(cleanWorkbook, { bookType: 'xls', type: 'array' });
             const blob = new Blob([wbout], { type: 'application/octet-stream' });
 
             const url = URL.createObjectURL(blob);
@@ -2202,13 +2245,12 @@ window.App.ThemeManager = (function() {
             // 获取记忆的文件信息
             const lastFileInfo = App.Utils.getLastPath('RSC_THEME');
 
-            // 构建文件选择器选项
+            // 构建文件选择器选项 (只接受.xls格式以确保Unity工具兼容性)
             const pickerOptions = {
                 types: [{
-                    description: 'Excel files',
+                    description: 'Excel files (.xls only for Unity compatibility)',
                     accept: {
-                        'application/vnd.ms-excel': ['.xls'],
-                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']
+                        'application/vnd.ms-excel': ['.xls']
                     }
                 }],
                 multiple: false,
@@ -2223,6 +2265,12 @@ window.App.ThemeManager = (function() {
 
             // 选择RSC_Theme文件并获取写入权限
             const [fileHandle] = await window.showOpenFilePicker(pickerOptions);
+
+            // 验证文件格式
+            if (!fileHandle.name.toLowerCase().endsWith('.xls')) {
+                App.Utils.showStatus('请选择.xls格式的RSC_Theme文件以确保Unity工具兼容性', 'error');
+                return false;
+            }
 
             // 保存路径记忆
             if (fileHandle.name) {
@@ -2292,13 +2340,12 @@ window.App.ThemeManager = (function() {
             // 获取记忆的文件信息
             const lastFileInfo = App.Utils.getLastPath('UGC_THEME');
 
-            // 构建文件选择器选项
+            // 构建文件选择器选项 (只接受.xls格式以确保Unity工具兼容性)
             const pickerOptions = {
                 types: [{
-                    description: 'Excel files',
+                    description: 'Excel files (.xls only for Unity compatibility)',
                     accept: {
-                        'application/vnd.ms-excel': ['.xls'],
-                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']
+                        'application/vnd.ms-excel': ['.xls']
                     }
                 }],
                 multiple: false,
@@ -2313,6 +2360,12 @@ window.App.ThemeManager = (function() {
 
             // 选择UGCTheme文件并获取写入权限
             const [fileHandle] = await window.showOpenFilePicker(pickerOptions);
+
+            // 验证文件格式
+            if (!fileHandle.name.toLowerCase().endsWith('.xls')) {
+                App.Utils.showStatus('请选择.xls格式的UGCTheme文件以确保Unity工具兼容性', 'error');
+                return false;
+            }
 
             // 保存路径记忆
             if (fileHandle.name) {
