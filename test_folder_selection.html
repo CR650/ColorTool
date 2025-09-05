@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件夹选择功能测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 ColorTool 文件夹选择功能测试</h1>
+    
+    <div class="test-section">
+        <h2>1. 浏览器兼容性检测</h2>
+        <button class="test-button" onclick="testBrowserSupport()">检测浏览器支持</button>
+        <div id="browserResult" class="result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. 文件夹选择API测试</h2>
+        <button class="test-button" onclick="testFolderSelection()">测试文件夹选择</button>
+        <div id="folderResult" class="result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. 模块加载测试</h2>
+        <button class="test-button" onclick="testModuleLoading()">检查模块加载</button>
+        <div id="moduleResult" class="result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. 完整功能测试</h2>
+        <button class="test-button" onclick="testFullWorkflow()">测试完整工作流程</button>
+        <div id="workflowResult" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- 引入必要的脚本 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/unityProjectFolderManager.js"></script>
+
+    <script>
+        // 测试函数
+        function showResult(elementId, message, isError = false) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result ${isError ? 'error' : 'success'}`;
+            element.innerHTML = message;
+        }
+
+        function testBrowserSupport() {
+            const hasDirectoryPicker = 'showDirectoryPicker' in window;
+            const hasFileSystemAccess = 'showOpenFilePicker' in window;
+            const userAgent = navigator.userAgent;
+            
+            let browserInfo = '';
+            if (userAgent.includes('Chrome')) browserInfo = 'Chrome';
+            else if (userAgent.includes('Edge')) browserInfo = 'Edge';
+            else if (userAgent.includes('Firefox')) browserInfo = 'Firefox';
+            else if (userAgent.includes('Safari')) browserInfo = 'Safari';
+            else browserInfo = '未知浏览器';
+            
+            const message = `
+                <strong>浏览器信息：</strong> ${browserInfo}<br>
+                <strong>文件夹选择支持：</strong> ${hasDirectoryPicker ? '✅ 支持' : '❌ 不支持'}<br>
+                <strong>文件系统访问支持：</strong> ${hasFileSystemAccess ? '✅ 支持' : '❌ 不支持'}<br>
+                <strong>建议：</strong> ${hasDirectoryPicker ? '可以使用完整功能' : '建议使用Chrome 86+或Edge 86+'}
+            `;
+            
+            showResult('browserResult', message, !hasDirectoryPicker);
+        }
+
+        async function testFolderSelection() {
+            try {
+                if (!('showDirectoryPicker' in window)) {
+                    throw new Error('浏览器不支持文件夹选择功能');
+                }
+                
+                const dirHandle = await window.showDirectoryPicker({
+                    mode: 'read'
+                });
+                
+                let fileCount = 0;
+                const files = [];
+                
+                for await (const [name, handle] of dirHandle.entries()) {
+                    if (handle.kind === 'file') {
+                        fileCount++;
+                        files.push(name);
+                        if (files.length < 10) { // 只显示前10个文件
+                            // 继续收集文件名
+                        }
+                    }
+                }
+                
+                const message = `
+                    <strong>文件夹选择成功！</strong><br>
+                    <strong>文件夹名称：</strong> ${dirHandle.name}<br>
+                    <strong>文件数量：</strong> ${fileCount}<br>
+                    <strong>部分文件：</strong> ${files.slice(0, 5).join(', ')}${files.length > 5 ? '...' : ''}
+                `;
+                
+                showResult('folderResult', message);
+                
+            } catch (error) {
+                const message = `
+                    <strong>文件夹选择失败：</strong><br>
+                    ${error.message}
+                `;
+                showResult('folderResult', message, true);
+            }
+        }
+
+        function testModuleLoading() {
+            const checks = [
+                { name: 'XLSX库', check: () => typeof XLSX !== 'undefined' },
+                { name: 'App命名空间', check: () => typeof window.App !== 'undefined' },
+                { name: 'UnityProjectFolderManager', check: () => window.App && window.App.UnityProjectFolderManager },
+                { name: 'Utils模块', check: () => window.App && window.App.Utils }
+            ];
+            
+            const results = checks.map(({ name, check }) => {
+                const passed = check();
+                return `<strong>${name}：</strong> ${passed ? '✅ 已加载' : '❌ 未加载'}`;
+            });
+            
+            const allPassed = checks.every(({ check }) => check());
+            const message = results.join('<br>');
+            
+            showResult('moduleResult', message, !allPassed);
+        }
+
+        async function testFullWorkflow() {
+            try {
+                // 检查模块是否可用
+                if (!window.App || !window.App.UnityProjectFolderManager) {
+                    throw new Error('UnityProjectFolderManager模块未加载');
+                }
+                
+                const manager = window.App.UnityProjectFolderManager.create();
+                
+                const message = `
+                    <strong>模块创建成功！</strong><br>
+                    <strong>浏览器支持：</strong> ${manager.isSupported ? '✅ 支持' : '❌ 不支持'}<br>
+                    <strong>状态：</strong> 准备就绪，可以进行文件夹选择<br>
+                    <strong>建议：</strong> 请在主应用中测试完整的文件夹选择和文件加载流程
+                `;
+                
+                showResult('workflowResult', message);
+                
+            } catch (error) {
+                const message = `
+                    <strong>工作流程测试失败：</strong><br>
+                    ${error.message}
+                `;
+                showResult('workflowResult', message, true);
+            }
+        }
+
+        // 页面加载时自动运行基础检测
+        window.addEventListener('load', () => {
+            console.log('测试页面加载完成');
+            testBrowserSupport();
+            testModuleLoading();
+        });
+    </script>
+</body>
+</html>

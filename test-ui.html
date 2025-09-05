@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ColorTool UI 测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.supported {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.unsupported {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .ui-section {
+            border: 2px dashed #ccc;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .ui-section.visible {
+            border-color: #28a745;
+            background-color: #f8fff9;
+        }
+        .ui-section.hidden {
+            border-color: #dc3545;
+            background-color: #fff5f5;
+            opacity: 0.5;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>ColorTool 动态UI测试页面</h1>
+    
+    <div class="test-section">
+        <h2>浏览器兼容性检测</h2>
+        <div id="browserInfo"></div>
+        <div id="supportStatus"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>UI显示测试</h2>
+        <p>根据浏览器能力，应该只显示一个区域：</p>
+        
+        <div id="folderSelectionSection" class="ui-section" style="display: none;">
+            <h3>📁 选择Unity项目文件夹</h3>
+            <p>这是支持文件夹选择的浏览器显示的区域</p>
+            <button id="selectFolderBtn">📁 选择Unity项目文件夹</button>
+        </div>
+
+        <div id="individualFileSelectionSection" class="ui-section" style="display: none;">
+            <h3>📄 分别选择文件</h3>
+            <p>这是不支持文件夹选择的浏览器显示的区域</p>
+            <div id="browserUpgradeNote" style="display: none; margin-bottom: 20px; padding: 15px; border: 1px solid #ffc107; border-radius: 5px; background-color: #fff3cd;">
+                <h5 style="margin: 0 0 10px 0; color: #856404;">💡 浏览器兼容性提示</h5>
+                <p style="margin: 0; color: #856404;">
+                    您当前使用的浏览器不支持文件夹选择功能。<br>
+                    建议升级到 <strong>Chrome 86+</strong> 或 <strong>Edge 86+</strong> 以获得更好的体验。
+                </p>
+            </div>
+            <button>选择RSC_Theme.xls文件</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>手动切换测试</h2>
+        <button onclick="testSupportedMode()">模拟支持的浏览器</button>
+        <button onclick="testUnsupportedMode()">模拟不支持的浏览器</button>
+    </div>
+
+    <script>
+        // 模拟文件夹选择API检测
+        function checkFolderSupport() {
+            return 'showDirectoryPicker' in window;
+        }
+
+        // 设置动态UI
+        function setupDynamicUI(isSupported) {
+            const folderSelectionSection = document.getElementById('folderSelectionSection');
+            const individualFileSelectionSection = document.getElementById('individualFileSelectionSection');
+            const browserUpgradeNote = document.getElementById('browserUpgradeNote');
+
+            if (isSupported) {
+                // 支持文件夹选择的浏览器
+                if (folderSelectionSection) {
+                    folderSelectionSection.style.display = 'block';
+                    folderSelectionSection.classList.add('visible');
+                    folderSelectionSection.classList.remove('hidden');
+                }
+                if (individualFileSelectionSection) {
+                    individualFileSelectionSection.style.display = 'none';
+                    individualFileSelectionSection.classList.add('hidden');
+                    individualFileSelectionSection.classList.remove('visible');
+                }
+                console.log('UI已切换到文件夹选择模式');
+            } else {
+                // 不支持文件夹选择的浏览器
+                if (folderSelectionSection) {
+                    folderSelectionSection.style.display = 'none';
+                    folderSelectionSection.classList.add('hidden');
+                    folderSelectionSection.classList.remove('visible');
+                }
+                if (individualFileSelectionSection) {
+                    individualFileSelectionSection.style.display = 'block';
+                    individualFileSelectionSection.classList.add('visible');
+                    individualFileSelectionSection.classList.remove('hidden');
+                }
+                if (browserUpgradeNote) {
+                    browserUpgradeNote.style.display = 'block';
+                }
+                console.log('UI已切换到兼容模式（单文件选择）');
+            }
+        }
+
+        // 显示浏览器信息
+        function displayBrowserInfo() {
+            const browserInfo = document.getElementById('browserInfo');
+            const supportStatus = document.getElementById('supportStatus');
+            const userAgent = navigator.userAgent;
+            
+            let browserName = 'Unknown';
+            if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) {
+                browserName = 'Chrome';
+            } else if (userAgent.includes('Edg')) {
+                browserName = 'Edge';
+            } else if (userAgent.includes('Firefox')) {
+                browserName = 'Firefox';
+            } else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) {
+                browserName = 'Safari';
+            }
+
+            const isSupported = checkFolderSupport();
+            
+            browserInfo.innerHTML = `
+                <strong>浏览器:</strong> ${browserName}<br>
+                <strong>User Agent:</strong> ${userAgent}<br>
+                <strong>文件夹选择API:</strong> ${'showDirectoryPicker' in window ? '✅ 支持' : '❌ 不支持'}
+            `;
+
+            supportStatus.className = `status ${isSupported ? 'supported' : 'unsupported'}`;
+            supportStatus.innerHTML = isSupported 
+                ? '✅ 您的浏览器支持文件夹选择功能，将显示文件夹选择界面'
+                : '❌ 您的浏览器不支持文件夹选择功能，将显示兼容模式界面';
+
+            return isSupported;
+        }
+
+        // 测试函数
+        function testSupportedMode() {
+            setupDynamicUI(true);
+        }
+
+        function testUnsupportedMode() {
+            setupDynamicUI(false);
+        }
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            const isSupported = displayBrowserInfo();
+            setupDynamicUI(isSupported);
+        });
+    </script>
+</body>
+</html>

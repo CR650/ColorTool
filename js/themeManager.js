@@ -26,13 +26,30 @@ window.App.ThemeManager = (function() {
     let rscAllSheetsData = null;     // RSC_Theme文件的所有Sheet数据
     let ugcAllSheetsData = null;     // UGCTheme文件的所有Sheet数据
 
+    // 文件夹选择相关状态
+    let folderManager = null;        // Unity项目文件夹管理器实例
+    let folderSelectionActive = false; // 是否使用文件夹选择模式
+
     // DOM元素引用
     let themeNameInput = null;
+    let themeSelector = null;
     let processThemeBtn = null;
     let resetBtn = null;
     let enableDirectSaveBtn = null;
     let enableUGCDirectSaveBtn = null;
     let fileStatus = null;
+    let operationModeIndicator = null;
+    let modeBadge = null;
+    let modeDescription = null;
+    let themeInputValidation = null;
+
+    // 文件夹选择相关DOM元素
+    let selectFolderBtn = null;
+    let folderUploadArea = null;
+    let folderSelectionResult = null;
+    let selectedFolderPath = null;
+    let rscFileStatus = null;
+    let ugcFileStatus = null;
 
     // Sheet选择器相关DOM元素
     let sheetSelectorSection = null;
@@ -56,11 +73,24 @@ window.App.ThemeManager = (function() {
 
         // 获取DOM元素
         themeNameInput = document.getElementById('themeNameInput');
+        themeSelector = document.getElementById('themeSelector');
         processThemeBtn = document.getElementById('processThemeBtn');
         resetBtn = document.getElementById('resetBtn');
         enableDirectSaveBtn = document.getElementById('enableDirectSaveBtn');
         enableUGCDirectSaveBtn = document.getElementById('enableUGCDirectSaveBtn');
         fileStatus = document.getElementById('fileStatus');
+        operationModeIndicator = document.getElementById('operationModeIndicator');
+        modeBadge = document.getElementById('modeBadge');
+        modeDescription = document.getElementById('modeDescription');
+        themeInputValidation = document.getElementById('themeInputValidation');
+
+        // 获取文件夹选择相关DOM元素
+        selectFolderBtn = document.getElementById('selectFolderBtn');
+        folderUploadArea = document.getElementById('folderUploadArea');
+        folderSelectionResult = document.getElementById('folderSelectionResult');
+        selectedFolderPath = document.getElementById('selectedFolderPath');
+        rscFileStatus = document.getElementById('rscFileStatus');
+        ugcFileStatus = document.getElementById('ugcFileStatus');
 
         // 获取Sheet选择器相关DOM元素
         sheetSelectorSection = document.getElementById('sheetSelectorSection');
@@ -75,6 +105,9 @@ window.App.ThemeManager = (function() {
 
         // 设置事件监听器
         setupEventListeners();
+
+        // 初始化文件夹选择功能
+        initializeFolderSelection();
 
         // 加载对比映射数据
         loadMappingData();
@@ -115,6 +148,17 @@ window.App.ThemeManager = (function() {
 
         if (rscSheetSelect) {
             rscSheetSelect.addEventListener('change', handleSheetSelectionChange);
+        }
+
+        // 主题选择器事件监听
+        if (themeSelector) {
+            themeSelector.addEventListener('change', handleThemeSelection);
+        }
+
+        // 主题输入框事件监听
+        if (themeNameInput) {
+            themeNameInput.addEventListener('input', handleThemeInput);
+            themeNameInput.addEventListener('blur', validateThemeInput);
         }
     }
 
@@ -387,6 +431,230 @@ window.App.ThemeManager = (function() {
     }
 
     /**
+     * 从RSC_Theme.xls中提取现有主题名称列表
+     * @returns {Array} 现有主题名称数组
+     */
+    function extractExistingThemes() {
+        console.log('=== 开始提取现有主题列表 ===');
+
+        if (!rscThemeData || !rscThemeData.data || rscThemeData.data.length < 6) {
+            console.warn('RSC_Theme数据未加载或数据不足（需要至少6行数据）');
+            return [];
+        }
+
+        const data = rscThemeData.data;
+        const headerRow = data[0];
+        const notesColumnIndex = headerRow.findIndex(col => col === 'notes');
+
+        if (notesColumnIndex === -1) {
+            console.warn('在RSC_Theme.xls中未找到notes列');
+            return [];
+        }
+
+        console.log(`notes列索引: ${notesColumnIndex}`);
+
+        // 调试：输出前几行数据以验证结构
+        console.log('RSC_Theme数据结构验证:');
+        for (let i = 0; i < Math.min(8, data.length); i++) {
+            const noteValue = data[i][notesColumnIndex];
+            console.log(`第${i + 1}行 notes列值:`, noteValue);
+        }
+
+        // 从第6行开始提取主题名称（索引5），保持原始顺序
+        const existingThemes = [];
+        for (let i = 5; i < data.length; i++) {
+            const themeName = data[i][notesColumnIndex];
+            if (themeName && themeName.trim() !== '') {
+                const trimmedName = themeName.trim();
+                // 避免重复，但保持第一次出现的顺序
+                if (!existingThemes.includes(trimmedName)) {
+                    existingThemes.push(trimmedName);
+                }
+            }
+        }
+
+        console.log(`从第6行开始提取到 ${existingThemes.length} 个现有主题:`, existingThemes);
+        console.log('=== 主题列表提取完成（保持原始顺序） ===');
+
+        return existingThemes; // 保持表格中的原始排列顺序，不进行排序
+    }
+
+    /**
+     * 更新主题选择器的选项列表
+     */
+    function updateThemeSelector() {
+        const themeSelector = document.getElementById('themeSelector');
+        if (!themeSelector) {
+            console.warn('主题选择器元素未找到');
+            return;
+        }
+
+        // 清空现有选项
+        themeSelector.innerHTML = '<option value="">选择现有主题进行更新...</option>';
+
+        // 获取现有主题列表
+        const existingThemes = extractExistingThemes();
+
+        // 添加主题选项
+        existingThemes.forEach(themeName => {
+            const option = document.createElement('option');
+            option.value = themeName;
+            option.textContent = themeName;
+            themeSelector.appendChild(option);
+        });
+
+        console.log(`主题选择器已更新，包含 ${existingThemes.length} 个选项`);
+    }
+
+    /**
+     * 处理主题选择器变化事件
+     */
+    function handleThemeSelection() {
+        if (!themeSelector) return;
+
+        const selectedTheme = themeSelector.value;
+
+        if (selectedTheme) {
+            // 清空文本输入框
+            if (themeNameInput) {
+                themeNameInput.value = '';
+            }
+
+            // 更新操作模式为更新模式
+            updateOperationMode('update', selectedTheme);
+
+            // 启用处理按钮
+            if (processThemeBtn) {
+                processThemeBtn.disabled = false;
+            }
+
+            // 隐藏验证提示
+            hideValidationMessage();
+        } else {
+            // 重置操作模式
+            updateOperationMode('neutral');
+
+            // 禁用处理按钮
+            if (processThemeBtn) {
+                processThemeBtn.disabled = true;
+            }
+        }
+    }
+
+    /**
+     * 处理主题输入框变化事件
+     */
+    function handleThemeInput() {
+        if (!themeNameInput) return;
+
+        const inputValue = themeNameInput.value.trim();
+
+        if (inputValue) {
+            // 清空选择器
+            if (themeSelector) {
+                themeSelector.value = '';
+            }
+
+            // 更新操作模式为创建模式
+            updateOperationMode('create', inputValue);
+
+            // 验证输入
+            validateThemeInput();
+        } else {
+            // 重置操作模式
+            updateOperationMode('neutral');
+
+            // 禁用处理按钮
+            if (processThemeBtn) {
+                processThemeBtn.disabled = true;
+            }
+
+            // 隐藏验证提示
+            hideValidationMessage();
+        }
+    }
+
+    /**
+     * 验证主题输入
+     */
+    function validateThemeInput() {
+        if (!themeNameInput) return;
+
+        const inputValue = themeNameInput.value.trim();
+
+        if (!inputValue) {
+            hideValidationMessage();
+            if (processThemeBtn) {
+                processThemeBtn.disabled = true;
+            }
+            return;
+        }
+
+        // 检查是否与现有主题重复
+        const existingThemes = extractExistingThemes();
+        const isDuplicate = existingThemes.some(theme =>
+            theme.toLowerCase() === inputValue.toLowerCase()
+        );
+
+        if (isDuplicate) {
+            showValidationMessage('error', `主题 "${inputValue}" 已存在，请选择更新现有主题或使用不同的名称`);
+            if (processThemeBtn) {
+                processThemeBtn.disabled = true;
+            }
+        } else {
+            showValidationMessage('success', `将创建新主题 "${inputValue}"`);
+            if (processThemeBtn) {
+                processThemeBtn.disabled = false;
+            }
+        }
+    }
+
+    /**
+     * 更新操作模式显示
+     */
+    function updateOperationMode(mode, themeName = '') {
+        if (!modeBadge || !modeDescription) return;
+
+        switch (mode) {
+            case 'update':
+                modeBadge.textContent = '🔄 更新模式';
+                modeBadge.className = 'mode-badge update-mode';
+                modeDescription.textContent = `将更新现有主题 "${themeName}" 的颜色数据`;
+                break;
+            case 'create':
+                modeBadge.textContent = '✨ 创建模式';
+                modeBadge.className = 'mode-badge create-mode';
+                modeDescription.textContent = `将创建新主题 "${themeName}" 并添加到表格末尾`;
+                break;
+            default:
+                modeBadge.textContent = '请选择操作模式';
+                modeBadge.className = 'mode-badge neutral';
+                modeDescription.textContent = '选择现有主题进行更新，或输入新主题名称进行创建';
+                break;
+        }
+    }
+
+    /**
+     * 显示验证消息
+     */
+    function showValidationMessage(type, message) {
+        if (!themeInputValidation) return;
+
+        themeInputValidation.textContent = message;
+        themeInputValidation.className = `input-validation ${type}`;
+        themeInputValidation.style.display = 'block';
+    }
+
+    /**
+     * 隐藏验证消息
+     */
+    function hideValidationMessage() {
+        if (!themeInputValidation) return;
+
+        themeInputValidation.style.display = 'none';
+    }
+
+    /**
      * 检查是否准备就绪
      */
     function checkReadyState() {
@@ -399,23 +667,65 @@ window.App.ThemeManager = (function() {
                 themeInputSection.style.display = 'block';
             }
 
-            App.Utils.showStatus('所有文件已准备就绪，请输入主题名称', 'success');
+            // 更新主题选择器
+            updateThemeSelector();
+
+            App.Utils.showStatus('所有文件已准备就绪，请选择或输入主题名称', 'success');
         }
+    }
+
+    /**
+     * 获取当前选择的主题名称和操作模式
+     */
+    function getCurrentThemeSelection() {
+        let themeName = '';
+        let operationMode = 'create';
+
+        // 优先检查选择器
+        if (themeSelector && themeSelector.value) {
+            themeName = themeSelector.value.trim();
+            operationMode = 'update';
+        }
+        // 其次检查输入框
+        else if (themeNameInput && themeNameInput.value.trim()) {
+            themeName = themeNameInput.value.trim();
+            operationMode = 'create';
+        }
+
+        return { themeName, operationMode };
     }
 
     /**
      * 处理主题数据
      */
     async function processThemeData() {
-        const themeName = themeNameInput ? themeNameInput.value.trim() : '';
-        
+        const { themeName, operationMode } = getCurrentThemeSelection();
+
         if (!themeName) {
-            App.Utils.showStatus('请输入主题名称', 'error');
+            App.Utils.showStatus('请选择现有主题或输入新主题名称', 'error');
             return;
         }
 
-        if (!sourceData || !rscThemeData || !ugcThemeData || !mappingData) {
-            App.Utils.showStatus('请确保所有必要文件已加载', 'error');
+        // 检查必要文件并提供详细的错误信息
+        const missingFiles = [];
+        if (!sourceData) missingFiles.push('源数据文件（包含完整配色表的Excel文件）');
+        if (!rscThemeData) missingFiles.push('RSC_Theme.xls文件');
+        if (!ugcThemeData) missingFiles.push('UGCTheme.xls文件');
+        if (!mappingData) missingFiles.push('对比映射数据');
+
+        if (missingFiles.length > 0) {
+            const errorMessage = `缺少以下必要文件：\n• ${missingFiles.join('\n• ')}`;
+            App.Utils.showStatus(errorMessage, 'error');
+            console.warn('缺少必要文件:', missingFiles);
+            return;
+        }
+
+        // 显示操作确认
+        const confirmMessage = operationMode === 'update'
+            ? `确认更新现有主题 "${themeName}" 吗？这将覆盖该主题的所有颜色数据。`
+            : `确认创建新主题 "${themeName}" 吗？`;
+
+        if (!confirm(confirmMessage)) {
             return;
         }
 
@@ -2095,6 +2405,20 @@ window.App.ThemeManager = (function() {
             themeNameInput.value = '';
         }
 
+        if (themeSelector) {
+            themeSelector.value = '';
+        }
+
+        if (processThemeBtn) {
+            processThemeBtn.disabled = true;
+        }
+
+        // 重置操作模式
+        updateOperationMode('neutral');
+
+        // 隐藏验证消息
+        hideValidationMessage();
+
         // 隐藏相关区域
         const sections = ['themeInputSection', 'resultDisplay', 'dataPreview'];
         sections.forEach(sectionId => {
@@ -2904,6 +3228,407 @@ window.App.ThemeManager = (function() {
         compatibilityDiv.style.color = textColor;
         compatibilityDiv.style.border = `1px solid ${textColor}`;
         compatibilityDiv.innerHTML = html;
+    }
+
+    /**
+     * 初始化文件夹选择功能
+     */
+    function initializeFolderSelection() {
+        console.log('初始化文件夹选择功能...');
+
+        // 检查浏览器支持并设置动态UI
+        const isSupported = App.UnityProjectFolderManager.isSupported();
+        setupDynamicUI(isSupported);
+
+        if (!isSupported) {
+            console.log('浏览器不支持文件夹选择，已切换到兼容模式');
+            return;
+        }
+
+        // 设置文件夹选择事件监听器
+        if (selectFolderBtn) {
+            selectFolderBtn.addEventListener('click', handleFolderSelection);
+            console.log('文件夹选择按钮事件监听器已设置');
+        }
+    }
+
+    /**
+     * 根据浏览器能力设置动态UI显示
+     */
+    function setupDynamicUI(isSupported) {
+        const folderSelectionSection = document.getElementById('folderSelectionSection');
+        const individualFileSelectionSection = document.getElementById('individualFileSelectionSection');
+        const browserUpgradeNote = document.getElementById('browserUpgradeNote');
+
+        if (isSupported) {
+            // 支持文件夹选择的浏览器：显示文件夹选择区域，隐藏单文件选择区域
+            if (folderSelectionSection) {
+                folderSelectionSection.style.display = 'block';
+            }
+            if (individualFileSelectionSection) {
+                individualFileSelectionSection.style.display = 'none';
+            }
+            console.log('UI已切换到文件夹选择模式');
+        } else {
+            // 不支持文件夹选择的浏览器：隐藏文件夹选择区域，显示单文件选择区域
+            if (folderSelectionSection) {
+                folderSelectionSection.style.display = 'none';
+            }
+            if (individualFileSelectionSection) {
+                individualFileSelectionSection.style.display = 'block';
+            }
+            if (browserUpgradeNote) {
+                browserUpgradeNote.style.display = 'block';
+            }
+            console.log('UI已切换到兼容模式（单文件选择）');
+        }
+    }
+
+
+
+
+
+
+
+    /**
+     * 处理文件夹选择
+     */
+    async function handleFolderSelection() {
+        try {
+            console.log('开始文件夹选择...');
+            App.Utils.showStatus('正在选择文件夹...', 'info');
+
+            // 创建文件夹管理器实例
+            folderManager = App.UnityProjectFolderManager.create();
+
+            // 选择文件夹并自动定位文件
+            const result = await folderManager.selectUnityProjectFolder();
+
+            if (result.success) {
+                console.log('文件夹选择成功:', result);
+                await handleFolderSelectionSuccess(result);
+            } else {
+                throw new Error('文件夹选择失败');
+            }
+
+        } catch (error) {
+            console.error('文件夹选择失败:', error);
+            handleFolderSelectionError(error);
+        }
+    }
+
+    /**
+     * 处理文件夹选择成功
+     */
+    async function handleFolderSelectionSuccess(result) {
+        try {
+            console.log('处理文件夹选择成功结果...');
+
+            // 设置文件夹选择模式标志
+            folderSelectionActive = true;
+
+            // 更新UI显示
+            updateFolderSelectionUI(result);
+
+            // 自动加载找到的文件
+            let loadedCount = 0;
+
+            if (result.rscThemeFound && result.files.rscTheme.hasPermission) {
+                try {
+                    const rscData = await folderManager.loadThemeFileData('rsc');
+                    await setRSCThemeDataFromFolder(rscData);
+                    loadedCount++;
+                    console.log('RSC_Theme文件加载成功');
+                } catch (error) {
+                    console.error('RSC_Theme文件加载失败:', error);
+                    updateFileStatusInUI('rsc', '加载失败', 'error');
+                }
+            }
+
+            if (result.ugcThemeFound && result.files.ugcTheme.hasPermission) {
+                try {
+                    const ugcData = await folderManager.loadThemeFileData('ugc');
+                    await setUGCThemeDataFromFolder(ugcData);
+                    loadedCount++;
+                    console.log('UGCTheme文件加载成功');
+                } catch (error) {
+                    console.error('UGCTheme文件加载失败:', error);
+                    updateFileStatusInUI('ugc', '加载失败', 'error');
+                }
+            }
+
+            // 检查就绪状态
+            checkReadyState();
+
+            // 显示成功消息
+            const message = `文件夹选择成功！已自动加载 ${loadedCount} 个主题文件`;
+            App.Utils.showStatus(message, 'success');
+
+        } catch (error) {
+            console.error('处理文件夹选择结果失败:', error);
+            App.Utils.showStatus('文件夹处理失败: ' + error.message, 'error');
+        }
+    }
+
+    /**
+     * 处理文件夹选择错误
+     */
+    function handleFolderSelectionError(error) {
+        console.error('文件夹选择错误:', error);
+
+        const errorHandlers = {
+            'NotAllowedError': '用户拒绝了文件夹访问权限，请重新尝试并允许访问',
+            'SecurityError': '安全限制：请确保在HTTPS环境下使用此功能',
+            'AbortError': '用户取消了文件夹选择',
+            'NotFoundError': '指定的文件夹不存在或已被移动',
+            'InvalidStateError': '文件夹状态无效，请重新选择',
+            'TypeError': '文件夹选择功能初始化失败，请刷新页面重试'
+        };
+
+        let message = errorHandlers[error.name] || `文件夹选择失败: ${error.message}`;
+
+        // 为特定错误提供解决建议
+        if (error.message.includes('Tools/xlsx')) {
+            message += '\n\n💡 建议：请确保选择的是Unity项目中包含RSC_Theme.xls或UGCTheme.xls文件的文件夹';
+        }
+
+        App.Utils.showStatus(message, 'error');
+
+        // 重置文件夹选择状态
+        resetFolderSelection();
+
+        // 显示降级选项提示
+        showFallbackOptions();
+    }
+
+    /**
+     * 重置文件夹选择状态
+     */
+    function resetFolderSelection() {
+        folderSelectionActive = false;
+
+        if (folderManager) {
+            folderManager.cleanup();
+            folderManager = null;
+        }
+
+        // 隐藏文件夹选择结果
+        if (folderSelectionResult) {
+            folderSelectionResult.style.display = 'none';
+        }
+
+        // 重置状态显示
+        if (selectedFolderPath) {
+            selectedFolderPath.textContent = '-';
+            selectedFolderPath.style.color = '#666';
+        }
+
+        updateFileStatusInUI('rsc', '-', 'info');
+        updateFileStatusInUI('ugc', '-', 'info');
+    }
+
+    /**
+     * 显示降级选项
+     */
+    function showFallbackOptions() {
+        const fallbackMessage = `
+            <div style="margin-top: 15px; padding: 10px; border: 1px solid #17a2b8; border-radius: 5px; background-color: #d1ecf1;">
+                <p style="margin: 0; color: #0c5460; font-weight: bold;">💡 替代方案</p>
+                <p style="margin: 5px 0 0 0; color: #0c5460; font-size: 14px;">
+                    您可以使用下方的"分别选择文件"功能，手动选择RSC_Theme.xls和UGCTheme.xls文件
+                </p>
+            </div>
+        `;
+
+        // 在文件夹选择区域显示降级提示
+        if (folderUploadArea) {
+            const existingFallback = folderUploadArea.querySelector('.fallback-message');
+            if (existingFallback) {
+                existingFallback.remove();
+            }
+
+            const fallbackDiv = document.createElement('div');
+            fallbackDiv.className = 'fallback-message';
+            fallbackDiv.innerHTML = fallbackMessage;
+            folderUploadArea.appendChild(fallbackDiv);
+
+            // 5秒后自动隐藏
+            setTimeout(() => {
+                if (fallbackDiv && fallbackDiv.parentNode) {
+                    fallbackDiv.remove();
+                }
+            }, 5000);
+        }
+    }
+
+    /**
+     * 验证选择的文件夹
+     */
+    async function validateSelectedFolder(result) {
+        const issues = [];
+
+        if (!result.rscThemeFound) {
+            issues.push('未找到RSC_Theme.xls文件');
+        }
+
+        if (!result.ugcThemeFound) {
+            issues.push('未找到UGCTheme.xls文件');
+        }
+
+        if (issues.length > 0) {
+            const message = `文件夹验证警告：\n${issues.join('\n')}\n\n是否继续使用找到的文件？`;
+            return confirm(message);
+        }
+
+        return true;
+    }
+
+    /**
+     * 更新文件夹选择UI显示
+     */
+    function updateFolderSelectionUI(result) {
+        if (!folderSelectionResult) return;
+
+        // 显示结果区域
+        folderSelectionResult.style.display = 'block';
+
+        // 更新文件夹路径
+        if (selectedFolderPath) {
+            selectedFolderPath.textContent = result.directoryPath;
+            selectedFolderPath.style.color = '#28a745';
+        }
+
+        // 更新RSC文件状态
+        updateFileStatusInUI('rsc',
+            result.rscThemeFound ? '✅ 已找到并获取权限' : '❌ 未找到',
+            result.rscThemeFound ? 'success' : 'error'
+        );
+
+        // 更新UGC文件状态
+        updateFileStatusInUI('ugc',
+            result.ugcThemeFound ? '✅ 已找到并获取权限' : '❌ 未找到',
+            result.ugcThemeFound ? 'success' : 'error'
+        );
+    }
+
+    /**
+     * 更新单个文件状态显示
+     */
+    function updateFileStatusInUI(fileType, status, statusType) {
+        const statusElement = fileType === 'rsc' ? rscFileStatus : ugcFileStatus;
+        if (!statusElement) return;
+
+        statusElement.textContent = status;
+
+        // 设置状态颜色
+        const colors = {
+            'success': '#28a745',
+            'error': '#dc3545',
+            'warning': '#ffc107',
+            'info': '#17a2b8'
+        };
+
+        statusElement.style.color = colors[statusType] || '#666';
+    }
+
+    /**
+     * 从文件夹设置RSC主题数据
+     */
+    async function setRSCThemeDataFromFolder(fileData) {
+        try {
+            console.log('设置RSC主题数据（来自文件夹）...');
+
+            // 设置RSC主题数据，包含文件句柄
+            rscThemeData = {
+                workbook: fileData.workbook,
+                data: null, // 将在下面设置
+                fileName: fileData.fileName,
+                fileHandle: fileData.fileHandle, // 重要：保存文件句柄用于直接保存
+                lastModified: fileData.lastModified
+            };
+
+            // 解析第一个工作表的数据
+            const firstSheetName = fileData.workbook.SheetNames[0];
+            const worksheet = fileData.workbook.Sheets[firstSheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+                header: 1,
+                defval: '',
+                raw: false
+            });
+
+            rscThemeData.data = jsonData;
+
+            // 存储所有Sheet数据
+            rscAllSheetsData = {};
+            fileData.workbook.SheetNames.forEach(sheetName => {
+                const sheet = fileData.workbook.Sheets[sheetName];
+                const sheetData = XLSX.utils.sheet_to_json(sheet, {
+                    header: 1,
+                    defval: '',
+                    raw: false
+                });
+                rscAllSheetsData[sheetName] = sheetData;
+            });
+
+            // 更新文件状态显示
+            updateFileStatus('rscThemeStatus', `已加载 (文件夹模式): ${fileData.fileName}`, 'success');
+
+            console.log('RSC主题数据设置完成（文件夹模式）');
+
+        } catch (error) {
+            console.error('设置RSC主题数据失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 从文件夹设置UGC主题数据
+     */
+    async function setUGCThemeDataFromFolder(fileData) {
+        try {
+            console.log('设置UGC主题数据（来自文件夹）...');
+
+            // 设置UGC主题数据，包含文件句柄
+            ugcThemeData = {
+                workbook: fileData.workbook,
+                data: null, // 将在下面设置
+                fileName: fileData.fileName,
+                fileHandle: fileData.fileHandle, // 重要：保存文件句柄用于直接保存
+                lastModified: fileData.lastModified
+            };
+
+            // 解析第一个工作表的数据
+            const firstSheetName = fileData.workbook.SheetNames[0];
+            const worksheet = fileData.workbook.Sheets[firstSheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+                header: 1,
+                defval: '',
+                raw: false
+            });
+
+            ugcThemeData.data = jsonData;
+
+            // 存储所有Sheet数据
+            ugcAllSheetsData = {};
+            fileData.workbook.SheetNames.forEach(sheetName => {
+                const sheet = fileData.workbook.Sheets[sheetName];
+                const sheetData = XLSX.utils.sheet_to_json(sheet, {
+                    header: 1,
+                    defval: '',
+                    raw: false
+                });
+                ugcAllSheetsData[sheetName] = sheetData;
+            });
+
+            // 更新文件状态显示
+            updateFileStatus('ugcThemeStatus', `已加载 (文件夹模式): ${fileData.fileName}`, 'success');
+
+            console.log('UGC主题数据设置完成（文件夹模式）');
+
+        } catch (error) {
+            console.error('设置UGC主题数据失败:', error);
+            throw error;
+        }
     }
 
 })();

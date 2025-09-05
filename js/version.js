@@ -17,13 +17,25 @@ window.App.Version = (function() {
 
     // 当前版本信息
     const VERSION_INFO = {
-        current: '1.1.1',
+        current: '1.2.0',
         releaseDate: '2025-09-05',
-        buildNumber: '20250905002'
+        buildNumber: '20250905003'
     };
 
     // 版本历史记录
     const VERSION_HISTORY = [
+        {
+            version: '1.2.0',
+            date: '2025-09-05',
+            changes: [
+                '修复主题提取逻辑，正确从第6行开始读取主题数据',
+                '优化更新模式下UGCTheme文件处理逻辑',
+                '改进错误提示，明确指出缺少的具体文件',
+                '完善主题数据处理流程和用户反馈',
+                '添加功能限制说明：部分数据如雾色花纹使用上一个主题的数据'
+            ],
+            type: 'minor'
+        },
         {
             version: '1.1.1',
             date: '2025-09-05',

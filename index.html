@@ -41,6 +41,11 @@
                     <li>点击处理按钮生成更新后的主题文件</li>
                 </ol>
 
+                <div class="feature-notice">
+                    <h4>⚠️ 功能说明：</h4>
+                    <p><strong>当前版本限制：</strong>部分数据如雾色花纹等特殊效果会使用上一个主题的数据。完整的编辑功能将在下个版本中提供。</p>
+                    <p><strong>更新模式：</strong>选择现有主题进行更新时，只会修改RSC_Theme.xls文件中的颜色数据，UGCTheme.xls文件无需处理。</p>
+                </div>
             </div>
         </header>
 
@@ -59,11 +64,67 @@
             </div>
         </section>
 
-        <!-- Unity项目路径选择区域 -->
-        <section class="upload-section">
+        <!-- Unity项目文件夹选择区域（现代浏览器） -->
+        <section class="upload-section" id="folderSelectionSection" style="display: none;">
             <div class="upload-options">
-                <h3>选择Unity项目rs_ugc2\RS_UGC_Unity_2021.3.31\Tools\xlsx下的RSC_Theme.xls文件</h3>
-                <p>选择RSC_Theme.xls文件并启用直接保存功能：</p>
+                <h3>� 选择Unity项目文件夹</h3>
+                <p>选择Unity项目的Tools/xlsx文件夹，自动定位所有主题文件</p>
+
+                <!-- 文件夹选择区域 -->
+                <div class="upload-area" id="folderUploadArea" style="border: 2px dashed #007bff; background-color: #f0f8ff;">
+                    <div class="upload-content">
+                        <div class="upload-icon">📁</div>
+                        <h4>选择Unity项目文件夹</h4>
+                        <p>支持Chrome/Edge浏览器，一次选择自动定位所有文件</p>
+                        <div class="help-text">
+                            <small>✅ 最佳体验：自动找到RSC_Theme.xls和UGCTheme.xls</small>
+                            <small>📍 路径示例：rs_ugc2\RS_UGC_Unity_2021.3.31\Tools\xlsx\</small>
+                        </div>
+                        <button class="upload-btn primary" id="selectFolderBtn" style="background: #007bff;">
+                            📁 选择Unity项目文件夹
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 文件夹选择结果显示 -->
+                <div id="folderSelectionResult" style="display: none; margin-top: 15px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;">
+                    <div class="result-summary">
+                        <h5>📂 文件夹选择结果</h5>
+                        <div class="file-status-grid" style="display: grid; grid-template-columns: auto 1fr; gap: 10px; margin-top: 10px;">
+                            <div class="status-item" style="display: contents;">
+                                <span class="status-label" style="font-weight: bold;">文件夹路径:</span>
+                                <span class="status-value" id="selectedFolderPath" style="color: #666;">-</span>
+                            </div>
+                            <div class="status-item" style="display: contents;">
+                                <span class="status-label" style="font-weight: bold;">RSC_Theme.xls:</span>
+                                <span class="status-value" id="rscFileStatus" style="color: #666;">-</span>
+                            </div>
+                            <div class="status-item" style="display: contents;">
+                                <span class="status-label" style="font-weight: bold;">UGCTheme.xls:</span>
+                                <span class="status-value" id="ugcFileStatus" style="color: #666;">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Unity项目路径选择区域（兼容模式浏览器） -->
+        <section class="upload-section" id="individualFileSelectionSection" style="display: none;">
+            <div class="upload-options">
+                <h3 id="individualFileSectionTitle">� 分别选择文件</h3>
+                <p id="individualFileSectionDescription">选择Unity项目中的RSC_Theme.xls和UGCTheme.xls文件</p>
+
+                <!-- 浏览器兼容性提示（仅在不支持的浏览器中显示） -->
+                <div id="browserUpgradeNote" style="display: none; margin-bottom: 20px; padding: 15px; border: 1px solid #ffc107; border-radius: 5px; background-color: #fff3cd;">
+                    <h5 style="margin: 0 0 10px 0; color: #856404;">💡 浏览器兼容性提示</h5>
+                    <p style="margin: 0; color: #856404;">
+                        您当前使用的浏览器不支持文件夹选择功能。<br>
+                        建议升级到 <strong>Chrome 86+</strong> 或 <strong>Edge 86+</strong> 以获得更好的体验。
+                    </p>
+                </div>
+
+                <h4>选择Unity项目rs_ugc2\RS_UGC_Unity_2021.3.31\Tools\xlsx下的RSC_Theme.xls文件</h4>
 
                 <!-- 直接文件保存 -->
                 <div class="upload-area" id="directSaveUploadArea" style="border: 2px dashed #28a745; background-color: #f8fff9;">
@@ -79,13 +140,8 @@
                         </button>
                     </div>
                 </div>
-            </div>
-        </section>
 
-        <!-- UGCTheme文件选择区域 -->
-        <section class="upload-section">
-            <div class="upload-options">
-                <h3>选择Unity项目rs_ugc2\RS_UGC_Unity_2021.3.31\Tools\xlsx下的UGCTheme.xls文件</h3>
+                <h4>选择Unity项目rs_ugc2\RS_UGC_Unity_2021.3.31\Tools\xlsx下的UGCTheme.xls文件</h4>
                 <p>选择UGCTheme.xls文件并启用直接保存功能：</p>
 
                 <!-- UGC直接文件保存 -->
@@ -109,12 +165,35 @@
         <section class="theme-input-section" id="themeInputSection" style="display: none;">
             <div class="theme-input-card">
                 <h3>主题配置</h3>
-                <div class="input-group">
-                    <label for="themeNameInput">主题名称：</label>
-                    <input type="text" id="themeNameInput" placeholder="请输入主题名称" maxlength="50">
+
+                <!-- 操作模式指示器 -->
+                <div class="operation-mode-indicator" id="operationModeIndicator">
+                    <div class="mode-badge" id="modeBadge">请选择操作模式</div>
+                    <div class="mode-description" id="modeDescription">选择现有主题进行更新，或输入新主题名称进行创建</div>
                 </div>
+
+                <!-- 现有主题选择 -->
+                <div class="input-group">
+                    <label for="themeSelector">🔄 更新现有主题：</label>
+                    <select id="themeSelector" class="theme-selector">
+                        <option value="">选择现有主题进行更新...</option>
+                    </select>
+                </div>
+
+                <!-- 分隔线 -->
+                <div class="input-separator">
+                    <span>或</span>
+                </div>
+
+                <!-- 新主题输入 -->
+                <div class="input-group">
+                    <label for="themeNameInput">✨ 创建新主题：</label>
+                    <input type="text" id="themeNameInput" placeholder="请输入新主题名称" maxlength="50">
+                    <div class="input-validation" id="themeInputValidation" style="display: none;"></div>
+                </div>
+
                 <div class="action-group">
-                    <button class="action-btn primary" id="processThemeBtn">处理主题数据</button>
+                    <button class="action-btn primary" id="processThemeBtn" disabled>处理主题数据</button>
                     <button class="action-btn secondary" id="resetBtn">重置</button>
                 </div>
             </div>
@@ -232,6 +311,7 @@
     <script src="js/dataParser.js"></script>
     <script src="js/tableRenderer.js"></script>
     <script src="js/exportUtils.js"></script>
+    <script src="js/unityProjectFolderManager.js"></script>
     <script src="js/themeManager.js"></script>
     <script src="js/main.js"></script>
 </body>
