@@ -1468,6 +1468,23 @@ window.App.ThemeManager = (function() {
                 const newRow = [...lastRow]; // 复制上一行
                 newRow[idColumnIndex] = newId.toString(); // 设置新的ID
 
+                // 通过列名查找索引并设置值
+                let targetColumnIndex = headerRow.findIndex(col => col === 'Level_show_bg_ID');
+                if (targetColumnIndex !== -1) {
+                    newRow[targetColumnIndex] = "-1"; // 主题对应的HSV背景ID，现在工具里面固定填-1
+                }else{
+                    console.warn(`在${sheetName}中找不到Level_show_bg_ID列`);
+                }
+
+                targetColumnIndex = headerRow.findIndex(col => col === 'Level_show_id');
+                if (targetColumnIndex !== -1) {
+                    // 确保数值类型转换
+                    const currentValue = parseInt(lastRow[targetColumnIndex]) || 0;
+                    newRow[targetColumnIndex] = (currentValue + 1).toString(); // 上一行的数值加一
+                }else{
+                    console.warn(`在${sheetName}中找不到Level_show_id列`);
+                }
+
                 console.log(`Sheet ${sheetName} 新行:`, newRow);
 
                 // 添加新行到数据

@@ -17,13 +17,21 @@ window.App.Version = (function() {
 
     // 当前版本信息
     const VERSION_INFO = {
-        current: '1.2.3',
-        releaseDate: '2025-09-05',
-        buildNumber: '20250905006'
+        current: '1.2.4',
+        releaseDate: '2025-09-08',
+        buildNumber: '20250905007'
     };
 
     // 版本历史记录
     const VERSION_HISTORY = [
+        {
+            version: '1.2.4',
+            date: '2025-09-08',
+            changes: [
+                'UGCTheme表的Level_show_id与Level_show_bg_ID列不再需要手动操作,而是放到当前工具内的自动化流程里面了',
+            ],
+            type: 'minor'
+        },
         {
             version: '1.2.3',
             date: '2025-09-05',
