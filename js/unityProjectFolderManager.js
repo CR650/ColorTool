@@ -23,6 +23,8 @@ window.App.UnityProjectFolderManager = (function() {
             this.directoryHandle = null;
             this.rscThemeHandle = null;
             this.ugcThemeHandle = null;
+            this.rscLanguageHandle = null;
+            this.levelsHandle = null;
             this.isSupported = 'showDirectoryPicker' in window;
             this.cache = new Map();
             this.maxCacheAge = 5 * 60 * 1000; // 5分钟缓存
@@ -70,6 +72,8 @@ window.App.UnityProjectFolderManager = (function() {
                     directoryPath: this.directoryHandle.name,
                     rscThemeFound: !!locatedFiles.rscTheme,
                     ugcThemeFound: !!locatedFiles.ugcTheme,
+                    rscLanguageFound: !!locatedFiles.rscLanguage,
+                    levelsFound: !!locatedFiles.levels,
                     files: locatedFiles
                 };
 
@@ -90,7 +94,7 @@ window.App.UnityProjectFolderManager = (function() {
                 console.log('验证文件夹:', this.directoryHandle.name);
 
                 // 检查是否包含预期的文件
-                const expectedFiles = ['RSC_Theme.xls', 'UGCTheme.xls'];
+                const expectedFiles = ['RSC_Theme.xls', 'UGCTheme.xls', 'RSC_Language.xls'];
                 let foundCount = 0;
                 const foundFiles = [];
 
@@ -116,7 +120,9 @@ window.App.UnityProjectFolderManager = (function() {
         async locateThemeFiles() {
             const result = {
                 rscTheme: null,
-                ugcTheme: null
+                ugcTheme: null,
+                rscLanguage: null,
+                levels: null
             };
 
             try {
@@ -157,6 +163,44 @@ window.App.UnityProjectFolderManager = (function() {
                             } else {
                                 console.warn('UGCTheme.xls权限获取失败');
                                 result.ugcTheme = {
+                                    handle: handle,
+                                    name: name,
+                                    hasPermission: false
+                                };
+                            }
+                        } else if (name === 'RSC_Language.xls') {
+                            console.log('找到RSC_Language.xls，请求权限...');
+                            const permission = await handle.requestPermission({ mode: 'readwrite' });
+                            if (permission === 'granted') {
+                                this.rscLanguageHandle = handle;
+                                result.rscLanguage = {
+                                    handle: handle,
+                                    name: name,
+                                    hasPermission: true
+                                };
+                                console.log('RSC_Language.xls权限获取成功');
+                            } else {
+                                console.warn('RSC_Language.xls权限获取失败');
+                                result.rscLanguage = {
+                                    handle: handle,
+                                    name: name,
+                                    hasPermission: false
+                                };
+                            }
+                        } else if (name === 'Levels.xls') {
+                            console.log('找到Levels.xls，请求权限...');
+                            const permission = await handle.requestPermission({ mode: 'read' });
+                            if (permission === 'granted') {
+                                this.levelsHandle = handle;
+                                result.levels = {
+                                    handle: handle,
+                                    name: name,
+                                    hasPermission: true
+                                };
+                                console.log('Levels.xls权限获取成功');
+                            } else {
+                                console.warn('Levels.xls权限获取失败');
+                                result.levels = {
                                     handle: handle,
                                     name: name,
                                     hasPermission: false

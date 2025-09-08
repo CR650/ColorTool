@@ -21,10 +21,12 @@ window.App.ThemeManager = (function() {
     let unityProjectFiles = null;    // Unity项目文件列表
     let rscThemeData = null;         // RSC_Theme.xls文件数据
     let ugcThemeData = null;         // UGCTheme.xls文件数据
+    let rscLanguageData = null;      // RSC_Language.xls文件数据
     let mappingData = null;          // 对比映射数据
     let processedResult = null;      // 处理结果
     let rscAllSheetsData = null;     // RSC_Theme文件的所有Sheet数据
     let ugcAllSheetsData = null;     // UGCTheme文件的所有Sheet数据
+    let multiLangConfig = null;      // 多语言配置数据
 
     // 文件夹选择相关状态
     let folderManager = null;        // Unity项目文件夹管理器实例
@@ -160,6 +162,323 @@ window.App.ThemeManager = (function() {
             themeNameInput.addEventListener('input', handleThemeInput);
             themeNameInput.addEventListener('blur', validateThemeInput);
         }
+
+        // 初始化多语言功能
+        initMultiLanguageFeatures();
+    }
+
+    /**
+     * 初始化多语言功能
+     */
+    function initMultiLanguageFeatures() {
+        const openMultiLangBtn = document.getElementById('openMultiLangBtn');
+        const multiLangIdInput = document.getElementById('multiLangId');
+
+        if (openMultiLangBtn) {
+            openMultiLangBtn.addEventListener('click', handleOpenMultiLangTable);
+        }
+
+        // 验证多语言ID输入
+        if (multiLangIdInput) {
+            multiLangIdInput.addEventListener('input', validateMultiLangId);
+        }
+    }
+
+    /**
+     * 处理打开多语言表
+     */
+    function handleOpenMultiLangTable() {
+        // 获取当前主题名称
+        const themeName = document.getElementById('themeNameInput')?.value.trim();
+
+        if (!themeName) {
+            App.Utils.showStatus('请先输入新主题名称', 'warning');
+            document.getElementById('themeNameInput')?.focus();
+            return;
+        }
+
+        // 显示确认对话框，避免弹窗拦截
+        const confirmMessage = `🔗 即将打开外部链接
+
+将要打开在线多语言表进行配置：
+https://www.kdocs.cn/l/cuwWQPWT7HPY
+
+请在表格中添加以下信息：
+• 主题名称：${themeName}
+• 记录系统分配的多语言ID
+
+确认打开外部链接吗？`;
+
+        if (confirm(confirmMessage)) {
+            try {
+                // 打开在线多语言表
+                const newWindow = window.open('https://www.kdocs.cn/l/cuwWQPWT7HPY', '_blank');
+
+                if (newWindow) {
+                    // 成功打开
+                    App.Utils.showStatus('多语言表已打开，请填写完成后回来输入多语言ID', 'info', 5000);
+
+                    // 高亮多语言ID输入框
+                    setTimeout(() => {
+                        const multiLangIdInput = document.getElementById('multiLangId');
+                        if (multiLangIdInput) {
+                            multiLangIdInput.focus();
+                            multiLangIdInput.style.border = '2px solid #ffc107';
+                            multiLangIdInput.placeholder = '请输入在线表中分配的多语言ID';
+                        }
+                    }, 1000);
+                } else {
+                    // 弹窗被拦截
+                    App.Utils.showStatus('弹窗被浏览器拦截，请手动打开链接：https://www.kdocs.cn/l/cuwWQPWT7HPY', 'warning', 8000);
+                }
+            } catch (error) {
+                console.error('打开多语言表失败:', error);
+                App.Utils.showStatus('无法打开多语言表，请手动访问：https://www.kdocs.cn/l/cuwWQPWT7HPY', 'error', 8000);
+            }
+        }
+    }
+
+    /**
+     * 验证多语言ID
+     */
+    function validateMultiLangId() {
+        const multiLangIdInput = document.getElementById('multiLangId');
+        const value = multiLangIdInput.value;
+
+        if (value && !isNaN(value) && parseInt(value) > 0) {
+            multiLangIdInput.style.border = '2px solid #4CAF50';
+            App.Utils.showStatus('多语言ID已设置', 'success', 2000);
+            updateMultiLangConfig();
+        } else if (value) {
+            multiLangIdInput.style.border = '2px solid #f44336';
+        } else {
+            multiLangIdInput.style.border = '1px solid rgba(255, 255, 255, 0.3)';
+        }
+    }
+
+    /**
+     * 更新多语言配置
+     */
+    function updateMultiLangConfig() {
+        const themeName = document.getElementById('themeNameInput')?.value.trim();
+        const multiLangId = document.getElementById('multiLangId')?.value.trim();
+
+        multiLangConfig = {
+            displayName: themeName || '',
+            id: multiLangId ? parseInt(multiLangId) : null,
+            isValid: themeName && multiLangId && !isNaN(multiLangId) && parseInt(multiLangId) > 0
+        };
+
+        console.log('多语言配置已更新:', multiLangConfig);
+    }
+
+    /**
+     * 获取用户输入的多语言配置
+     */
+    function getMultiLanguageConfig() {
+        updateMultiLangConfig();
+        return multiLangConfig || {
+            displayName: '',
+            id: null,
+            isValid: false
+        };
+    }
+
+    /**
+     * 显示/隐藏多语言配置面板
+     */
+    function toggleMultiLangPanel(show) {
+        const panel = document.getElementById('multiLangConfigSection');
+        if (panel) {
+            panel.style.display = show ? 'block' : 'none';
+
+            // 如果隐藏面板，清空输入
+            if (!show) {
+                const multiLangIdInput = document.getElementById('multiLangId');
+                if (multiLangIdInput) {
+                    multiLangIdInput.value = '';
+                    multiLangIdInput.style.border = '1px solid rgba(255, 255, 255, 0.3)';
+                    multiLangIdInput.placeholder = '请先打开在线表填写主题信息，然后输入分配的多语言ID';
+                }
+                multiLangConfig = null;
+            }
+        }
+    }
+
+    /**
+     * 更新主题类型指示器
+     */
+    function updateThemeTypeIndicator(smartConfig) {
+        // 查找或创建主题类型提示元素
+        let indicator = document.getElementById('themeTypeIndicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'themeTypeIndicator';
+            indicator.className = 'theme-type-indicator';
+
+            // 插入到主题输入框后面
+            const themeInputGroup = themeNameInput?.parentElement;
+            if (themeInputGroup) {
+                themeInputGroup.appendChild(indicator);
+            }
+        }
+
+        if (smartConfig.similarity.isSimilar) {
+            // 同系列主题
+            indicator.innerHTML = `
+                <div class="indicator-content similar-theme">
+                    <span class="indicator-icon">🔄</span>
+                    <span class="indicator-text">检测到同系列主题，将自动复用 "${smartConfig.similarity.matchedTheme}" 的多语言配置</span>
+                </div>
+            `;
+            indicator.className = 'theme-type-indicator similar-theme';
+        } else {
+            // 全新主题系列
+            indicator.innerHTML = `
+                <div class="indicator-content new-theme">
+                    <span class="indicator-icon">✨</span>
+                    <span class="indicator-text">检测到全新主题系列，需要配置多语言信息</span>
+                </div>
+            `;
+            indicator.className = 'theme-type-indicator new-theme';
+        }
+
+        indicator.style.display = 'block';
+    }
+
+    /**
+     * 清除主题类型指示器
+     */
+    function clearThemeTypeIndicator() {
+        const indicator = document.getElementById('themeTypeIndicator');
+        if (indicator) {
+            indicator.style.display = 'none';
+        }
+    }
+
+    /**
+     * 提取主题名称的基础部分（去除数字后缀等）
+     */
+    function extractThemeBaseName(themeName) {
+        if (!themeName) return '';
+
+        // 去除首尾空格
+        let baseName = themeName.trim();
+
+        // 去除末尾的数字和常见分隔符
+        // 匹配模式：数字、中文数字、罗马数字等
+        baseName = baseName.replace(/[\s\-_]*[\d一二三四五六七八九十]+[\s\-_]*$/g, '');
+        baseName = baseName.replace(/[\s\-_]*[IVXivx]+[\s\-_]*$/g, ''); // 罗马数字
+        baseName = baseName.replace(/[\s\-_]*[第]*[\d一二三四五六七八九十]+[期代版]*[\s\-_]*$/g, ''); // 中文数字表达
+
+        // 去除常见的版本标识
+        baseName = baseName.replace(/[\s\-_]*(v|ver|version)[\d\.]*[\s\-_]*$/gi, '');
+        baseName = baseName.replace(/[\s\-_]*(新|old|旧|原版|升级版|加强版)[\s\-_]*$/g, '');
+
+        // 去除末尾的标点符号和空格
+        baseName = baseName.replace(/[\s\-_\.\,\!\?\:]+$/, '');
+
+        return baseName.trim();
+    }
+
+    /**
+     * 检测主题名称相似性
+     */
+    function detectThemeSimilarity(newThemeName, existingThemes) {
+        if (!newThemeName || !existingThemes || existingThemes.length === 0) {
+            return { isSimilar: false, baseName: '', matchedTheme: null };
+        }
+
+        const newBaseName = extractThemeBaseName(newThemeName);
+        console.log(`检测主题相似性: "${newThemeName}" -> 基础名称: "${newBaseName}"`);
+
+        if (!newBaseName) {
+            return { isSimilar: false, baseName: '', matchedTheme: null };
+        }
+
+        // 查找相似的现有主题
+        for (const existingTheme of existingThemes) {
+            const existingBaseName = extractThemeBaseName(existingTheme);
+            console.log(`对比现有主题: "${existingTheme}" -> 基础名称: "${existingBaseName}"`);
+
+            if (existingBaseName && newBaseName === existingBaseName) {
+                console.log(`✅ 发现同系列主题: "${newThemeName}" 与 "${existingTheme}" 属于同系列`);
+                return {
+                    isSimilar: true,
+                    baseName: newBaseName,
+                    matchedTheme: existingTheme,
+                    matchedBaseName: existingBaseName
+                };
+            }
+        }
+
+        console.log(`❌ 未发现相似主题，"${newThemeName}" 是全新主题系列`);
+        return { isSimilar: false, baseName: newBaseName, matchedTheme: null };
+    }
+
+    /**
+     * 获取现有主题列表
+     */
+    function getExistingThemeNames() {
+        const themes = [];
+
+        // 从主题选择器获取现有主题
+        if (themeSelector) {
+            const options = themeSelector.querySelectorAll('option');
+            options.forEach(option => {
+                if (option.value && option.value !== '') {
+                    themes.push(option.value);
+                }
+            });
+        }
+
+        console.log('现有主题列表:', themes);
+        return themes;
+    }
+
+    /**
+     * 智能检测主题类型并获取多语言配置
+     */
+    function getSmartMultiLanguageConfig(themeName) {
+        const existingThemes = getExistingThemeNames();
+        const similarity = detectThemeSimilarity(themeName, existingThemes);
+
+        // 获取用户手动输入的多语言配置
+        const manualConfig = getMultiLanguageConfig();
+
+        const result = {
+            themeName: themeName,
+            similarity: similarity,
+            isNewSeries: !similarity.isSimilar,
+            shouldShowConfig: !similarity.isSimilar, // 只有全新系列才显示配置面板
+            multiLangConfig: null,
+            source: 'none'
+        };
+
+        if (similarity.isSimilar) {
+            // 同系列主题，尝试复用现有配置
+            result.multiLangConfig = {
+                displayName: themeName,
+                id: null, // 将在UGCTheme处理时从现有主题获取
+                isValid: true,
+                isAutoDetected: true,
+                basedOnTheme: similarity.matchedTheme
+            };
+            result.source = 'auto_detected';
+            console.log(`🔄 同系列主题检测: 将复用 "${similarity.matchedTheme}" 的多语言配置`);
+        } else if (manualConfig && manualConfig.isValid) {
+            // 全新系列，使用用户手动配置
+            result.multiLangConfig = manualConfig;
+            result.source = 'manual_input';
+            console.log(`✏️ 全新主题系列: 使用用户手动配置的多语言ID ${manualConfig.id}`);
+        } else {
+            // 全新系列但用户未配置
+            result.multiLangConfig = null;
+            result.source = 'none';
+            console.log(`⚠️ 全新主题系列但缺少多语言配置`);
+        }
+
+        return result;
     }
 
     /**
@@ -523,6 +842,9 @@ window.App.ThemeManager = (function() {
             // 更新操作模式为更新模式
             updateOperationMode('update', selectedTheme);
 
+            // 隐藏多语言配置面板（更新模式不需要）
+            toggleMultiLangPanel(false);
+
             // 启用处理按钮
             if (processThemeBtn) {
                 processThemeBtn.disabled = false;
@@ -533,6 +855,9 @@ window.App.ThemeManager = (function() {
         } else {
             // 重置操作模式
             updateOperationMode('neutral');
+
+            // 隐藏多语言配置面板
+            toggleMultiLangPanel(false);
 
             // 禁用处理按钮
             if (processThemeBtn) {
@@ -558,11 +883,24 @@ window.App.ThemeManager = (function() {
             // 更新操作模式为创建模式
             updateOperationMode('create', inputValue);
 
+            // 智能检测主题类型并决定是否显示多语言配置面板
+            const smartConfig = getSmartMultiLanguageConfig(inputValue);
+            toggleMultiLangPanel(smartConfig.shouldShowConfig);
+
+            // 更新多语言配置状态提示
+            updateThemeTypeIndicator(smartConfig);
+
             // 验证输入
             validateThemeInput();
         } else {
             // 重置操作模式
             updateOperationMode('neutral');
+
+            // 隐藏多语言配置面板
+            toggleMultiLangPanel(false);
+
+            // 清除主题类型提示
+            clearThemeTypeIndicator();
 
             // 禁用处理按钮
             if (processThemeBtn) {
@@ -718,6 +1056,40 @@ window.App.ThemeManager = (function() {
             App.Utils.showStatus(errorMessage, 'error');
             console.warn('缺少必要文件:', missingFiles);
             return;
+        }
+
+        // 如果是创建新主题，使用智能检测进行多语言配置验证
+        if (operationMode === 'create') {
+            const smartConfig = getSmartMultiLanguageConfig(themeName);
+            console.log('智能多语言配置检测结果:', smartConfig);
+
+            if (smartConfig.isNewSeries && (!smartConfig.multiLangConfig || !smartConfig.multiLangConfig.isValid)) {
+                // 全新主题系列但缺少多语言配置
+                let errorMessage = '创建全新主题系列需要完整的多语言配置：\n\n';
+                errorMessage += '• 缺少多语言ID\n';
+                errorMessage += '\n请完成以下步骤：\n';
+                errorMessage += '1. 点击"打开在线多语言表"按钮\n';
+                errorMessage += '2. 在在线表中添加主题信息\n';
+                errorMessage += '3. 回来输入分配的多语言ID';
+
+                App.Utils.showStatus(errorMessage, 'error');
+
+                // 高亮多语言ID输入框
+                const multiLangIdInput = document.getElementById('multiLangId');
+                if (multiLangIdInput) {
+                    multiLangIdInput.focus();
+                    multiLangIdInput.style.border = '2px solid #f44336';
+                }
+
+                return;
+            } else if (!smartConfig.isNewSeries) {
+                // 同系列主题，显示自动复用信息
+                App.Utils.showStatus(`检测到同系列主题，将自动复用 "${smartConfig.similarity.matchedTheme}" 的多语言配置`, 'info', 3000);
+                console.log('同系列主题验证通过，将自动复用多语言配置');
+            } else {
+                // 全新系列且配置完整
+                console.log('全新主题系列多语言配置验证通过:', smartConfig.multiLangConfig);
+            }
         }
 
         // 显示操作确认
@@ -1406,6 +1778,196 @@ window.App.ThemeManager = (function() {
     }
 
     /**
+     * 从现有主题数据中查找多语言ID
+     */
+    function findMultiLangIdFromExistingTheme(baseThemeName, sheetData, levelNameColumnIndex) {
+        if (!baseThemeName || !sheetData || levelNameColumnIndex === -1) {
+            return null;
+        }
+
+        // 查找notes列，通常包含主题名称
+        const headerRow = sheetData[0];
+        const notesColumnIndex = headerRow.findIndex(col =>
+            col === 'notes' ||
+            col === 'Notes' ||
+            col === 'note' ||
+            col.toLowerCase().includes('note')
+        );
+
+        if (notesColumnIndex === -1) {
+            console.warn('找不到notes列，无法查找基础主题的多语言ID');
+            return null;
+        }
+
+        // 遍历数据行，查找匹配的主题
+        for (let i = 1; i < sheetData.length; i++) {
+            const row = sheetData[i];
+            const notesValue = row[notesColumnIndex];
+
+            if (notesValue && notesValue.toString().trim() === baseThemeName.trim()) {
+                const multiLangId = row[levelNameColumnIndex];
+                if (multiLangId) {
+                    console.log(`找到基础主题 "${baseThemeName}" 的多语言ID: ${multiLangId}`);
+                    return multiLangId.toString();
+                }
+            }
+        }
+
+        console.warn(`未找到基础主题 "${baseThemeName}" 的多语言ID`);
+        return null;
+    }
+
+    /**
+     * 从现有主题数据中查找Level_id
+     */
+    function findLevelIdFromExistingTheme(baseThemeName, sheetData, levelIdColumnIndex) {
+        if (!baseThemeName || !sheetData || levelIdColumnIndex === -1) {
+            return null;
+        }
+
+        // 查找notes列，通常包含主题名称
+        const headerRow = sheetData[0];
+        const notesColumnIndex = headerRow.findIndex(col =>
+            col === 'notes' ||
+            col === 'Notes' ||
+            col === 'note' ||
+            col.toLowerCase().includes('note')
+        );
+
+        if (notesColumnIndex === -1) {
+            console.warn('找不到notes列，无法查找基础主题的Level_id');
+            return null;
+        }
+
+        // 遍历数据行，查找匹配的主题
+        for (let i = 1; i < sheetData.length; i++) {
+            const row = sheetData[i];
+            const notesValue = row[notesColumnIndex];
+
+            if (notesValue && notesValue.toString().trim() === baseThemeName.trim()) {
+                const levelId = row[levelIdColumnIndex];
+                if (levelId) {
+                    console.log(`找到基础主题 "${baseThemeName}" 的Level_id: ${levelId}`);
+                    return levelId.toString();
+                }
+            }
+        }
+
+        console.warn(`未找到基础主题 "${baseThemeName}" 的Level_id`);
+        return null;
+    }
+
+    /**
+     * 读取Levels.xls文件并获取可用的levelid列表
+     */
+    async function loadLevelsData() {
+        try {
+            // 尝试从Unity项目文件中找到Levels.xls
+            if (!unityProjectFiles || !unityProjectFiles.levelsFile) {
+                console.warn('未找到Levels.xls文件，无法获取levelid数据');
+                return null;
+            }
+
+            const levelsFileHandle = unityProjectFiles.levelsFile;
+            console.log('开始读取Levels.xls文件...');
+
+            // 获取文件内容
+            const levelsFile = await levelsFileHandle.getFile();
+            const arrayBuffer = await levelsFile.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+
+            // 查找LevelInfo工作表
+            const levelInfoSheetName = workbook.SheetNames.find(name =>
+                name === 'LevelInfo' ||
+                name.toLowerCase().includes('levelinfo') ||
+                name.toLowerCase().includes('level_info')
+            );
+
+            if (!levelInfoSheetName) {
+                console.warn('Levels.xls中未找到LevelInfo工作表');
+                return null;
+            }
+
+            const worksheet = workbook.Sheets[levelInfoSheetName];
+            const data = XLSX.utils.sheet_to_json(worksheet, {
+                header: 1,
+                defval: '',
+                raw: false
+            });
+
+            if (data.length < 6) {
+                console.warn('LevelInfo工作表数据不足，至少需要6行数据');
+                return null;
+            }
+
+            // 查找levelid列
+            const headerRow = data[0];
+            const levelIdColumnIndex = headerRow.findIndex(col =>
+                col === 'levelid' ||
+                col === 'LevelId' ||
+                col === 'level_id' ||
+                col.toLowerCase().includes('levelid')
+            );
+
+            if (levelIdColumnIndex === -1) {
+                console.warn('LevelInfo工作表中未找到levelid列');
+                return null;
+            }
+
+            // 提取从第6行开始的levelid数据
+            const levelIds = [];
+            for (let i = 5; i < data.length; i++) { // 从第6行开始（索引5）
+                const row = data[i];
+                const levelId = row[levelIdColumnIndex];
+                if (levelId && levelId.toString().trim() !== '') {
+                    const parsedId = parseInt(levelId);
+                    if (!isNaN(parsedId)) {
+                        levelIds.push(parsedId);
+                    }
+                }
+            }
+
+            console.log(`从Levels.xls加载了 ${levelIds.length} 个有效的levelid:`, levelIds);
+            return {
+                levelIds: levelIds,
+                sheetName: levelInfoSheetName,
+                columnName: headerRow[levelIdColumnIndex]
+            };
+
+        } catch (error) {
+            console.error('读取Levels.xls文件失败:', error);
+            return null;
+        }
+    }
+
+    /**
+     * 为全新主题系列随机选择Level_id
+     */
+    function selectRandomLevelId(currentLevelId, levelsData) {
+        if (!levelsData || !levelsData.levelIds || levelsData.levelIds.length === 0) {
+            console.warn('没有可用的levelid数据，无法随机选择');
+            return null;
+        }
+
+        const currentId = parseInt(currentLevelId);
+
+        // 过滤掉与当前Level_id相同的值
+        const availableLevelIds = levelsData.levelIds.filter(id => id !== currentId);
+
+        if (availableLevelIds.length === 0) {
+            console.warn('所有levelid都与当前值相同，使用原始列表的第一个值');
+            return levelsData.levelIds[0];
+        }
+
+        // 随机选择一个
+        const randomIndex = Math.floor(Math.random() * availableLevelIds.length);
+        const selectedLevelId = availableLevelIds[randomIndex];
+
+        console.log(`从 ${availableLevelIds.length} 个可用levelid中随机选择: ${selectedLevelId} (排除了当前值: ${currentId})`);
+        return selectedLevelId;
+    }
+
+    /**
      * 处理UGCTheme文件（新增主题时添加新行）
      * @param {string} themeName - 主题名称
      * @param {boolean} isNewTheme - 是否为新增主题
@@ -1430,6 +1992,26 @@ window.App.ThemeManager = (function() {
             const workbook = ugcThemeData.workbook;
             const sheetNames = workbook.SheetNames;
             console.log('UGCTheme包含的sheet:', sheetNames);
+
+            // 获取智能多语言配置
+            const smartConfig = getSmartMultiLanguageConfig(themeName);
+            console.log('UGCTheme处理 - 智能配置:', smartConfig);
+
+            // 加载Levels数据（用于全新主题系列的Level_id随机选择）
+            let levelsData = null;
+
+            if (!smartConfig.similarity.isSimilar) {
+                // 全新主题系列，需要加载Levels数据
+                console.log('全新主题系列，开始加载Levels数据...');
+                levelsData = await loadLevelsData();
+                if (levelsData) {
+                    console.log('Levels数据加载成功，准备随机选择Level_id');
+                } else {
+                    console.warn('Levels数据加载失败，将使用默认Level_id处理');
+                }
+            } else {
+                console.log(`同系列主题，将复用基础主题 "${smartConfig.similarity.matchedTheme}" 的Level_id`);
+            }
 
             const processedSheets = [];
 
@@ -1468,6 +2050,58 @@ window.App.ThemeManager = (function() {
                 const newRow = [...lastRow]; // 复制上一行
                 newRow[idColumnIndex] = newId.toString(); // 设置新的ID
 
+                // 获取智能多语言配置
+                const smartConfig = getSmartMultiLanguageConfig(themeName);
+                console.log(`Sheet ${sheetName} 智能多语言配置:`, smartConfig);
+
+                // 声明变量用于记录处理结果
+                let levelIdSource = 'unknown';
+
+                // 处理多语言ID填充
+                const levelNameColumnIndex = headerRow.findIndex(col =>
+                    col === 'LevelName' ||
+                    col === 'levelname' ||
+                    col === 'LevelName_ID' ||
+                    col === 'levelname_id' ||
+                    col.toLowerCase().includes('levelname')
+                );
+
+                if (levelNameColumnIndex !== -1) {
+                    const columnName = headerRow[levelNameColumnIndex];
+                    let finalMultiLangId = null;
+                    let source = 'unknown';
+
+                    if (smartConfig.similarity.isSimilar) {
+                        // 同系列主题，查找基础主题的多语言ID
+                        const baseThemeMultiLangId = findMultiLangIdFromExistingTheme(smartConfig.similarity.matchedTheme, data, levelNameColumnIndex);
+                        if (baseThemeMultiLangId) {
+                            finalMultiLangId = baseThemeMultiLangId;
+                            source = `auto_from_${smartConfig.similarity.matchedTheme}`;
+                            console.log(`Sheet ${sheetName} 同系列主题，复用基础主题 "${smartConfig.similarity.matchedTheme}" 的多语言ID: ${finalMultiLangId}`);
+                        } else {
+                            // 找不到基础主题的多语言ID，使用上一行数据
+                            finalMultiLangId = lastRow[levelNameColumnIndex] || '';
+                            source = 'previous_row_fallback';
+                            console.log(`Sheet ${sheetName} 无法找到基础主题的多语言ID，使用上一行数据: ${finalMultiLangId}`);
+                        }
+                    } else if (smartConfig.multiLangConfig && smartConfig.multiLangConfig.isValid && smartConfig.multiLangConfig.id) {
+                        // 全新系列，使用用户输入的多语言ID
+                        finalMultiLangId = smartConfig.multiLangConfig.id.toString();
+                        source = 'user_input';
+                        console.log(`Sheet ${sheetName} 全新主题系列，使用用户输入的多语言ID: ${finalMultiLangId}`);
+                    } else {
+                        // 使用上一行的数据作为默认值
+                        finalMultiLangId = lastRow[levelNameColumnIndex] || '';
+                        source = 'previous_row_default';
+                        console.log(`Sheet ${sheetName} 多语言配置无效，使用上一行数据: ${finalMultiLangId}`);
+                    }
+
+                    newRow[levelNameColumnIndex] = finalMultiLangId;
+                    console.log(`Sheet ${sheetName} 最终设置多语言ID: ${columnName} = ${finalMultiLangId} (来源: ${source})`);
+                } else {
+                    console.warn(`Sheet ${sheetName} 中找不到LevelName相关列`);
+                }
+
                 // 通过列名查找索引并设置值
                 let targetColumnIndex = headerRow.findIndex(col => col === 'Level_show_bg_ID');
                 if (targetColumnIndex !== -1) {
@@ -1485,6 +2119,60 @@ window.App.ThemeManager = (function() {
                     console.warn(`在${sheetName}中找不到Level_show_id列`);
                 }
 
+                // 处理Level_id列的智能设置（同系列主题复用）
+                const levelIdColumnIndex = headerRow.findIndex(col =>
+                    col === 'Level_id' ||
+                    col === 'level_id' ||
+                    col === 'LevelId' ||
+                    col.toLowerCase().includes('level_id')
+                );
+
+                if (levelIdColumnIndex !== -1) {
+                    const levelIdColumnName = headerRow[levelIdColumnIndex];
+                    let finalLevelId = null;
+
+                    if (smartConfig.similarity.isSimilar) {
+                        // 同系列主题，复用基础主题的Level_id
+                        const baseLevelId = findLevelIdFromExistingTheme(smartConfig.similarity.matchedTheme, data, levelIdColumnIndex);
+                        if (baseLevelId) {
+                            finalLevelId = baseLevelId;
+                            levelIdSource = `auto_from_${smartConfig.similarity.matchedTheme}`;
+                            console.log(`Sheet ${sheetName} 同系列主题，复用基础主题 "${smartConfig.similarity.matchedTheme}" 的Level_id: ${finalLevelId}`);
+                        } else {
+                            // 找不到基础主题的Level_id，使用上一行数据
+                            finalLevelId = lastRow[levelIdColumnIndex] || '1';
+                            levelIdSource = 'previous_row_fallback';
+                            console.log(`Sheet ${sheetName} 无法找到基础主题的Level_id，使用上一行数据: ${finalLevelId}`);
+                        }
+                    } else {
+                        // 全新主题系列，从Levels文件随机选择Level_id
+                        if (levelsData) {
+                            const currentLevelId = lastRow[levelIdColumnIndex];
+                            const selectedLevelId = selectRandomLevelId(currentLevelId, levelsData);
+                            if (selectedLevelId !== null) {
+                                finalLevelId = selectedLevelId.toString();
+                                levelIdSource = 'random_from_levels';
+                                console.log(`Sheet ${sheetName} 全新主题系列，从Levels文件随机选择Level_id: ${finalLevelId} (上一行值: ${currentLevelId})`);
+                            } else {
+                                // 随机选择失败，使用上一行数据
+                                finalLevelId = lastRow[levelIdColumnIndex] || '1';
+                                levelIdSource = 'previous_row_fallback';
+                                console.log(`Sheet ${sheetName} 随机选择Level_id失败，使用上一行数据: ${finalLevelId}`);
+                            }
+                        } else {
+                            // 无法加载Levels数据，使用上一行数据
+                            finalLevelId = lastRow[levelIdColumnIndex] || '1';
+                            levelIdSource = 'previous_row_default';
+                            console.log(`Sheet ${sheetName} 全新主题系列，Levels数据不可用，使用上一行数据: ${finalLevelId}`);
+                        }
+                    }
+
+                    newRow[levelIdColumnIndex] = finalLevelId;
+                    console.log(`Sheet ${sheetName} 最终设置Level_id: ${levelIdColumnName} = ${finalLevelId} (来源: ${levelIdSource})`);
+                } else {
+                    console.warn(`Sheet ${sheetName} 中找不到Level_id相关列`);
+                }
+
                 console.log(`Sheet ${sheetName} 新行:`, newRow);
 
                 // 添加新行到数据
@@ -1494,11 +2182,22 @@ window.App.ThemeManager = (function() {
                 const newWorksheet = XLSX.utils.aoa_to_sheet(data);
                 workbook.Sheets[sheetName] = newWorksheet;
 
-                processedSheets.push({
+                // 记录处理结果
+                const sheetResult = {
                     sheetName: sheetName,
                     newId: newId,
-                    newRowIndex: data.length - 1
-                });
+                    newRowIndex: data.length - 1,
+                    multiLangProcessed: levelNameColumnIndex !== -1,
+                    multiLangColumn: levelNameColumnIndex !== -1 ? headerRow[levelNameColumnIndex] : null,
+                    multiLangValue: levelNameColumnIndex !== -1 ? newRow[levelNameColumnIndex] : null,
+                    levelIdProcessed: levelIdColumnIndex !== -1,
+                    levelIdColumn: levelIdColumnIndex !== -1 ? headerRow[levelIdColumnIndex] : null,
+                    levelIdValue: levelIdColumnIndex !== -1 ? newRow[levelIdColumnIndex] : null,
+                    levelIdSource: levelIdColumnIndex !== -1 ? levelIdSource : null
+                };
+
+                processedSheets.push(sheetResult);
+                console.log(`Sheet ${sheetName} 处理结果:`, sheetResult);
             }
 
             console.log('UGCTheme处理完成，处理的sheets:', processedSheets);
@@ -1823,6 +2522,205 @@ window.App.ThemeManager = (function() {
     }
 
     /**
+     * 处理RSC_Language文件的多语言ID管理
+     * @param {string} themeName - 主题名称
+     * @param {number} multiLangId - 多语言ID
+     */
+    async function processRSCLanguage(themeName, multiLangId) {
+        console.log('=== 开始处理RSC_Language文件 ===');
+        console.log('主题名称:', themeName);
+        console.log('多语言ID:', multiLangId);
+
+        try {
+            // 检查是否有RSC_Language文件句柄
+            if (!folderManager || !folderManager.rscLanguageHandle) {
+                console.log('RSC_Language.xls文件未找到，跳过多语言处理');
+                return {
+                    success: false,
+                    skipped: true,
+                    reason: 'RSC_Language.xls文件未找到，请确保该文件位于UGCTheme.xls同级目录'
+                };
+            }
+
+            // 检查多语言配置
+            if (!multiLangId || isNaN(multiLangId) || multiLangId <= 0) {
+                console.log('多语言ID无效，跳过多语言处理');
+                return {
+                    success: false,
+                    skipped: true,
+                    reason: '多语言ID无效或未提供'
+                };
+            }
+
+            // 读取RSC_Language文件
+            console.log('读取RSC_Language.xls文件...');
+            const languageFile = await folderManager.rscLanguageHandle.getFile();
+            const languageArrayBuffer = await languageFile.arrayBuffer();
+            const languageWorkbook = XLSX.read(languageArrayBuffer, { type: 'array' });
+
+            // 查找rsc_Language工作表
+            const languageSheetName = 'rsc_Language';
+            if (!languageWorkbook.SheetNames.includes(languageSheetName)) {
+                throw new Error(`RSC_Language.xls文件中未找到"${languageSheetName}"工作表`);
+            }
+
+            const languageSheet = languageWorkbook.Sheets[languageSheetName];
+            const languageData = XLSX.utils.sheet_to_json(languageSheet, { header: 1 });
+
+            console.log('RSC_Language文件读取成功，数据行数:', languageData.length);
+
+            // 处理多语言数据
+            const result = await updateLanguageData(languageData, multiLangId, themeName);
+
+            if (result.updated) {
+                // 保存更新后的文件
+                const updatedSheet = XLSX.utils.aoa_to_sheet(result.data);
+                languageWorkbook.Sheets[languageSheetName] = updatedSheet;
+
+                await saveRSCLanguageFile(languageWorkbook);
+
+                console.log('✅ RSC_Language文件处理完成');
+                return {
+                    success: true,
+                    updated: true,
+                    message: result.message
+                };
+            } else {
+                console.log('RSC_Language文件无需更新');
+                return {
+                    success: true,
+                    updated: false,
+                    message: result.message
+                };
+            }
+
+        } catch (error) {
+            console.error('RSC_Language文件处理失败:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * 更新语言数据
+     * @param {Array} languageData - 语言数据数组
+     * @param {number} multiLangId - 多语言ID
+     * @param {string} themeName - 主题名称
+     */
+    async function updateLanguageData(languageData, multiLangId, themeName) {
+        console.log('=== 开始更新语言数据 ===');
+
+        if (!languageData || languageData.length === 0) {
+            throw new Error('语言数据为空');
+        }
+
+        // 查找表头行
+        const headerRow = languageData[0];
+        if (!headerRow) {
+            throw new Error('未找到表头行');
+        }
+
+        // 查找列索引
+        const idColumnIndex = headerRow.findIndex(col => col && col.toString().toLowerCase() === 'id');
+        const notesColumnIndex = headerRow.findIndex(col => col && col.toString().toLowerCase() === 'notes');
+        const chineseColumnIndex = headerRow.findIndex(col => col && col.toString().toLowerCase() === 'chinese');
+
+        console.log('列索引:', { idColumnIndex, notesColumnIndex, chineseColumnIndex });
+
+        if (idColumnIndex === -1 || notesColumnIndex === -1 || chineseColumnIndex === -1) {
+            throw new Error('未找到必要的列：id、notes、chinese');
+        }
+
+        // 检查是否已存在该多语言ID
+        let existingRowIndex = -1;
+        for (let i = 1; i < languageData.length; i++) {
+            const row = languageData[i];
+            if (row && row[idColumnIndex] && parseInt(row[idColumnIndex]) === multiLangId) {
+                existingRowIndex = i;
+                break;
+            }
+        }
+
+        if (existingRowIndex !== -1) {
+            console.log(`多语言ID ${multiLangId} 已存在于第 ${existingRowIndex + 1} 行，跳过处理`);
+            return {
+                updated: false,
+                message: `多语言ID ${multiLangId} 已存在，无需添加`
+            };
+        }
+
+        // 处理主题名称：去除末尾数字
+        const processedThemeName = themeName.replace(/\d+$/, '').trim();
+        console.log('处理后的主题名称:', processedThemeName);
+
+        // 在表格末尾添加新行
+        const newRow = new Array(headerRow.length).fill('');
+        newRow[idColumnIndex] = multiLangId;
+        newRow[notesColumnIndex] = '主题';
+        newRow[chineseColumnIndex] = processedThemeName;
+
+        languageData.push(newRow);
+
+        console.log(`✅ 已添加新的多语言记录: ID=${multiLangId}, 主题名称=${processedThemeName}`);
+
+        return {
+            updated: true,
+            data: languageData,
+            message: `已添加多语言ID ${multiLangId}，主题名称：${processedThemeName}`
+        };
+    }
+
+    /**
+     * 保存RSC_Language文件
+     * @param {Object} workbook - 更新后的工作簿
+     */
+    async function saveRSCLanguageFile(workbook) {
+        console.log('=== 开始保存RSC_Language文件 ===');
+
+        try {
+            if (!folderManager || !folderManager.rscLanguageHandle) {
+                throw new Error('RSC_Language文件句柄不存在');
+            }
+
+            // 清理工作簿数据（类似于其他文件的处理）
+            const cleanedWorkbook = createCleanWorkbook(workbook);
+
+            // 生成Excel文件的二进制数据
+            const excelBuffer = XLSX.write(cleanedWorkbook, {
+                bookType: 'xls',
+                type: 'array'
+            });
+
+            console.log('RSC_Language文件数据大小:', excelBuffer.length, 'bytes');
+
+            // 验证当前权限
+            const permission = await folderManager.rscLanguageHandle.queryPermission({ mode: 'readwrite' });
+            console.log('RSC_Language文件当前权限:', permission);
+
+            if (permission !== 'granted') {
+                const newPermission = await folderManager.rscLanguageHandle.requestPermission({ mode: 'readwrite' });
+                if (newPermission !== 'granted') {
+                    throw new Error('无法获取RSC_Language文件写入权限');
+                }
+            }
+
+            // 创建可写流并写入数据
+            const writable = await folderManager.rscLanguageHandle.createWritable();
+            await writable.write(excelBuffer);
+            await writable.close();
+
+            console.log('✅ RSC_Language文件保存成功');
+            return true;
+
+        } catch (error) {
+            console.error('RSC_Language文件保存失败:', error);
+            throw error;
+        }
+    }
+
+    /**
      * 处理文件保存（整合直接保存和传统下载）
      * @param {Object} workbook - 更新后的RSC工作簿
      * @param {string} themeName - 主题名称
@@ -1850,6 +2748,9 @@ window.App.ThemeManager = (function() {
                     }
 
                     if (rscSuccess && ugcSuccess) {
+                        // 处理多语言文件（如果需要）
+                        await handleMultiLanguageProcessing(themeName);
+
                         const message = ugcMessage ? `RSC_Theme文件保存成功，${ugcMessage}` : 'RSC_Theme文件已成功保存到原位置';
                         App.Utils.showStatus(message, 'success');
                         return;
@@ -1887,6 +2788,62 @@ window.App.ThemeManager = (function() {
             console.error('文件保存失败:', error);
             App.Utils.showStatus('文件保存失败: ' + error.message, 'error');
         }
+    }
+
+    /**
+     * 处理多语言文件更新
+     * @param {string} themeName - 主题名称
+     */
+    async function handleMultiLanguageProcessing(themeName) {
+        console.log('=== 开始处理多语言文件更新 ===');
+
+        try {
+            // 获取多语言配置
+            const multiLangConfig = getMultiLanguageConfig();
+            console.log('多语言配置:', multiLangConfig);
+
+            // 检查是否需要处理多语言
+            if (!multiLangConfig.isValid) {
+                console.log('多语言配置无效，跳过多语言处理');
+                return;
+            }
+
+            // 处理RSC_Language文件
+            const result = await processRSCLanguage(themeName, multiLangConfig.id);
+
+            if (result.success) {
+                if (result.updated) {
+                    App.Utils.showStatus(`✅ 多语言文件已更新：${result.message}`, 'success', 5000);
+                    console.log('多语言文件处理成功:', result.message);
+                } else {
+                    console.log('多语言文件无需更新:', result.message);
+                }
+            } else if (result.skipped) {
+                console.log('多语言处理已跳过:', result.reason);
+            } else {
+                console.error('多语言文件处理失败:', result.error);
+                App.Utils.showStatus(`⚠️ 多语言文件处理失败：${result.error}`, 'warning', 8000);
+            }
+
+        } catch (error) {
+            console.error('多语言处理出错:', error);
+            App.Utils.showStatus(`⚠️ 多语言处理出错：${error.message}`, 'warning', 8000);
+        }
+    }
+
+    /**
+     * 检查多语言处理的准备状态
+     */
+    function checkMultiLanguageReadiness() {
+        const hasRSCLanguageFile = !!(folderManager && folderManager.rscLanguageHandle);
+        const multiLangConfig = getMultiLanguageConfig();
+
+        return {
+            hasFile: hasRSCLanguageFile,
+            hasValidConfig: multiLangConfig.isValid,
+            config: multiLangConfig,
+            ready: hasRSCLanguageFile && multiLangConfig.isValid
+        };
     }
 
     /**
@@ -3238,7 +4195,12 @@ window.App.ThemeManager = (function() {
         isReady: () => isInitialized,
 
         // 数据同步功能
-        refreshDataPreview: refreshDataPreview
+        refreshDataPreview: refreshDataPreview,
+
+        // 多语言功能
+        getMultiLanguageConfig: getMultiLanguageConfig,
+        checkMultiLanguageReadiness: checkMultiLanguageReadiness,
+        processRSCLanguage: processRSCLanguage
     };
 
 
@@ -3417,6 +4379,50 @@ window.App.ThemeManager = (function() {
                     console.error('UGCTheme文件加载失败:', error);
                     updateFileStatusInUI('ugc', '加载失败', 'error');
                 }
+            }
+
+            // 加载RSC_Language文件（如果存在）
+            if (result.rscLanguageFound && result.files.rscLanguage.hasPermission) {
+                try {
+                    console.log('开始加载RSC_Language文件...');
+                    const languageFile = await folderManager.rscLanguageHandle.getFile();
+                    const languageArrayBuffer = await languageFile.arrayBuffer();
+                    const languageWorkbook = XLSX.read(languageArrayBuffer, { type: 'array' });
+
+                    rscLanguageData = {
+                        fileHandle: folderManager.rscLanguageHandle,
+                        workbook: languageWorkbook,
+                        fileName: languageFile.name,
+                        size: languageFile.size
+                    };
+
+                    console.log('RSC_Language文件加载成功:', languageFile.name);
+                    App.Utils.showStatus('RSC_Language文件已加载，支持多语言ID管理', 'info', 3000);
+                } catch (error) {
+                    console.error('RSC_Language文件加载失败:', error);
+                    App.Utils.showStatus('RSC_Language文件加载失败，多语言功能将不可用', 'warning', 5000);
+                }
+            } else if (result.rscLanguageFound) {
+                console.warn('RSC_Language.xls文件找到但权限获取失败');
+                App.Utils.showStatus('RSC_Language文件权限获取失败，多语言功能将不可用', 'warning', 5000);
+            } else {
+                console.log('未找到RSC_Language.xls文件，多语言功能将不可用');
+            }
+
+            // 设置Levels文件信息（用于Level_id处理）
+            if (result.levelsFound && result.files.levels.hasPermission) {
+                // 创建unityProjectFiles对象（如果不存在）
+                if (!unityProjectFiles) {
+                    unityProjectFiles = {};
+                }
+
+                // 将Levels文件句柄添加到unityProjectFiles
+                unityProjectFiles.levelsFile = result.files.levels.handle;
+                console.log('Levels.xls文件信息已设置，可用于Level_id智能处理');
+            } else if (result.levelsFound) {
+                console.warn('Levels.xls文件找到但权限获取失败，Level_id将使用默认处理');
+            } else {
+                console.warn('未找到Levels.xls文件，Level_id将使用默认处理');
             }
 
             // 检查就绪状态

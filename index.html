@@ -64,6 +64,8 @@
             </div>
         </section>
 
+
+
         <!-- Unity项目文件夹选择区域（现代浏览器） -->
         <section class="upload-section" id="folderSelectionSection" style="display: none;">
             <div class="upload-options">
@@ -190,6 +192,23 @@
                     <label for="themeNameInput">✨ 创建新主题：</label>
                     <input type="text" id="themeNameInput" placeholder="请输入新主题名称" maxlength="50">
                     <div class="input-validation" id="themeInputValidation" style="display: none;"></div>
+                </div>
+
+                <!-- 多语言配置区域（仅新建主题时显示） -->
+                <div class="multilang-config-section" id="multiLangConfigSection" style="display: none;">
+                    <h4>🌐 多语言配置</h4>
+                    <div class="multilang-content">
+                        <div class="multilang-step">
+                            <label for="multiLangId">多语言ID：</label>
+                            <input type="number" id="multiLangId" placeholder="请先打开在线表填写主题信息，然后输入分配的多语言ID" min="1">
+                            <button type="button" id="openMultiLangBtn" class="multilang-btn">
+                                📝 打开在线多语言表
+                            </button>
+                        </div>
+                        <small class="help-text">
+                            💡 操作步骤：1) 点击按钮打开在线表 → 2) 在表格中添加主题信息 → 3) 回来输入分配的多语言ID
+                        </small>
+                    </div>
                 </div>
 
                 <div class="action-group">
