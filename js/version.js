@@ -17,13 +17,22 @@ window.App.Version = (function() {
 
     // 当前版本信息
     const VERSION_INFO = {
-        current: '1.3.0',
+        current: '1.3.1',
         releaseDate: '2025-09-09',
-        buildNumber: '20250905013'
+        buildNumber: '20250905014'
     };
 
     // 版本历史记录
     const VERSION_HISTORY = [
+        {
+            version: '1.3.1',
+            date: '2025-09-09',
+            changes: [
+                '更换主题Unity工具链接',
+                '更新导航栏UI'
+            ],
+            type: 'minor'
+        },
         {
             version: '1.3.0',
             date: '2025-09-09',
