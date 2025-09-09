@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ColorTool 工具导航站</title>
+  <meta name="description" content="集中展示与访问颜色主题相关工具与平台的导航页面" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    /* 导航页少量补充样式，保持与项目配色一致 */
+    .nav-intro {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 18px;
+      color: #fff;
+      text-align: center;
+      max-width: 860px;
+      margin: 0 auto 22px auto;
+    }
+    .nav-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      align-items: stretch;
+    }
+    .nav-card {
+      background: #fff;
+      border-radius: 15px;
+      padding: 22px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .nav-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    }
+    .nav-card .icon {
+      font-size: 2.2rem;
+      margin-bottom: 10px;
+    }
+    .nav-card h3 {
+      color: #333;
+      font-size: 1.2rem;
+      margin: 0 0 6px 0;
+    }
+    .nav-card p {
+      color: #666;
+      margin: 0 0 14px 0;
+      line-height: 1.5;
+      min-height: 44px;
+    }
+    .nav-card .actions {
+      margin-top: auto;
+    }
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: #fff;
+      text-decoration: none;
+      padding: 10px 16px;
+      border-radius: 22px;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+    .nav-link:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    .muted-note {
+      color: #888;
+      font-size: 0.9rem;
+    }
+    .back-links {
+      margin-top: 18px;
+      text-align: center;
+    }
+    .back-links a {
+      color: #fff;
+      opacity: 0.95;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="header-top">
+        <div class="title-section">
+          <h1>ColorTool 工具导航站</h1>
+          <p class="subtitle">集中访问主题色、Unity导入和模型上传等相关工具</p>
+        </div>
+        <div class="version-section">
+          <span class="version-label">导航版本</span>
+          <span class="version-number">v1.0</span>
+        </div>
+      </div>
+
+      <div class="nav-intro">
+        在这里你可以快速进入常用的工具与平台。所有外部链接将在新标签页打开，方便你回到本页面继续浏览。
+      </div>
+    </header>
+
+    <main>
+      <section aria-labelledby="tools-section-title">
+        <h2 id="tools-section-title" style="color:#fff; text-align:center; margin-bottom:14px; font-size:1.3rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.25);">常用工具与平台</h2>
+
+        <div class="nav-grid" role="navigation" aria-label="工具导航">
+          <!-- 主题色相关工具 -->
+          <article class="nav-card" aria-labelledby="card-color-title">
+            <div class="icon" aria-hidden="true">🎨</div>
+            <h3 id="card-color-title">主题色相关工具</h3>
+            <p>查看并了解主题色规范、配色方案与说明，便于在项目中统一色彩风格。</p>
+            <div class="actions">
+              <a class="nav-link" href="https://fbx-platform.minimonster.ltd/ColorAbout/" target="_blank" rel="noopener noreferrer">
+                打开工具 <span aria-hidden="true">↗</span>
+              </a>
+            </div>
+          </article>
+
+          <!-- 主题导入Unity工具 -->
+          <article class="nav-card" aria-labelledby="card-unity-title">
+            <div class="icon" aria-hidden="true">🧩</div>
+            <h3 id="card-unity-title">主题导入 Unity 工具</h3>
+            <p>将主题数据导入 Unity 项目，支持自动化处理与更新，提升集成效率。</p>
+            <div class="actions">
+              <a class="nav-link" href="https://cr650.pages.jihulab.net/-/colortool/-/jobs/23419163/artifacts/public/index.html" target="_blank" rel="noopener noreferrer">
+                打开工具 <span aria-hidden="true">↗</span>
+              </a>
+            </div>
+          </article>
+
+          <!-- 模型上传平台 -->
+          <article class="nav-card" aria-labelledby="card-upload-title">
+            <div class="icon" aria-hidden="true">☁️</div>
+            <h3 id="card-upload-title">模型上传平台</h3>
+            <p>上传并管理 3D 模型资源，支持团队协作与在线预览。</p>
+            <div class="actions">
+              <a class="nav-link" href="https://fbx-platform.minimonster.ltd/" target="_blank" rel="noopener noreferrer">
+                前往平台 <span aria-hidden="true">↗</span>
+              </a>
+            </div>
+          </article>
+        </div>
+
+        <p class="back-links">
+          <a href="index.html" title="返回主题管理工具主页">返回主题管理工具主页</a>
+        </p>
+        <p class="back-links muted-note" aria-hidden="true">如需扩展新的链接卡片，可告知我们添加。</p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
+
