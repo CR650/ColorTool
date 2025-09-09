@@ -17,13 +17,21 @@ window.App.Version = (function() {
 
     // 当前版本信息
     const VERSION_INFO = {
-        current: '1.2.8',
-        releaseDate: '2025-09-08',
-        buildNumber: '20250905011'
+        current: '1.2.9',
+        releaseDate: '2025-09-09',
+        buildNumber: '20250905012'
     };
 
     // 版本历史记录
     const VERSION_HISTORY = [
+        {
+            version: '1.2.9',
+            date: '2025-09-09',
+            changes: [
+                '更换静态部署工具为GitLab',
+            ],
+            type: 'minor'
+        },
         {
             version: '1.2.8',
             date: '2025-09-08',

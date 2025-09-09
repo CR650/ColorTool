@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图案选择器 - Floor Pattern Selector</title>
+    <link rel="stylesheet" href="css/pattern-selector.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-th"></i> 图案选择器</h1>
+            <p>点击下方图片中的任意图案进行选择</p>
+        </header>
+
+        <main class="main-content">
+            <!-- 图案选择区域 -->
+            <section class="pattern-selector-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-mouse-pointer"></i> 选择图案</h2>
+                    <div class="controls">
+                        <button id="resetSelectionBtn" class="btn btn-secondary">
+                            <i class="fas fa-undo"></i> 重置选择
+                        </button>
+                        <button id="toggleGridBtn" class="btn btn-secondary">
+                            <i class="fas fa-grid-3x3"></i> 切换网格
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="patternSelectorContainer" class="pattern-container">
+                    <canvas id="patternCanvas" class="pattern-canvas"></canvas>
+                    <div class="loading-overlay" id="loadingOverlay">
+                        <div class="loading-spinner">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>正在加载图案...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 预览和信息区域 -->
+            <aside class="sidebar">
+                <!-- 图案预览 -->
+                <section class="preview-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-eye"></i> 图案预览</h3>
+                    </div>
+                    <div id="patternPreview" class="pattern-preview">
+                        <div class="pattern-preview-placeholder">
+                            <i class="fas fa-image"></i>
+                            <p>请选择一个图案</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 图案信息 -->
+                <section class="info-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-info-circle"></i> 图案信息</h3>
+                    </div>
+                    <div id="patternInfo" class="pattern-info">
+                        <div class="pattern-info-placeholder">
+                            <i class="fas fa-hand-pointer"></i>
+                            <p>选择图案后显示详细信息</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 操作按钮 -->
+                <section class="actions-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-tools"></i> 操作</h3>
+                    </div>
+                    <div class="action-buttons">
+                        <button id="exportPatternBtn" class="btn btn-primary" disabled>
+                            <i class="fas fa-download"></i> 导出选中图案
+                        </button>
+                        <button id="copyPatternBtn" class="btn btn-secondary" disabled>
+                            <i class="fas fa-copy"></i> 复制图案信息
+                        </button>
+                        <button id="usePatternBtn" class="btn btn-success" disabled>
+                            <i class="fas fa-check"></i> 使用此图案
+                        </button>
+                    </div>
+                </section>
+
+                <!-- 快速选择 -->
+                <section class="quick-select-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-bolt"></i> 快速选择</h3>
+                    </div>
+                    <div class="quick-select-controls">
+                        <div class="input-group">
+                            <label for="rowInput">行:</label>
+                            <input type="number" id="rowInput" min="1" max="8" placeholder="1-8">
+                        </div>
+                        <div class="input-group">
+                            <label for="colInput">列:</label>
+                            <input type="number" id="colInput" min="1" max="8" placeholder="1-8">
+                        </div>
+                        <button id="quickSelectBtn" class="btn btn-primary">
+                            <i class="fas fa-crosshairs"></i> 选择
+                        </button>
+                    </div>
+                </section>
+            </aside>
+        </main>
+
+        <!-- 状态栏 -->
+        <footer class="status-bar">
+            <div class="status-info">
+                <span id="statusText">就绪 - 请选择图案</span>
+            </div>
+            <div class="pattern-stats">
+                <span>总图案数: <strong id="totalPatterns">64</strong></span>
+                <span>已选择: <strong id="selectedCount">0</strong></span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- 模态框 - 图案详情 -->
+    <div id="patternDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-search-plus"></i> 图案详情</h3>
+                <button class="modal-close" id="closeModalBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="patternDetailContent">
+                    <!-- 详细内容将通过JavaScript填充 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="modalCancelBtn">取消</button>
+                <button class="btn btn-primary" id="modalConfirmBtn">确认使用</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/patternSelector.js"></script>
+    <script src="js/pattern-selector-ui.js"></script>
+    <script>
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('页面加载完成，初始化图案选择器...');
+            
+            // 初始化图案选择器
+            if (window.App && window.App.PatternSelector) {
+                window.App.PatternSelector.init();
+            }
+            
+            // 初始化UI控制器
+            if (window.App && window.App.PatternSelectorUI) {
+                window.App.PatternSelectorUI.init();
+            }
+            
+            // 监听图案选择事件
+            document.addEventListener('patternSelected', function(event) {
+                console.log('图案已选择:', event.detail);
+                
+                // 更新状态栏
+                const statusText = document.getElementById('statusText');
+                if (statusText) {
+                    statusText.textContent = `已选择图案: ${event.detail.pattern.name}`;
+                }
+                
+                // 更新选择计数
+                const selectedCount = document.getElementById('selectedCount');
+                if (selectedCount) {
+                    selectedCount.textContent = '1';
+                }
+                
+                // 启用操作按钮
+                const actionButtons = document.querySelectorAll('.actions-section .btn');
+                actionButtons.forEach(btn => btn.disabled = false);
+            });
+        });
+    </script>
+</body>
+</html>

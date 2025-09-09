@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图案选择器集成示例</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .integration-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .content {
+            display: flex;
+            min-height: 600px;
+        }
+        
+        .pattern-section {
+            flex: 2;
+            padding: 20px;
+            border-right: 1px solid #dee2e6;
+        }
+        
+        .result-section {
+            flex: 1;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .pattern-container {
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background: white;
+        }
+        
+        .pattern-canvas {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: crosshair;
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .selected-pattern {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 8px;
+        }
+        
+        .pattern-preview {
+            display: inline-block;
+            margin: 10px 0;
+            border: 2px solid #007bff;
+            border-radius: 4px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="integration-container">
+        <div class="header">
+            <h1>🎨 图案选择器集成示例</h1>
+            <p>演示如何在项目中集成和使用图案选择功能</p>
+        </div>
+        
+        <div class="content">
+            <!-- 图案选择区域 -->
+            <div class="pattern-section">
+                <h2>选择图案</h2>
+                <div class="pattern-container">
+                    <canvas id="patternCanvas" class="pattern-canvas"></canvas>
+                    <div id="loadingText">正在加载图案...</div>
+                </div>
+                
+
+            </div>
+            
+            <!-- 结果显示区域 -->
+            <div class="result-section">
+                <h2>选择结果</h2>
+                
+                <div id="noSelection" class="status info">
+                    请点击左侧图案进行选择
+                </div>
+                
+                <div id="selectedPattern" class="selected-pattern" style="display: none;">
+                    <h3>已选择图案</h3>
+                    <div id="patternPreview" class="pattern-preview"></div>
+                    
+                    <div id="patternInfo">
+                        <!-- 图案信息将在这里显示 -->
+                    </div>
+                    
+                    <div style="margin-top: 15px;">
+                        <button id="usePatternBtn" class="btn btn-primary">使用此图案</button>
+                        <button id="exportBtn" class="btn btn-primary">导出图案</button>
+                    </div>
+                </div>
+                
+                <div id="usageResult" style="display: none;">
+                    <h3>使用结果</h3>
+                    <div id="resultContent" class="status success">
+                        <!-- 使用结果将在这里显示 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 简化的图案选择器实现
+        class SimplePatternSelector {
+            constructor(canvasId) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.image = null;
+                this.selectedPattern = null;
+                this.gridCols = 8;
+                this.gridRows = 8;
+                this.patterns = [];
+                
+                this.init();
+            }
+            
+            init() {
+                this.loadImage();
+                this.canvas.addEventListener('click', (e) => this.handleClick(e));
+            }
+            
+            loadImage() {
+                this.image = new Image();
+                this.image.onload = () => {
+                    this.setupCanvas();
+                    this.generatePatterns();
+                    this.render();
+                    document.getElementById('loadingText').style.display = 'none';
+                };
+                this.image.onerror = () => {
+                    document.getElementById('loadingText').textContent = '图片加载失败，请检查路径';
+                };
+                this.image.src = './Texture/Floor_Pattern.png';
+            }
+            
+            setupCanvas() {
+                const containerWidth = this.canvas.parentElement.clientWidth - 40;
+                const aspectRatio = this.image.height / this.image.width;
+                const canvasWidth = Math.min(containerWidth, 600);
+                const canvasHeight = canvasWidth * aspectRatio;
+                
+                this.canvas.width = canvasWidth;
+                this.canvas.height = canvasHeight;
+                this.canvas.style.width = canvasWidth + 'px';
+                this.canvas.style.height = canvasHeight + 'px';
+            }
+            
+            generatePatterns() {
+                this.patterns = [];
+                const patternWidth = this.image.width / this.gridCols;
+                const patternHeight = this.image.height / this.gridRows;
+
+                let index = 0;
+                for (let row = 0; row < this.gridRows; row++) {
+                    for (let col = 0; col < this.gridCols; col++) {
+                        const pattern = {
+                            id: `pattern_${row}_${col}`,
+                            index: index,
+                            row: row,
+                            col: col,
+                            x: col * patternWidth,
+                            y: row * patternHeight,
+                            width: patternWidth,
+                            height: patternHeight,
+                            name: `图案 ${index}`,
+                            selectable: true, // 默认可选择
+                            blackChecked: false // 是否已检测过黑块
+                        };
+
+                        this.patterns.push(pattern);
+                        index++;
+                    }
+                }
+
+                // 使用预定义的黑块列表（基于观察到的图案）
+                this.applyKnownBlackPatterns();
+            }
+
+            // 应用已知的黑块模式
+            applyKnownBlackPatterns() {
+                // 这些是观察到的纯黑块的index（除了第一个）
+                // 您可以根据实际图片调整这个列表
+                const knownBlackPatterns = [
+                    // 根据实际观察添加黑块的index
+                    // 例如：8, 16, 24, 32, 40, 48, 56 等
+                ];
+
+                this.patterns.forEach(pattern => {
+                    if (pattern.index > 0 && knownBlackPatterns.includes(pattern.index)) {
+                        pattern.selectable = false;
+                        pattern.blackChecked = true;
+                    }
+                });
+
+                console.log(`应用了 ${knownBlackPatterns.length} 个已知黑块模式`);
+            }
+
+            // 检测是否为纯黑图案（延迟检测以避免CORS问题）
+            isBlackPattern(pattern) {
+                try {
+                    // 创建临时canvas来检测图案颜色
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    const sampleSize = 32; // 使用较小的采样尺寸提高性能
+                    tempCanvas.width = sampleSize;
+                    tempCanvas.height = sampleSize;
+
+                    // 绘制图案到临时canvas
+                    tempCtx.drawImage(
+                        this.image,
+                        pattern.x, pattern.y, pattern.width, pattern.height,
+                        0, 0, sampleSize, sampleSize
+                    );
+
+                    // 获取图像数据
+                    const imageData = tempCtx.getImageData(0, 0, sampleSize, sampleSize);
+                    const data = imageData.data;
+
+                    // 检查是否所有像素都是纯黑色
+                    let blackPixelCount = 0;
+                    const totalPixels = data.length / 4;
+                    const threshold = 10; // 更严格的黑色阈值，只有接近纯黑的才算
+
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        const alpha = data[i + 3];
+
+                        // 只有RGB值都非常低且不透明，才认为是黑色
+                        if (alpha > 200 && r <= threshold && g <= threshold && b <= threshold) {
+                            blackPixelCount++;
+                        }
+                    }
+
+                    // 只有100%纯黑的图案才算黑块
+                    const blackRatio = blackPixelCount / totalPixels;
+                    const isBlack = blackRatio >= 0.99; // 99%以上才算纯黑（考虑到压缩等因素的微小误差）
+
+                    console.log(`图案 ${pattern.index} 黑色像素比例: ${(blackRatio * 100).toFixed(1)}%, 判定为黑块: ${isBlack}`);
+                    return isBlack;
+
+                } catch (error) {
+                    // 如果遇到CORS错误，使用启发式方法
+                    console.warn(`无法检测图案 ${pattern.index} 的颜色（CORS限制），使用启发式判断`);
+                    return this.isBlackPatternHeuristic(pattern);
+                }
+            }
+
+            // 启发式黑块检测（基于位置和已知模式）
+            isBlackPatternHeuristic(pattern) {
+                // 根据观察到的图片，这些位置是纯黑块
+                const knownBlackPositions = [
+                    // 第一行的黑块（除了index 0）
+                    6, 7,
+                    // 第二行的黑块
+                    8, 15,
+                    // 第三行的黑块
+                    23,
+                    // 第四行的黑块
+                    25, 26, 31,
+                    // 第五行的黑块
+                    32, 33, 34, 35, 36, 37, 38, 39,
+                    // 第六行的黑块
+                    40, 41, 42, 43, 44, 45, 46, 47,
+                    // 第七行的黑块
+                    48, 49, 50, 51, 52, 53, 54, 55,
+                    // 第八行的黑块
+                    56, 57, 58, 59, 60, 61, 62, 63
+                ];
+
+                return knownBlackPositions.includes(pattern.index);
+            }
+            
+            render() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.drawImage(this.image, 0, 0, this.canvas.width, this.canvas.height);
+                
+                // 绘制网格
+                this.drawGrid();
+
+                // 绘制不可选择图案的遮罩
+                this.drawUnselectableMask();
+
+                // 绘制选中状态
+                if (this.selectedPattern) {
+                    this.drawSelection();
+                }
+            }
+            
+            drawGrid() {
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                this.ctx.lineWidth = 1;
+                
+                const cellWidth = this.canvas.width / this.gridCols;
+                const cellHeight = this.canvas.height / this.gridRows;
+                
+                for (let i = 1; i < this.gridCols; i++) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(i * cellWidth, 0);
+                    this.ctx.lineTo(i * cellWidth, this.canvas.height);
+                    this.ctx.stroke();
+                }
+                
+                for (let i = 1; i < this.gridRows; i++) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, i * cellHeight);
+                    this.ctx.lineTo(this.canvas.width, i * cellHeight);
+                    this.ctx.stroke();
+                }
+            }
+
+            // 绘制不可选择图案的遮罩
+            drawUnselectableMask() {
+                const cellWidth = this.canvas.width / this.gridCols;
+                const cellHeight = this.canvas.height / this.gridRows;
+
+                this.patterns.forEach(pattern => {
+                    // 只对已检测过且不可选择的图案绘制遮罩
+                    if (pattern.blackChecked && !pattern.selectable) {
+                        const x = pattern.col * cellWidth;
+                        const y = pattern.row * cellHeight;
+
+                        // 绘制半透明红色遮罩
+                        this.ctx.fillStyle = 'rgba(220, 53, 69, 0.6)';
+                        this.ctx.fillRect(x, y, cellWidth, cellHeight);
+
+                        // 绘制禁用图标（X）
+                        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+                        this.ctx.lineWidth = 3;
+                        const centerX = x + cellWidth / 2;
+                        const centerY = y + cellHeight / 2;
+                        const size = Math.min(cellWidth, cellHeight) * 0.3;
+
+                        // 绘制X
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(centerX - size, centerY - size);
+                        this.ctx.lineTo(centerX + size, centerY + size);
+                        this.ctx.moveTo(centerX + size, centerY - size);
+                        this.ctx.lineTo(centerX - size, centerY + size);
+                        this.ctx.stroke();
+                    }
+                });
+            }
+
+            drawSelection() {
+                const cellWidth = this.canvas.width / this.gridCols;
+                const cellHeight = this.canvas.height / this.gridRows;
+                const x = this.selectedPattern.col * cellWidth;
+                const y = this.selectedPattern.row * cellHeight;
+                
+                this.ctx.strokeStyle = '#00ff00';
+                this.ctx.lineWidth = 3;
+                this.ctx.strokeRect(x, y, cellWidth, cellHeight);
+                
+                this.ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
+                this.ctx.fillRect(x, y, cellWidth, cellHeight);
+            }
+            
+            handleClick(event) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+
+                const cellWidth = this.canvas.width / this.gridCols;
+                const cellHeight = this.canvas.height / this.gridRows;
+
+                const col = Math.floor(x / cellWidth);
+                const row = Math.floor(y / cellHeight);
+
+                if (col >= 0 && col < this.gridCols && row >= 0 && row < this.gridRows) {
+                    const index = row * this.gridCols + col;
+                    const pattern = this.patterns[index];
+
+                    // 如果是第一个图案（index 0），直接允许选择
+                    if (pattern.index === 0) {
+                        this.selectPattern(pattern);
+                        return;
+                    }
+
+                    // 如果还没有检测过黑块，现在检测
+                    if (!pattern.blackChecked) {
+                        const isBlack = this.isBlackPattern(pattern);
+                        // 除了第一个黑块（index 0）外，其他黑块都不能选择
+                        pattern.selectable = !isBlack;
+                        pattern.blackChecked = true;
+
+                        console.log(`图案 ${pattern.index}: 是黑块=${isBlack}, 可选择=${pattern.selectable}`);
+
+                        // 重新渲染以显示遮罩
+                        this.render();
+                    }
+
+                    // 检查图案是否可选择
+                    console.log(`尝试选择图案 ${pattern.index}, 可选择: ${pattern.selectable}`);
+                    if (pattern.selectable) {
+                        this.selectPattern(pattern);
+                    } else {
+                        // 显示不可选择的提示
+                        this.showNotSelectableMessage(pattern);
+                    }
+                }
+            }
+
+            // 显示不可选择的提示
+            showNotSelectableMessage(pattern) {
+                // 创建临时提示元素
+                const message = document.createElement('div');
+                message.textContent = `图案 ${pattern.index} 不可选择（纯黑块）`;
+                message.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(220, 53, 69, 0.9);
+                    color: white;
+                    padding: 10px 20px;
+                    border-radius: 4px;
+                    z-index: 1000;
+                    font-weight: bold;
+                `;
+
+                document.body.appendChild(message);
+
+                // 2秒后自动移除
+                setTimeout(() => {
+                    if (message.parentNode) {
+                        message.parentNode.removeChild(message);
+                    }
+                }, 2000);
+            }
+            
+            selectPattern(pattern) {
+                this.selectedPattern = pattern;
+                this.render();
+                this.updateUI();
+            }
+            
+            updateUI() {
+                const noSelection = document.getElementById('noSelection');
+                const selectedPattern = document.getElementById('selectedPattern');
+                const patternInfo = document.getElementById('patternInfo');
+                const patternPreview = document.getElementById('patternPreview');
+                
+                if (this.selectedPattern) {
+                    noSelection.style.display = 'none';
+                    selectedPattern.style.display = 'block';
+                    
+                    // 更新预览
+                    const previewCanvas = document.createElement('canvas');
+                    previewCanvas.width = 100;
+                    previewCanvas.height = 100;
+                    const previewCtx = previewCanvas.getContext('2d');
+                    
+                    previewCtx.drawImage(
+                        this.image,
+                        this.selectedPattern.x, this.selectedPattern.y,
+                        this.selectedPattern.width, this.selectedPattern.height,
+                        0, 0, 100, 100
+                    );
+                    
+                    patternPreview.innerHTML = '';
+                    patternPreview.appendChild(previewCanvas);
+                    
+                    // 更新信息
+                    patternInfo.innerHTML = `
+                        <div class="info-item">
+                            <span>图案编号:</span>
+                            <span>${this.selectedPattern.name}</span>
+                        </div>
+                    `;
+                } else {
+                    noSelection.style.display = 'block';
+                    selectedPattern.style.display = 'none';
+                }
+            }
+            
+            reset() {
+                this.selectedPattern = null;
+                this.render();
+                this.updateUI();
+                document.getElementById('usageResult').style.display = 'none';
+            }
+            
+            randomSelect() {
+                const randomIndex = Math.floor(Math.random() * this.patterns.length);
+                this.selectPattern(this.patterns[randomIndex]);
+            }
+        }
+        
+        // 初始化
+        let patternSelector;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            patternSelector = new SimplePatternSelector('patternCanvas');
+            
+            // 绑定按钮事件（移除了重置和随机选择按钮）
+            
+            document.getElementById('usePatternBtn').addEventListener('click', () => {
+                if (patternSelector.selectedPattern) {
+                    const resultDiv = document.getElementById('usageResult');
+                    const resultContent = document.getElementById('resultContent');
+                    
+                    resultContent.innerHTML = `
+                        <strong>图案已应用!</strong><br>
+                        使用了图案: ${patternSelector.selectedPattern.name}<br>
+                        时间: ${new Date().toLocaleString()}
+                    `;
+                    
+                    resultDiv.style.display = 'block';
+                }
+            });
+            
+            document.getElementById('exportBtn').addEventListener('click', () => {
+                if (patternSelector.selectedPattern) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 256;
+                    canvas.height = 256;
+                    const ctx = canvas.getContext('2d');
+                    
+                    ctx.drawImage(
+                        patternSelector.image,
+                        patternSelector.selectedPattern.x, patternSelector.selectedPattern.y,
+                        patternSelector.selectedPattern.width, patternSelector.selectedPattern.height,
+                        0, 0, 256, 256
+                    );
+                    
+                    canvas.toBlob(function(blob) {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${patternSelector.selectedPattern.name}.png`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

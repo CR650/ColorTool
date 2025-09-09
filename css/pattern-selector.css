@@ -1,0 +1,551 @@
+/**
+ * 图案选择器样式文件
+ * 文件说明：Floor Pattern Selector的完整样式定义
+ * 创建时间：2025-09-08
+ */
+
+/* 基础重置和变量 */
+:root {
+    --primary-color: #007bff;
+    --secondary-color: #6c757d;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
+    --light-color: #f8f9fa;
+    --dark-color: #343a40;
+    
+    --border-radius: 8px;
+    --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    --transition: all 0.3s ease;
+    
+    --sidebar-width: 320px;
+    --header-height: 80px;
+    --status-height: 50px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: var(--dark-color);
+}
+
+/* 容器布局 */
+.container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    max-width: 1400px;
+    margin: 0 auto;
+    background: white;
+    box-shadow: var(--box-shadow);
+}
+
+/* 头部样式 */
+.header {
+    background: linear-gradient(135deg, var(--primary-color), #0056b3);
+    color: white;
+    padding: 20px;
+    text-align: center;
+    height: var(--header-height);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.header h1 {
+    font-size: 1.8rem;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.header p {
+    opacity: 0.9;
+    font-size: 0.95rem;
+}
+
+/* 主内容区域 */
+.main-content {
+    display: flex;
+    flex: 1;
+    gap: 20px;
+    padding: 20px;
+    background: var(--light-color);
+}
+
+/* 图案选择区域 */
+.pattern-selector-section {
+    flex: 1;
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    overflow: hidden;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: var(--light-color);
+    border-bottom: 1px solid #dee2e6;
+}
+
+.section-header h2,
+.section-header h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--dark-color);
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+}
+
+/* 图案容器 */
+.pattern-container {
+    position: relative;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 600px;
+    background: #f8f9fa;
+}
+
+.pattern-canvas {
+    border: 2px solid #dee2e6;
+    border-radius: var(--border-radius);
+    cursor: crosshair;
+    transition: var(--transition);
+    background: white;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.pattern-canvas:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 6px 20px rgba(0, 123, 255, 0.2);
+}
+
+/* 加载覆盖层 */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+.loading-spinner {
+    text-align: center;
+    color: var(--primary-color);
+}
+
+.loading-spinner i {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+/* 侧边栏 */
+.sidebar {
+    width: var(--sidebar-width);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.sidebar section {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    overflow: hidden;
+}
+
+/* 图案预览 */
+.pattern-preview {
+    padding: 20px;
+    text-align: center;
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.pattern-preview canvas {
+    border: 2px solid #dee2e6;
+    border-radius: var(--border-radius);
+    margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pattern-preview-title {
+    font-weight: 600;
+    color: var(--dark-color);
+    margin-top: 10px;
+}
+
+.pattern-preview-placeholder,
+.pattern-info-placeholder {
+    color: var(--secondary-color);
+    text-align: center;
+}
+
+.pattern-preview-placeholder i,
+.pattern-info-placeholder i {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    opacity: 0.5;
+}
+
+/* 图案信息 */
+.pattern-info {
+    padding: 20px;
+}
+
+.pattern-info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.pattern-info-item:last-child {
+    border-bottom: none;
+}
+
+.pattern-info-item label {
+    font-weight: 600;
+    color: var(--secondary-color);
+    font-size: 0.9rem;
+}
+
+.pattern-info-item span {
+    color: var(--dark-color);
+    font-weight: 500;
+}
+
+/* 按钮样式 */
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #0056b3;
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: var(--secondary-color);
+    color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: #545b62;
+    transform: translateY(-1px);
+}
+
+.btn-success {
+    background: var(--success-color);
+    color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+    background: #1e7e34;
+    transform: translateY(-1px);
+}
+
+/* 操作按钮区域 */
+.actions-section .pattern-info,
+.quick-select-section .pattern-info {
+    padding: 15px 20px;
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.action-buttons .btn {
+    justify-content: center;
+    padding: 12px 16px;
+}
+
+/* 快速选择 */
+.quick-select-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.input-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.input-group label {
+    font-weight: 600;
+    color: var(--secondary-color);
+    min-width: 30px;
+}
+
+.input-group input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: var(--border-radius);
+    font-size: 0.9rem;
+    transition: var(--transition);
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* 状态栏 */
+.status-bar {
+    height: var(--status-height);
+    background: var(--dark-color);
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    font-size: 0.9rem;
+}
+
+.pattern-stats {
+    display: flex;
+    gap: 20px;
+}
+
+.pattern-stats strong {
+    color: var(--warning-color);
+}
+
+/* 模态框 */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: var(--light-color);
+    border-bottom: 1px solid #dee2e6;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: var(--secondary-color);
+    padding: 5px;
+    border-radius: 50%;
+    transition: var(--transition);
+}
+
+.modal-close:hover {
+    background: var(--danger-color);
+    color: white;
+}
+
+.modal-body {
+    padding: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 20px;
+    background: var(--light-color);
+    border-top: 1px solid #dee2e6;
+}
+
+/* 错误状态 */
+.pattern-error {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--danger-color);
+}
+
+.pattern-error i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+}
+
+/* 图案详情 */
+.pattern-detail {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.pattern-detail-preview {
+    flex-shrink: 0;
+}
+
+.pattern-detail-preview canvas {
+    border: 2px solid #dee2e6;
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pattern-detail-info {
+    flex: 1;
+}
+
+.pattern-detail-info h4 {
+    margin-bottom: 15px;
+    color: var(--primary-color);
+    font-size: 1.2rem;
+}
+
+.pattern-detail-info p {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.pattern-detail-info strong {
+    color: var(--dark-color);
+    font-weight: 600;
+}
+
+/* 通知样式 */
+.notification {
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* 响应式设计 */
+@media (max-width: 1024px) {
+    .main-content {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    .sidebar section {
+        flex: 1;
+        min-width: 280px;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        margin: 0;
+        border-radius: 0;
+    }
+    
+    .main-content {
+        padding: 10px;
+        gap: 10px;
+    }
+    
+    .sidebar {
+        flex-direction: column;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .controls {
+        justify-content: center;
+    }
+    
+    .status-bar {
+        flex-direction: column;
+        height: auto;
+        padding: 10px;
+        gap: 5px;
+        text-align: center;
+    }
+    
+    .pattern-stats {
+        justify-content: center;
+    }
+}
