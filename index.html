@@ -445,6 +445,28 @@
                                     </div>
                                     <span class="field-hint">钻石反光的颜色，RGB值范围0-255</span>
                                 </div>
+                                <div class="colorinfo-field-row">
+                                    <label for="BallSpecColor">钻石高光颜色 (BallSpec):</label>
+                                    <div class="rgb-color-selector-container">
+                                        <div class="rgb-inputs">
+                                            <div class="rgb-input-group">
+                                                <label>R:</label>
+                                                <input type="number" id="BallSpecR" min="0" max="255" value="255" placeholder="0-255">
+                                            </div>
+                                            <div class="rgb-input-group">
+                                                <label>G:</label>
+                                                <input type="number" id="BallSpecG" min="0" max="255" value="255" placeholder="0-255">
+                                            </div>
+                                            <div class="rgb-input-group">
+                                                <label>B:</label>
+                                                <input type="number" id="BallSpecB" min="0" max="255" value="255" placeholder="0-255">
+                                            </div>
+                                        </div>
+                                        <div class="color-preview" id="BallSpecColorPreview" style="background-color: rgb(255, 255, 255);"></div>
+                                        <button type="button" class="color-picker-btn" data-target="BallSpec" data-mode="rgb">选择颜色</button>
+                                    </div>
+                                    <span class="field-hint">钻石高光的颜色，RGB值范围0-255</span>
+                                </div>
                             </div>
 
                             <!-- 雾效配置 -->

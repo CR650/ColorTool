@@ -17,13 +17,33 @@ window.App.Version = (function() {
 
     // 当前版本信息
     const VERSION_INFO = {
-        current: '1.4.3',
+        current: '1.4.4',
         releaseDate: '2025-09-10',
-        buildNumber: '20250110003'
+        buildNumber: '20250110004'
     };
 
     // 版本历史记录
     const VERSION_HISTORY = [
+        {
+            version: '1.4.4',
+            date: '2025-09-10',
+            changes: [
+                '新增BallSpec钻石高光颜色配置功能，支持钻石高光颜色的RGB设置',
+                '在ColorInfo配置面板中添加BallSpecR、BallSpecG、BallSpecB三个新字段',
+                '完整实现BallSpec字段的UI界面、数据收集、数据应用、验证和默认值处理',
+                '集成BallSpec字段到getColorInfoConfigData()数据收集函数',
+                '集成BallSpec字段到applyColorInfoConfigToRow()数据应用函数',
+                '集成BallSpec字段到initColorInfoValidation()验证函数',
+                '集成BallSpec字段到getLastThemeColorInfoConfig()默认值函数',
+                '集成BallSpec字段到updateRgbColorPreview()颜色预览函数',
+                '修复loadExistingColorInfoConfig()函数缺少BallSpec字段映射的问题',
+                '确保新建和更新主题时BallSpec配置都能正确保存到RSC_Theme文件',
+                '提供完整的BallSpec颜色选择器，支持可视化颜色选择和RGB值自动拆分',
+                '添加BallSpec字段的实时验证，确保RGB值在0-255范围内',
+                '完善ColorInfo配置功能，现在支持钻石颜色、反光颜色、高光颜色和雾效设置'
+            ],
+            type: 'minor'
+        },
         {
             version: '1.4.3',
             date: '2025-09-10',

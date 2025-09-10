@@ -12,7 +12,7 @@
 - **颜色数据处理**：解析Excel源数据文件中的完整配色表
 - **主题文件管理**：支持RSC_Theme.xls和UGCTheme.xls文件的读取和更新
 - **Light配置管理**：RSC_Theme Light sheet的光照参数可视化配置，支持明度偏移、高光等级、光泽度和高光颜色设置
-- **ColorInfo配置管理**：RSC_Theme ColorInfo sheet的颜色和雾效参数配置，支持钻石颜色、反光颜色、远景雾颜色和雾效距离设置
+- **ColorInfo配置管理**：RSC_Theme ColorInfo sheet的颜色和雾效参数配置，支持钻石颜色、反光颜色、高光颜色、远景雾颜色和雾效距离设置
 - **UGC图案配置**：UGCTheme图案和边框的可视化选择器，支持地板、易碎块、跳板的图案和边框选择
 - **数据映射**：智能匹配和映射颜色数据到目标主题文件
 - **文件保存**：支持直接覆盖原文件或下载更新后的文件，确保所有配置数据正确保存
@@ -61,7 +61,7 @@ npx serve .
 4. **配置主题参数**：
    - **UGC图案配置**：选择地板、玻璃、跳板的图案和边框，支持可视化图案选择器
    - **Light光照配置**：设置明度偏移、高光等级、光泽度和高光颜色
-   - **ColorInfo颜色配置**：设置钻石颜色、反光颜色、远景雾颜色和雾效距离
+   - **ColorInfo颜色配置**：设置钻石颜色、反光颜色、高光颜色、远景雾颜色和雾效距离
    - **透明度设置**：调整各元素的透明度值(0-100)
 5. **处理数据**：点击处理按钮生成更新后的主题文件
 6. **保存文件**：直接覆盖原文件或下载更新后的文件
@@ -87,6 +87,10 @@ npx serve .
 - **钻石反光颜色 (PickupRefl)**：
   - PickupReflR、PickupReflG、PickupReflB：RGB值范围 0-255
   - 控制钻石的反光颜色效果
+- **钻石高光颜色 (BallSpec)**：
+  - BallSpecR、BallSpecG、BallSpecB：RGB值范围 0-255
+  - 支持可视化颜色选择器，自动拆分为R、G、B三个数值
+  - 控制钻石的高光颜色效果，提供更丰富的视觉表现
 - **远景雾颜色 (ForegroundFog)**：
   - ForegroundFogR、ForegroundFogG、ForegroundFogB：RGB值范围 0-255
   - 设置游戏中远景雾效的颜色
@@ -329,6 +333,34 @@ open http://localhost:8000
 - 新增updateExistingRowInSheet函数，查找并更新现有主题行的配置数据
 - 完善错误处理机制，对找不到主题行的情况进行健壮处理
 - 统一处理逻辑，新建和更新主题都使用相同的数据处理模式
+
+### v1.4.4 (2025-01-10)
+**新增功能：BallSpec钻石高光颜色配置**
+
+#### 🆕 新增功能
+- **BallSpec钻石高光颜色配置**：为ColorInfo配置面板新增钻石高光颜色设置
+  - BallSpecR、BallSpecG、BallSpecB：RGB值范围 0-255
+  - 支持可视化颜色选择器，自动拆分为R、G、B三个数值
+  - 实时颜色预览，显示RGB组合的实际效果
+  - 控制钻石的高光颜色效果，提供更丰富的视觉表现
+
+#### 🔧 功能完善
+- **完整的数据处理流程**：BallSpec字段集成到所有相关函数
+  - 数据收集：getColorInfoConfigData()函数支持BallSpec字段
+  - 数据应用：applyColorInfoConfigToRow()函数支持BallSpec字段写入
+  - 数据验证：initColorInfoValidation()函数支持BallSpec字段验证
+  - 默认值处理：getLastThemeColorInfoConfig()函数支持BallSpec默认值
+  - 颜色预览：updateRgbColorPreview()函数支持BallSpec颜色预览
+
+#### 🐛 问题修复
+- **修复现有主题数据读取问题**：loadExistingColorInfoConfig()函数缺少BallSpec字段映射
+- **确保字段映射一致性**：所有ColorInfo相关函数的字段映射完全一致
+- **完善数据流程**：新建和更新主题时BallSpec配置都能正确保存到Excel文件
+
+#### 🎨 用户体验提升
+- **丰富的钻石颜色配置**：现在支持钻石颜色、反光颜色、高光颜色三种颜色效果
+- **统一的操作体验**：BallSpec配置与现有PickupDiff、PickupRefl配置保持一致的操作方式
+- **完整的功能测试**：提供专门的BallSpec功能测试页面，确保功能稳定性
 
 ### v1.4.1 (2025-01-10)
 **重要更新：RSC_Theme ColorInfo配置功能和UGC图案选择器增强**

@@ -283,6 +283,7 @@ window.App.ThemeManager = (function() {
         const rgbFields = [
             'PickupDiffR', 'PickupDiffG', 'PickupDiffB',
             'PickupReflR', 'PickupReflG', 'PickupReflB',
+            'BallSpecR', 'BallSpecG', 'BallSpecB',
             'ForegroundFogR', 'ForegroundFogG', 'ForegroundFogB'
         ];
 
@@ -650,6 +651,8 @@ window.App.ThemeManager = (function() {
             rgbGroup = 'PickupDiff';
         } else if (fieldId.startsWith('PickupRefl')) {
             rgbGroup = 'PickupRefl';
+        } else if (fieldId.startsWith('BallSpec')) {
+            rgbGroup = 'BallSpec';
         } else if (fieldId.startsWith('ForegroundFog')) {
             rgbGroup = 'ForegroundFog';
         } else {
@@ -970,6 +973,9 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 PickupReflR: '255',
                 PickupReflG: '255',
                 PickupReflB: '255',
+                BallSpecR: '255',
+                BallSpecG: '255',
+                BallSpecB: '255',
                 ForegroundFogR: '128',
                 ForegroundFogG: '128',
                 ForegroundFogB: '128',
@@ -1013,6 +1019,9 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             'PickupReflR': 'PickupReflR',
             'PickupReflG': 'PickupReflG',
             'PickupReflB': 'PickupReflB',
+            'BallSpecR': 'BallSpecR',
+            'BallSpecG': 'BallSpecG',
+            'BallSpecB': 'BallSpecB',
             'ForegroundFogR': 'ForegroundFogR',
             'ForegroundFogG': 'ForegroundFogG',
             'ForegroundFogB': 'ForegroundFogB',
@@ -1035,6 +1044,9 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                     'PickupReflR': '255',
                     'PickupReflG': '255',
                     'PickupReflB': '255',
+                    'BallSpecR': '255',
+                    'BallSpecG': '255',
+                    'BallSpecB': '255',
                     'ForegroundFogR': '128',
                     'ForegroundFogG': '128',
                     'ForegroundFogB': '128',
@@ -1072,6 +1084,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         // 更新颜色预览
         updateRgbColorPreview('PickupDiffR');
         updateRgbColorPreview('PickupReflR');
+        updateRgbColorPreview('BallSpecR');
         updateRgbColorPreview('ForegroundFogR');
 
         console.log('ColorInfo配置已重置为最后一个主题的配置');
@@ -1230,6 +1243,9 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             PickupReflR: validateRgbValue(document.getElementById('PickupReflR')?.value, 255),
             PickupReflG: validateRgbValue(document.getElementById('PickupReflG')?.value, 255),
             PickupReflB: validateRgbValue(document.getElementById('PickupReflB')?.value, 255),
+            BallSpecR: validateRgbValue(document.getElementById('BallSpecR')?.value, 255),
+            BallSpecG: validateRgbValue(document.getElementById('BallSpecG')?.value, 255),
+            BallSpecB: validateRgbValue(document.getElementById('BallSpecB')?.value, 255),
             ForegroundFogR: validateRgbValue(document.getElementById('ForegroundFogR')?.value, 128),
             ForegroundFogG: validateRgbValue(document.getElementById('ForegroundFogG')?.value, 128),
             ForegroundFogB: validateRgbValue(document.getElementById('ForegroundFogB')?.value, 128),
@@ -3141,6 +3157,9 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 'PickupReflR': 'PickupReflR',
                 'PickupReflG': 'PickupReflG',
                 'PickupReflB': 'PickupReflB',
+                'BallSpecR': 'BallSpecR',
+                'BallSpecG': 'BallSpecG',
+                'BallSpecB': 'BallSpecB',
                 'ForegroundFogR': 'ForegroundFogR',
                 'ForegroundFogG': 'ForegroundFogG',
                 'ForegroundFogB': 'ForegroundFogB',
@@ -6464,6 +6483,9 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             'PickupReflR': 'PickupReflR',
             'PickupReflG': 'PickupReflG',
             'PickupReflB': 'PickupReflB',
+            'BallSpecR': 'BallSpecR',
+            'BallSpecG': 'BallSpecG',
+            'BallSpecB': 'BallSpecB',
             'ForegroundFogR': 'ForegroundFogR',
             'ForegroundFogG': 'ForegroundFogG',
             'ForegroundFogB': 'ForegroundFogB',
@@ -6486,6 +6508,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         // 更新颜色预览
         updateRgbColorPreview('PickupDiffR');
         updateRgbColorPreview('PickupReflR');
+        updateRgbColorPreview('BallSpecR');
         updateRgbColorPreview('ForegroundFogR');
 
         console.log('ColorInfo配置加载完成');
