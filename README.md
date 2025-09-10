@@ -11,11 +11,11 @@
 ### 核心功能
 - **颜色数据处理**：解析Excel源数据文件中的完整配色表
 - **主题文件管理**：支持RSC_Theme.xls和UGCTheme.xls文件的读取和更新
-- **Light配置管理**：RSC_Theme Light sheet的光照参数可视化配置
-- **ColorInfo配置管理**：RSC_Theme ColorInfo sheet的颜色和雾效参数配置
-- **UGC图案配置**：UGCTheme图案和边框的可视化选择器，支持跳板边框图案选择
+- **Light配置管理**：RSC_Theme Light sheet的光照参数可视化配置，支持明度偏移、高光等级、光泽度和高光颜色设置
+- **ColorInfo配置管理**：RSC_Theme ColorInfo sheet的颜色和雾效参数配置，支持钻石颜色、反光颜色、远景雾颜色和雾效距离设置
+- **UGC图案配置**：UGCTheme图案和边框的可视化选择器，支持地板、易碎块、跳板的图案和边框选择
 - **数据映射**：智能匹配和映射颜色数据到目标主题文件
-- **文件保存**：支持直接覆盖原文件或下载更新后的文件
+- **文件保存**：支持直接覆盖原文件或下载更新后的文件，确保所有配置数据正确保存
 
 ### 技术特性
 - **File System Access API**：在支持的浏览器中实现直接文件操作
@@ -23,6 +23,9 @@
 - **数据预览**：实时预览Excel文件内容和Sheet数据
 - **实时验证**：数值输入的实时范围检查和自动修正
 - **可视化配置**：图案选择器和颜色选择器的直观操作界面
+- **多工作表支持**：完整支持RSC_Theme文件的Color、Light、ColorInfo等多个工作表
+- **智能默认值**：新建主题时自动使用表中最后一个主题的配置作为默认值
+- **数据一致性保障**：确保内存数据与Excel文件数据完全同步
 - **响应式设计**：适配桌面和移动设备
 - **错误处理**：完善的错误提示和异常处理机制
 
@@ -305,6 +308,27 @@ open http://localhost:8000
 ---
 
 ## 📋 版本历史
+
+### v1.4.3 (2025-01-10)
+**重大修复：Light和ColorInfo数据保存问题完全解决**
+
+#### 🔧 关键修复
+- **修复Light和ColorInfo数据保存的关键问题**：确保配置数据正确写入Excel文件
+- **解决新建主题时Light和ColorInfo工作表不创建新行的问题**：修复processRSCAdditionalSheets函数缺少rscAllSheetsData更新的缺陷
+- **修复更新现有主题时Light和ColorInfo配置被忽略的问题**：新增updateExistingThemeAdditionalSheets函数专门处理现有主题更新
+- **修复generateUpdatedWorkbook函数只处理主工作表的缺陷**：现在正确处理所有工作表(Color、Light、ColorInfo)
+
+#### 🎯 功能完善
+- **完善数据流程**：确保无论新建还是更新主题，Light和ColorInfo配置都能正确保存
+- **移除过时的功能限制说明**：现在所有配置功能都完全可用，不再有数据保存限制
+- **优化数据同步逻辑**：确保workbook.Sheets和rscAllSheetsData保持一致
+- **添加详细的调试日志**：便于问题诊断和数据流程追踪
+
+#### 🛠️ 技术改进
+- 修复processRSCAdditionalSheets函数在新建主题时没有更新rscAllSheetsData的问题
+- 新增updateExistingRowInSheet函数，查找并更新现有主题行的配置数据
+- 完善错误处理机制，对找不到主题行的情况进行健壮处理
+- 统一处理逻辑，新建和更新主题都使用相同的数据处理模式
 
 ### v1.4.1 (2025-01-10)
 **重要更新：RSC_Theme ColorInfo配置功能和UGC图案选择器增强**

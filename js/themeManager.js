@@ -1189,7 +1189,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
     function getUGCConfigData() {
         return {
             groundPatternIndex: parseInt(document.getElementById('groundPatternIndex')?.value || '0'),
-            groundFrameIndex: validateFrameIndex(document.getElementById('groundFrameIndex')?.value, 0),
+            groundFrameIndex: parseInt(document.getElementById('groundFrameIndex')?.value || '0'),
             fragilePatternIndex: parseInt(document.getElementById('fragilePatternIndex')?.value || '0'),
             fragileFrameIndex: validateFrameIndex(document.getElementById('fragileFrameIndex')?.value, 0),
             fragileGlassAlpha: validateTransparency(document.getElementById('fragileGlassAlpha')?.value, 50),
@@ -2790,8 +2790,8 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         console.log('是否新增主题:', isNewTheme);
 
         if (!isNewTheme) {
-            console.log('覆盖现有主题，不需要处理ColorInfo和Light sheet');
-            return { success: true, action: 'skip', reason: '覆盖现有主题' };
+            console.log('更新现有主题，开始处理ColorInfo和Light sheet配置');
+            return updateExistingThemeAdditionalSheets(themeName);
         }
 
         if (!rscThemeData || !rscThemeData.workbook) {
@@ -2824,6 +2824,12 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                             // 更新工作表
                             const newWorksheet = XLSX.utils.aoa_to_sheet(sheetData);
                             workbook.Sheets[sheetName] = newWorksheet;
+
+                            // 更新rscAllSheetsData（关键修复：确保generateUpdatedWorkbook使用最新数据）
+                            if (rscAllSheetsData) {
+                                rscAllSheetsData[sheetName] = sheetData;
+                                console.log(`✅ 已更新rscAllSheetsData["${sheetName}"]，新行数: ${sheetData.length}`);
+                            }
 
                             processedSheets.push({
                                 sheetName: sheetName,
@@ -2858,6 +2864,147 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 error: error.message
             };
         }
+    }
+
+    /**
+     * 更新现有主题的Light和ColorInfo配置
+     * @param {string} themeName - 主题名称
+     * @returns {Object} 处理结果
+     */
+    function updateExistingThemeAdditionalSheets(themeName) {
+        console.log('=== 开始更新现有主题的Light和ColorInfo配置 ===');
+        console.log('主题名称:', themeName);
+
+        if (!rscThemeData || !rscThemeData.workbook) {
+            console.error('RSC_Theme数据未加载');
+            return { success: false, error: 'RSC_Theme数据未加载' };
+        }
+
+        try {
+            const workbook = rscThemeData.workbook;
+            const sheetNames = workbook.SheetNames;
+            console.log('RSC_Theme包含的sheet:', sheetNames);
+
+            const targetSheets = ['ColorInfo', 'Light'];
+            const updatedSheets = [];
+
+            targetSheets.forEach(sheetName => {
+                if (sheetNames.includes(sheetName)) {
+                    console.log(`开始更新sheet: ${sheetName}`);
+
+                    const worksheet = workbook.Sheets[sheetName];
+                    const sheetData = XLSX.utils.sheet_to_json(worksheet, {
+                        header: 1,
+                        defval: '',
+                        raw: false
+                    });
+
+                    if (sheetData.length > 0) {
+                        const result = updateExistingRowInSheet(sheetData, themeName, sheetName);
+                        if (result.success) {
+                            // 更新工作表
+                            const newWorksheet = XLSX.utils.aoa_to_sheet(sheetData);
+                            workbook.Sheets[sheetName] = newWorksheet;
+
+                            // 更新rscAllSheetsData
+                            if (rscAllSheetsData) {
+                                rscAllSheetsData[sheetName] = sheetData;
+                            }
+
+                            updatedSheets.push({
+                                sheetName: sheetName,
+                                rowIndex: result.rowIndex,
+                                updated: true
+                            });
+                            console.log(`✅ ${sheetName} sheet更新成功`);
+                        } else {
+                            console.warn(`⚠️ ${sheetName} sheet更新失败:`, result.error);
+                        }
+                    } else {
+                        console.warn(`⚠️ ${sheetName} sheet为空，跳过处理`);
+                    }
+                } else {
+                    console.log(`Sheet "${sheetName}" 不存在，跳过处理`);
+                }
+            });
+
+            console.log('现有主题Light和ColorInfo配置更新完成，更新的sheets:', updatedSheets);
+
+            return {
+                success: true,
+                action: 'update_existing_rows',
+                updatedSheets: updatedSheets,
+                workbook: workbook
+            };
+
+        } catch (error) {
+            console.error('更新现有主题Light和ColorInfo配置失败:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * 更新指定sheet中现有主题的行
+     * @param {Array} sheetData - sheet数据数组
+     * @param {string} themeName - 主题名称
+     * @param {string} sheetName - sheet名称
+     * @returns {Object} 处理结果
+     */
+    function updateExistingRowInSheet(sheetData, themeName, sheetName) {
+        console.log(`=== 开始更新${sheetName}中的现有主题行 ===`);
+
+        if (sheetData.length === 0) {
+            return { success: false, error: 'Sheet数据为空' };
+        }
+
+        const headerRow = sheetData[0];
+        console.log(`${sheetName} 表头:`, headerRow);
+
+        // 查找notes列的索引
+        const notesColumnIndex = headerRow.findIndex(col => col === 'notes');
+        if (notesColumnIndex === -1) {
+            console.warn(`${sheetName} 中未找到notes列`);
+            return { success: false, error: 'notes列未找到' };
+        }
+
+        // 查找主题对应的行
+        let themeRowIndex = -1;
+        for (let i = 1; i < sheetData.length; i++) {
+            if (sheetData[i][notesColumnIndex] === themeName) {
+                themeRowIndex = i;
+                break;
+            }
+        }
+
+        if (themeRowIndex === -1) {
+            console.log(`在${sheetName}中未找到主题"${themeName}"，跳过更新`);
+            return { success: false, error: `主题"${themeName}"未找到` };
+        }
+
+        console.log(`在${sheetName}中找到主题"${themeName}"，行索引: ${themeRowIndex}`);
+
+        // 获取现有行数据
+        const existingRow = sheetData[themeRowIndex];
+        console.log(`现有行数据:`, existingRow);
+
+        // 根据sheet类型应用用户配置的数据
+        if (sheetName === 'Light') {
+            applyLightConfigToRow(headerRow, existingRow);
+        } else if (sheetName === 'ColorInfo') {
+            applyColorInfoConfigToRow(headerRow, existingRow);
+        }
+
+        console.log(`✅ ${sheetName}中主题"${themeName}"的配置已更新`);
+        console.log(`更新后的行数据:`, existingRow);
+
+        return {
+            success: true,
+            rowIndex: themeRowIndex,
+            updatedRow: existingRow
+        };
     }
 
     /**
@@ -2911,6 +3058,13 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             console.log(`设置notes字段: 列${notesColumnIndex} = ${themeName}`);
         }
 
+        // 根据sheet类型应用用户配置的数据
+        if (sheetName === 'Light') {
+            applyLightConfigToRow(headerRow, newRow);
+        } else if (sheetName === 'ColorInfo') {
+            applyColorInfoConfigToRow(headerRow, newRow);
+        }
+
         // 添加新行到数据数组
         const newRowIndex = sheetData.length;
         sheetData.push(newRow);
@@ -2923,6 +3077,93 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             newId: newId,
             newRow: newRow
         };
+    }
+
+    /**
+     * 应用Light配置数据到新行
+     * @param {Array} headerRow - 表头行
+     * @param {Array} newRow - 新行数据
+     */
+    function applyLightConfigToRow(headerRow, newRow) {
+        console.log('=== 开始应用Light配置数据到新行 ===');
+
+        try {
+            // 获取用户配置的Light数据
+            const lightConfig = getLightConfigData();
+            console.log('用户配置的Light数据:', lightConfig);
+
+            // Light字段映射
+            const lightFieldMapping = {
+                'Max': 'Max',
+                'Dark': 'Dark',
+                'Min': 'Min',
+                'SpecularLevel': 'SpecularLevel',
+                'Gloss': 'Gloss',
+                'SpecularColor': 'SpecularColor'
+            };
+
+            // 应用Light配置到新行
+            Object.entries(lightFieldMapping).forEach(([columnName, configKey]) => {
+                const columnIndex = headerRow.findIndex(col => col === columnName);
+                if (columnIndex !== -1) {
+                    const value = lightConfig[configKey];
+                    newRow[columnIndex] = value.toString();
+                    console.log(`Light配置: ${columnName} = ${value} (列索引: ${columnIndex})`);
+                } else {
+                    console.warn(`Light sheet中找不到列: ${columnName}`);
+                }
+            });
+
+            console.log('✅ Light配置数据应用完成');
+        } catch (error) {
+            console.error('应用Light配置数据失败:', error);
+        }
+    }
+
+    /**
+     * 应用ColorInfo配置数据到新行
+     * @param {Array} headerRow - 表头行
+     * @param {Array} newRow - 新行数据
+     */
+    function applyColorInfoConfigToRow(headerRow, newRow) {
+        console.log('=== 开始应用ColorInfo配置数据到新行 ===');
+
+        try {
+            // 获取用户配置的ColorInfo数据
+            const colorInfoConfig = getColorInfoConfigData();
+            console.log('用户配置的ColorInfo数据:', colorInfoConfig);
+
+            // ColorInfo字段映射
+            const colorInfoFieldMapping = {
+                'PickupDiffR': 'PickupDiffR',
+                'PickupDiffG': 'PickupDiffG',
+                'PickupDiffB': 'PickupDiffB',
+                'PickupReflR': 'PickupReflR',
+                'PickupReflG': 'PickupReflG',
+                'PickupReflB': 'PickupReflB',
+                'ForegroundFogR': 'ForegroundFogR',
+                'ForegroundFogG': 'ForegroundFogG',
+                'ForegroundFogB': 'ForegroundFogB',
+                'FogStart': 'FogStart',
+                'FogEnd': 'FogEnd'
+            };
+
+            // 应用ColorInfo配置到新行
+            Object.entries(colorInfoFieldMapping).forEach(([columnName, configKey]) => {
+                const columnIndex = headerRow.findIndex(col => col === columnName);
+                if (columnIndex !== -1) {
+                    const value = colorInfoConfig[configKey];
+                    newRow[columnIndex] = value.toString();
+                    console.log(`ColorInfo配置: ${columnName} = ${value} (列索引: ${columnIndex})`);
+                } else {
+                    console.warn(`ColorInfo sheet中找不到列: ${columnName}`);
+                }
+            });
+
+            console.log('✅ ColorInfo配置数据应用完成');
+        } catch (error) {
+            console.error('应用ColorInfo配置数据失败:', error);
+        }
     }
 
     /**
@@ -3783,7 +4024,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             console.warn('⚠️ 发现空行，这可能导致Excel文件问题');
         }
 
-        // 将更新后的数据写回工作表
+        // 将更新后的数据写回主工作表
         const newWorksheet = XLSX.utils.aoa_to_sheet(rscThemeData.data);
 
         // 保持原有的工作表属性（如果有的话）
@@ -3799,10 +4040,58 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             });
         }
 
-        // 替换工作表
+        // 替换主工作表
         workbook.Sheets[originalSheetName] = newWorksheet;
+        console.log(`✅ 主工作表 "${originalSheetName}" 已更新`);
 
-        console.log('✅ Excel工作簿生成完成');
+        // 处理所有其他工作表（Light、ColorInfo等）
+        console.log('=== 开始处理其他工作表 ===');
+        if (rscAllSheetsData) {
+            Object.keys(rscAllSheetsData).forEach(sheetName => {
+                if (sheetName !== originalSheetName) {
+                    console.log(`处理工作表: ${sheetName}`);
+
+                    const sheetData = rscAllSheetsData[sheetName];
+                    if (sheetData && sheetData.length > 0) {
+                        // 创建新的工作表
+                        const updatedWorksheet = XLSX.utils.aoa_to_sheet(sheetData);
+
+                        // 保持原有的工作表属性
+                        const originalSheet = workbook.Sheets[sheetName];
+                        if (originalSheet && originalSheet['!ref']) {
+                            updatedWorksheet['!ref'] = XLSX.utils.encode_range({
+                                s: { c: 0, r: 0 },
+                                e: {
+                                    c: sheetData[0].length - 1,
+                                    r: sheetData.length - 1
+                                }
+                            });
+                        }
+
+                        // 替换工作表
+                        workbook.Sheets[sheetName] = updatedWorksheet;
+                        console.log(`✅ 工作表 "${sheetName}" 已更新，数据行数: ${sheetData.length}`);
+
+                        // 对于Light和ColorInfo工作表，输出详细的数据验证信息
+                        if (sheetName === 'Light' || sheetName === 'ColorInfo') {
+                            console.log(`${sheetName} 工作表数据验证:`);
+                            if (sheetData.length > 1) {
+                                const headerRow = sheetData[0];
+                                const lastDataRow = sheetData[sheetData.length - 1];
+                                console.log(`  表头: ${JSON.stringify(headerRow)}`);
+                                console.log(`  最后一行数据: ${JSON.stringify(lastDataRow)}`);
+                            }
+                        }
+                    } else {
+                        console.warn(`工作表 "${sheetName}" 数据为空，跳过更新`);
+                    }
+                }
+            });
+        } else {
+            console.warn('rscAllSheetsData 不存在，跳过其他工作表处理');
+        }
+
+        console.log('✅ 所有工作表处理完成');
         console.log('=== Excel工作簿生成完成 ===');
 
         return workbook;

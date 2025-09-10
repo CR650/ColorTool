@@ -17,13 +17,30 @@ window.App.Version = (function() {
 
     // 当前版本信息
     const VERSION_INFO = {
-        current: '1.4.2',
+        current: '1.4.3',
         releaseDate: '2025-09-10',
-        buildNumber: '20250910002'
+        buildNumber: '20250110003'
     };
 
     // 版本历史记录
     const VERSION_HISTORY = [
+        {
+            version: '1.4.3',
+            date: '2025-09-10',
+            changes: [
+                '修复Light和ColorInfo数据保存的关键问题，确保配置数据正确写入Excel文件',
+                '解决新建主题时Light和ColorInfo工作表不创建新行的问题',
+                '修复更新现有主题时Light和ColorInfo配置被忽略的问题',
+                '修复generateUpdatedWorkbook函数只处理主工作表的缺陷，现在正确处理所有工作表',
+                '修复processRSCAdditionalSheets函数在新建主题时没有更新rscAllSheetsData的问题',
+                '新增updateExistingThemeAdditionalSheets函数，专门处理现有主题的Light和ColorInfo更新',
+                '完善数据流程，确保无论新建还是更新主题，Light和ColorInfo配置都能正确保存',
+                '移除过时的功能限制说明，现在所有配置功能都完全可用',
+                '优化数据同步逻辑，确保workbook.Sheets和rscAllSheetsData保持一致',
+                '添加详细的调试日志，便于问题诊断和数据流程追踪'
+            ],
+            type: 'major'
+        },
         {
             version: '1.4.2',
             date: '2025-09-10',
