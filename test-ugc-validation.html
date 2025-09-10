@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UGC配置验证测试</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .test-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+        }
+        .test-title {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .test-result {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 UGC配置验证测试</h1>
+        <p>测试透明度验证（0-100）和边框选择（0或1）功能</p>
+
+        <!-- 透明度验证测试 -->
+        <div class="test-section">
+            <div class="test-title">📊 透明度验证测试 (0-100)</div>
+            
+            <div class="ugc-field-row">
+                <label for="testTransparency1">玻璃底色透明度:</label>
+                <input type="number" id="testTransparency1" min="0" max="100" value="50" placeholder="默认: 50">
+            </div>
+            
+            <div class="ugc-field-row">
+                <label for="testTransparency2">玻璃图案透明度:</label>
+                <input type="number" id="testTransparency2" min="0" max="100" value="75" placeholder="默认: 50">
+            </div>
+
+            <div class="test-result">
+                <strong>测试说明:</strong><br>
+                • 输入超过100的值，会自动修正为100<br>
+                • 输入小于0的值，会自动修正为0<br>
+                • 输入非数字，会显示错误提示<br>
+                • 有效范围：0-100
+            </div>
+        </div>
+
+        <!-- 边框选择测试 -->
+        <div class="test-section">
+            <div class="test-title">🖼️ 边框选择测试 (0或1)</div>
+            
+            <div class="ugc-field-row">
+                <label for="testFrame1">玻璃边框图案ID:</label>
+                <select id="testFrame1" class="frame-border-select">
+                    <option value="0">0 - 无边框</option>
+                    <option value="1">1 - 有边框</option>
+                </select>
+            </div>
+            
+            <div class="ugc-field-row">
+                <label for="testFrame2">跳板边框图案ID:</label>
+                <select id="testFrame2" class="frame-border-select">
+                    <option value="0">0 - 无边框</option>
+                    <option value="1" selected>1 - 有边框</option>
+                </select>
+            </div>
+
+            <div class="test-result">
+                <strong>测试说明:</strong><br>
+                • 边框ID只能选择0（无边框）或1（有边框）<br>
+                • 使用下拉选择框，避免输入错误值<br>
+                • 清晰的选项说明
+            </div>
+        </div>
+
+        <!-- 综合测试 -->
+        <div class="test-section">
+            <div class="test-title">🎯 综合功能测试</div>
+            
+            <button onclick="testInvalidValues()" class="pattern-select-btn">测试无效值</button>
+            <button onclick="testValidValues()" class="pattern-select-btn">测试有效值</button>
+            <button onclick="getCurrentConfig()" class="pattern-select-btn">获取当前配置</button>
+            
+            <div id="testOutput" class="test-result" style="display: none;">
+                <strong>测试结果:</strong><br>
+                <pre id="testResultText"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/themeManager.js"></script>
+    <script>
+        // 模拟themeManager的验证函数
+        function validateTransparency(value, defaultValue = 50) {
+            const numValue = parseInt(value);
+            if (isNaN(numValue) || numValue < 0 || numValue > 100) {
+                return defaultValue;
+            }
+            return numValue;
+        }
+
+        function validateFrameIndex(value, defaultValue = 0) {
+            const numValue = parseInt(value);
+            if (numValue !== 0 && numValue !== 1) {
+                return defaultValue;
+            }
+            return numValue;
+        }
+
+        // 测试无效值
+        function testInvalidValues() {
+            const transparency1 = document.getElementById('testTransparency1');
+            const transparency2 = document.getElementById('testTransparency2');
+            
+            // 设置无效值
+            transparency1.value = '150';  // 超过100
+            transparency2.value = '-10';  // 小于0
+            
+            // 触发验证
+            transparency1.dispatchEvent(new Event('input'));
+            transparency2.dispatchEvent(new Event('input'));
+            
+            showResult('测试无效值:\n透明度1: 150 (应该被修正为100)\n透明度2: -10 (应该被修正为0)');
+        }
+
+        // 测试有效值
+        function testValidValues() {
+            const transparency1 = document.getElementById('testTransparency1');
+            const transparency2 = document.getElementById('testTransparency2');
+            
+            // 设置有效值
+            transparency1.value = '25';
+            transparency2.value = '80';
+            
+            // 触发验证
+            transparency1.dispatchEvent(new Event('input'));
+            transparency2.dispatchEvent(new Event('input'));
+            
+            showResult('测试有效值:\n透明度1: 25 (有效)\n透明度2: 80 (有效)');
+        }
+
+        // 获取当前配置
+        function getCurrentConfig() {
+            const config = {
+                transparency1: validateTransparency(document.getElementById('testTransparency1').value),
+                transparency2: validateTransparency(document.getElementById('testTransparency2').value),
+                frame1: validateFrameIndex(document.getElementById('testFrame1').value),
+                frame2: validateFrameIndex(document.getElementById('testFrame2').value)
+            };
+            
+            showResult('当前配置:\n' + JSON.stringify(config, null, 2));
+        }
+
+        // 显示结果
+        function showResult(text) {
+            const output = document.getElementById('testOutput');
+            const resultText = document.getElementById('testResultText');
+            
+            resultText.textContent = text;
+            output.style.display = 'block';
+        }
+
+        // 初始化验证（模拟themeManager的initUGCValidation）
+        function initValidation() {
+            const transparencyFields = ['testTransparency1', 'testTransparency2'];
+            
+            transparencyFields.forEach(fieldId => {
+                const input = document.getElementById(fieldId);
+                if (input) {
+                    input.addEventListener('input', function() {
+                        validateTransparencyInput(this);
+                    });
+                }
+            });
+        }
+
+        function validateTransparencyInput(input) {
+            const value = parseInt(input.value);
+            
+            // 移除之前的错误样式
+            input.classList.remove('validation-error');
+            
+            // 移除之前的错误提示
+            const existingError = input.parentElement.querySelector('.validation-message');
+            if (existingError) {
+                existingError.remove();
+            }
+
+            if (isNaN(value) || value < 0 || value > 100) {
+                // 添加错误样式
+                input.classList.add('validation-error');
+                
+                // 创建错误提示
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'validation-message error';
+                errorMsg.textContent = '透明度值必须在0-100之间';
+                input.parentElement.appendChild(errorMsg);
+
+                // 自动修正值
+                if (isNaN(value) || value < 0) {
+                    input.value = '0';
+                } else if (value > 100) {
+                    input.value = '100';
+                }
+            }
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initValidation();
+            console.log('UGC验证测试页面已初始化');
+        });
+    </script>
+</body>
+</html>

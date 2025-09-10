@@ -1,12 +1,12 @@
 pages:
   stage: deploy
   script:
-    # 假设你的所有网站文件都在项目根目录下
-    # 创建一个 public 目录，并把所有文件复制进去
-    - mkdir -p public
-    - cp -r * .??* public/ 2>/dev/null || true # 复制所有文件（包括以.开头的文件），忽略错误
+    - mkdir .public
+    - cp -r ./* .public
+    - rm -rf public
+    - mv .public public
   artifacts:
     paths:
-      - public # 告诉 GitLab CI/CD，public 目录是你要部署的静态网站内容
+      - public
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH # 通常只在默认分支（如 main 或 master）推送时触发部署
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

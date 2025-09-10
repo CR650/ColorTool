@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图案选择器调试</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .debug-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .debug-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+        }
+        .debug-log {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>🔍 图案选择器调试工具</h1>
+        
+        <!-- 测试按钮 -->
+        <div class="debug-section">
+            <h3>测试按钮</h3>
+            <div class="pattern-selector-container">
+                <input type="number" id="testPatternIndex" min="0" value="0" placeholder="默认: 0" readonly>
+                <button type="button" class="pattern-select-btn" data-target="testPatternIndex" data-type="pattern">选择图案</button>
+            </div>
+            <button onclick="testButtonClick()" style="margin-top: 10px;">手动测试点击</button>
+        </div>
+
+        <!-- 模块状态检查 -->
+        <div class="debug-section">
+            <h3>模块状态检查</h3>
+            <button onclick="checkModuleStatus()">检查模块状态</button>
+            <button onclick="checkDOMElements()">检查DOM元素</button>
+            <button onclick="checkEventListeners()">检查事件监听器</button>
+        </div>
+
+        <!-- 调试日志 -->
+        <div class="debug-section">
+            <h3>调试日志</h3>
+            <button onclick="clearLog()">清空日志</button>
+            <div id="debugLog" class="debug-log"></div>
+        </div>
+    </div>
+
+    <!-- 图案选择器模态框 -->
+    <div id="patternSelectorModal" class="pattern-modal" style="display: none;">
+        <div class="pattern-modal-content">
+            <div class="pattern-modal-header">
+                <h3 id="patternModalTitle">选择图案</h3>
+                <button class="pattern-modal-close" id="closePatternModal">&times;</button>
+            </div>
+            <div class="pattern-modal-body">
+                <div class="pattern-canvas-container">
+                    <canvas id="patternSelectorCanvas" class="pattern-canvas"></canvas>
+                    <div id="patternLoadingText" class="pattern-loading">正在加载图案...</div>
+                </div>
+                <div class="pattern-info">
+                    <div id="selectedPatternInfo" class="selected-pattern-info" style="display: none;">
+                        <h4>已选择图案</h4>
+                        <div id="patternPreviewContainer" class="pattern-preview-container">
+                            <canvas id="patternPreviewCanvas" class="pattern-preview-canvas"></canvas>
+                        </div>
+                        <div class="pattern-details">
+                            <p><strong>图案ID:</strong> <span id="selectedPatternId">-</span></p>
+                            <p><strong>位置:</strong> <span id="selectedPatternPosition">-</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="pattern-modal-footer">
+                <button id="confirmPatternSelection" class="pattern-btn pattern-btn-primary">确认选择</button>
+                <button id="cancelPatternSelection" class="pattern-btn pattern-btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载JavaScript文件 -->
+    <script src="js/utils.js"></script>
+    <script src="js/ugcPatternSelector.js"></script>
+    
+    <script>
+        // 调试日志函数
+        function log(message) {
+            const logDiv = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('debugLog').innerHTML = '';
+        }
+
+        // 测试函数
+        function testButtonClick() {
+            log('手动测试按钮点击...');
+            const button = document.querySelector('.pattern-select-btn');
+            if (button) {
+                log('找到按钮，模拟点击事件');
+                button.click();
+            } else {
+                log('ERROR: 未找到按钮');
+            }
+        }
+
+        function checkModuleStatus() {
+            log('=== 检查模块状态 ===');
+            
+            // 检查全局App对象
+            if (typeof window.App === 'undefined') {
+                log('ERROR: window.App 未定义');
+                return;
+            }
+            log('✓ window.App 已定义');
+
+            // 检查UGCPatternSelector模块
+            if (typeof window.App.UGCPatternSelector === 'undefined') {
+                log('ERROR: UGCPatternSelector 模块未定义');
+                return;
+            }
+            log('✓ UGCPatternSelector 模块已定义');
+
+            // 检查模块方法
+            const module = window.App.UGCPatternSelector;
+            if (typeof module.init === 'function') {
+                log('✓ init 方法存在');
+            } else {
+                log('ERROR: init 方法不存在');
+            }
+        }
+
+        function checkDOMElements() {
+            log('=== 检查DOM元素 ===');
+            
+            const elements = [
+                'patternSelectorModal',
+                'patternModalTitle', 
+                'patternSelectorCanvas',
+                'closePatternModal',
+                'confirmPatternSelection',
+                'cancelPatternSelection'
+            ];
+
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    log(`✓ ${id} 元素存在`);
+                } else {
+                    log(`ERROR: ${id} 元素不存在`);
+                }
+            });
+
+            // 检查按钮
+            const buttons = document.querySelectorAll('.pattern-select-btn');
+            log(`找到 ${buttons.length} 个图案选择按钮`);
+        }
+
+        function checkEventListeners() {
+            log('=== 检查事件监听器 ===');
+            
+            // 测试点击事件
+            const button = document.querySelector('.pattern-select-btn');
+            if (button) {
+                log('测试按钮点击事件...');
+                
+                // 添加临时事件监听器来测试
+                button.addEventListener('click', function(e) {
+                    log('✓ 按钮点击事件被触发');
+                    log(`按钮属性: data-target="${e.target.getAttribute('data-target')}", data-type="${e.target.getAttribute('data-type')}"`);
+                }, { once: true });
+                
+                // 模拟点击
+                button.click();
+            }
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            log('页面加载完成，开始初始化...');
+            
+            // 初始化UGCPatternSelector模块
+            if (window.App && window.App.UGCPatternSelector) {
+                try {
+                    window.App.UGCPatternSelector.init();
+                    log('✓ UGCPatternSelector 模块初始化成功');
+                } catch (error) {
+                    log(`ERROR: UGCPatternSelector 初始化失败: ${error.message}`);
+                }
+            } else {
+                log('ERROR: UGCPatternSelector 模块未找到');
+            }
+            
+            log('调试工具准备就绪');
+        });
+
+        // 监听所有点击事件
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('pattern-select-btn')) {
+                log(`图案选择按钮被点击: target="${e.target.getAttribute('data-target')}", type="${e.target.getAttribute('data-type')}"`);
+            }
+        });
+    </script>
+</body>
+</html>

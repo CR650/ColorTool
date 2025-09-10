@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UGC图案选择器测试</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+        }
+        
+        .test-section h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        
+        .test-result {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🎨 UGC图案选择器测试</h1>
+        <p>测试图案选择器在UGC配置中的集成功能</p>
+        
+        <!-- 地板配置测试 -->
+        <div class="test-section">
+            <h3>🏠 地板配置测试</h3>
+            <div class="ugc-field-row">
+                <label for="testGroundPattern">地板图案ID:</label>
+                <div class="pattern-selector-container">
+                    <input type="number" id="testGroundPattern" min="0" value="3" placeholder="默认: 0" readonly>
+                    <button type="button" class="pattern-select-btn" data-target="testGroundPattern" data-type="pattern">选择图案</button>
+                </div>
+            </div>
+            <div class="ugc-field-row">
+                <label for="testGroundFrame">地板边框ID:</label>
+                <div class="pattern-selector-container">
+                    <input type="number" id="testGroundFrame" min="0" value="15" placeholder="默认: 0" readonly>
+                    <button type="button" class="pattern-select-btn" data-target="testGroundFrame" data-type="frame">选择边框</button>
+                </div>
+            </div>
+            <div class="test-result">
+                <strong>当前值:</strong><br>
+                图案ID: <span id="groundPatternResult">3</span><br>
+                边框ID: <span id="groundFrameResult">15</span>
+            </div>
+        </div>
+        
+        <!-- 玻璃配置测试 -->
+        <div class="test-section">
+            <h3>🔷 玻璃配置测试</h3>
+            <div class="ugc-field-row">
+                <label for="testGlassPattern">玻璃图案ID:</label>
+                <div class="pattern-selector-container">
+                    <input type="number" id="testGlassPattern" min="0" value="38" placeholder="默认: 0" readonly>
+                    <button type="button" class="pattern-select-btn" data-target="testGlassPattern" data-type="pattern">选择图案</button>
+                </div>
+            </div>
+            <div class="ugc-field-row">
+                <label for="testGlassAlpha">玻璃透明度:</label>
+                <input type="number" id="testGlassAlpha" min="0" max="100" value="50" placeholder="默认: 50">
+            </div>
+            <div class="test-result">
+                <strong>当前值:</strong><br>
+                图案ID: <span id="glassPatternResult">38</span><br>
+                透明度: <span id="glassAlphaResult">50</span>
+            </div>
+        </div>
+        
+        <!-- 功能测试按钮 -->
+        <div class="test-section">
+            <h3>🧪 功能测试</h3>
+            <button class="btn btn-primary" onclick="testGetAllValues()">获取所有配置值</button>
+            <button class="btn btn-secondary" onclick="resetAllValues()">重置所有值</button>
+            <div class="test-result" id="allValuesResult">
+                点击"获取所有配置值"查看结果
+            </div>
+        </div>
+    </div>
+
+    <!-- 图案选择器模态框 -->
+    <div id="patternSelectorModal" class="pattern-modal" style="display: none;">
+        <div class="pattern-modal-content">
+            <div class="pattern-modal-header">
+                <h3 id="patternModalTitle">选择图案</h3>
+                <button class="pattern-modal-close" id="closePatternModal">&times;</button>
+            </div>
+            <div class="pattern-modal-body">
+                <div class="pattern-canvas-container">
+                    <canvas id="patternSelectorCanvas" class="pattern-canvas"></canvas>
+                    <div id="patternLoadingText" class="pattern-loading">正在加载图案...</div>
+                </div>
+                <div class="pattern-info">
+                    <div id="selectedPatternInfo" class="selected-pattern-info" style="display: none;">
+                        <h4>已选择图案</h4>
+                        <div id="patternPreviewContainer" class="pattern-preview-container">
+                            <canvas id="patternPreviewCanvas" class="pattern-preview-canvas"></canvas>
+                        </div>
+                        <div class="pattern-details">
+                            <p><strong>图案ID:</strong> <span id="selectedPatternId">-</span></p>
+                            <p><strong>位置:</strong> <span id="selectedPatternPosition">-</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="pattern-modal-footer">
+                <button class="btn btn-secondary" id="cancelPatternSelection">取消</button>
+                <button class="btn btn-primary" id="confirmPatternSelection" disabled>确认选择</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/ugcPatternSelector.js"></script>
+    <script>
+        // 初始化图案选择器
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.App && window.App.UGCPatternSelector) {
+                window.App.UGCPatternSelector.init();
+                console.log('UGC图案选择器已初始化');
+            } else {
+                console.error('UGC图案选择器模块未找到');
+            }
+            
+            // 监听输入框变化
+            setupValueMonitors();
+        });
+        
+        // 设置值监听器
+        function setupValueMonitors() {
+            const monitors = [
+                { input: 'testGroundPattern', result: 'groundPatternResult' },
+                { input: 'testGroundFrame', result: 'groundFrameResult' },
+                { input: 'testGlassPattern', result: 'glassPatternResult' },
+                { input: 'testGlassAlpha', result: 'glassAlphaResult' }
+            ];
+            
+            monitors.forEach(({ input, result }) => {
+                const inputEl = document.getElementById(input);
+                const resultEl = document.getElementById(result);
+                
+                if (inputEl && resultEl) {
+                    inputEl.addEventListener('input', function() {
+                        resultEl.textContent = this.value;
+                    });
+                }
+            });
+        }
+        
+        // 测试获取所有值
+        function testGetAllValues() {
+            const values = {
+                groundPattern: document.getElementById('testGroundPattern').value,
+                groundFrame: document.getElementById('testGroundFrame').value,
+                glassPattern: document.getElementById('testGlassPattern').value,
+                glassAlpha: document.getElementById('testGlassAlpha').value
+            };
+            
+            document.getElementById('allValuesResult').innerHTML = `
+                <strong>所有配置值:</strong><br>
+                ${JSON.stringify(values, null, 2)}
+            `;
+        }
+        
+        // 重置所有值
+        function resetAllValues() {
+            document.getElementById('testGroundPattern').value = '3';
+            document.getElementById('testGroundFrame').value = '15';
+            document.getElementById('testGlassPattern').value = '38';
+            document.getElementById('testGlassAlpha').value = '50';
+            
+            // 触发input事件更新显示
+            ['testGroundPattern', 'testGroundFrame', 'testGlassPattern', 'testGlassAlpha'].forEach(id => {
+                document.getElementById(id).dispatchEvent(new Event('input'));
+            });
+            
+            document.getElementById('allValuesResult').textContent = '所有值已重置';
+        }
+    </script>
+</body>
+</html>

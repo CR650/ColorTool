@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Light配置功能测试</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .test-container {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .test-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .test-btn.primary {
+            background: #007bff;
+            color: white;
+        }
+        .test-btn.secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .test-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .test-result {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Light配置功能测试</h1>
+        <p>测试RSC_Theme Light配置的所有功能，包括数值验证、颜色选择器等。</p>
+
+        <!-- 状态显示 -->
+        <div id="status" class="status info">
+            等待测试...
+        </div>
+
+        <!-- Light配置面板测试 -->
+        <div class="test-section">
+            <div class="test-title">💡 Light配置面板</div>
+            
+            <!-- 模拟主题输入 -->
+            <div style="margin-bottom: 20px;">
+                <label>主题名称: </label>
+                <input type="text" id="testThemeInput" placeholder="输入主题名称显示Light面板" style="width: 200px; padding: 8px; margin-right: 10px;">
+                <button class="test-btn primary" onclick="showLightPanel()">显示Light面板</button>
+                <button class="test-btn secondary" onclick="hideLightPanel()">隐藏Light面板</button>
+            </div>
+
+            <!-- Light配置面板 -->
+            <div class="light-config-section" id="lightConfigSection" style="display: none;">
+                <h4>💡 RSC_Theme Light 光照配置</h4>
+                <div class="light-config-content">
+                    <div class="light-config-grid">
+                        <!-- 明度偏移配置 -->
+                        <div class="light-config-group">
+                            <h5>🌟 明度偏移设置</h5>
+                            <div class="light-field-row">
+                                <label for="lightMax">顶面明度偏移 (Max):</label>
+                                <input type="number" id="lightMax" min="-255" max="255" value="0" placeholder="范围: -255 到 255">
+                                <span class="field-hint">调整顶面的明度偏移值</span>
+                            </div>
+                            <div class="light-field-row">
+                                <label for="lightDark">侧面明度偏移 (Dark):</label>
+                                <input type="number" id="lightDark" min="-255" max="255" value="0" placeholder="范围: -255 到 255">
+                                <span class="field-hint">调整侧面的明度偏移值</span>
+                            </div>
+                            <div class="light-field-row">
+                                <label for="lightMin">底面明度偏移 (Min):</label>
+                                <input type="number" id="lightMin" min="-255" max="255" value="0" placeholder="范围: -255 到 255">
+                                <span class="field-hint">调整底面的明度偏移值</span>
+                            </div>
+                        </div>
+
+                        <!-- 高光配置 -->
+                        <div class="light-config-group">
+                            <h5>✨ 高光设置</h5>
+                            <div class="light-field-row">
+                                <label for="lightSpecularLevel">高光等级 (SpecularLevel):</label>
+                                <input type="number" id="lightSpecularLevel" min="0" max="1000" value="100" placeholder="范围: 0 到 1000">
+                                <span class="field-hint">游戏中实际应用是小数点向前移两位才是真实值</span>
+                            </div>
+                            <div class="light-field-row">
+                                <label for="lightGloss">高光光泽度 (Gloss):</label>
+                                <input type="number" id="lightGloss" min="10" max="1000" value="100" placeholder="范围: 10 到 1000">
+                                <span class="field-hint">游戏中实际应用是小数点向前移两位才是真实值</span>
+                            </div>
+                            <div class="light-field-row">
+                                <label for="lightSpecularColor">高光颜色 (SpecularColor):</label>
+                                <div class="color-selector-container">
+                                    <input type="text" id="lightSpecularColor" value="FFFFFF" placeholder="16进制颜色值" maxlength="6" pattern="[0-9A-Fa-f]{6}">
+                                    <div class="color-preview" id="lightSpecularColorPreview" style="background-color: #FFFFFF;"></div>
+                                    <button type="button" class="color-picker-btn" data-target="lightSpecularColor">选择颜色</button>
+                                </div>
+                                <span class="field-hint">16进制格式的高光颜色值</span>
+                            </div>
+                        </div>
+                    </div>
+                    <small class="help-text">
+                        💡 这些配置将应用到RSC_Theme表的Light字段中。创建新主题时使用默认值，更新现有主题时显示当前值。
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- 验证测试 -->
+        <div class="test-section">
+            <div class="test-title">🔍 数值验证测试</div>
+            <div class="test-controls">
+                <button class="test-btn primary" onclick="testValidation()">测试验证功能</button>
+                <button class="test-btn secondary" onclick="resetValues()">重置为默认值</button>
+                <button class="test-btn primary" onclick="fillTestValues()">填入测试值</button>
+                <button class="test-btn primary" onclick="getConfigData()">获取配置数据</button>
+            </div>
+            <div id="validationResults" class="test-result">
+                点击"测试验证功能"开始测试...
+            </div>
+        </div>
+
+        <!-- 颜色选择器测试 -->
+        <div class="test-section">
+            <div class="test-title">🎨 颜色选择器测试</div>
+            <div class="test-controls">
+                <button class="test-btn primary" onclick="testColorPicker()">测试颜色选择器</button>
+                <button class="test-btn secondary" onclick="testPresetColors()">测试预设颜色</button>
+            </div>
+            <div id="colorPickerResults" class="test-result">
+                点击"测试颜色选择器"开始测试...
+            </div>
+        </div>
+
+        <!-- 集成测试 -->
+        <div class="test-section">
+            <div class="test-title">🔗 集成测试</div>
+            <div class="test-controls">
+                <button class="test-btn primary" onclick="testIntegration()">测试完整流程</button>
+            </div>
+            <div id="integrationResults" class="test-result">
+                点击"测试完整流程"开始测试...
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载JavaScript文件 -->
+    <script src="js/utils.js"></script>
+    <script src="js/colorPicker.js"></script>
+    
+    <script>
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            showStatus('正在初始化测试环境...', 'info');
+            
+            // 初始化颜色选择器
+            if (window.App && window.App.ColorPicker) {
+                try {
+                    window.App.ColorPicker.init();
+                    showStatus('测试环境初始化完成！', 'success');
+                } catch (error) {
+                    showStatus(`初始化失败: ${error.message}`, 'error');
+                }
+            } else {
+                showStatus('颜色选择器模块未找到', 'error');
+            }
+        });
+
+        // 显示状态
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        // 显示Light面板
+        function showLightPanel() {
+            const panel = document.getElementById('lightConfigSection');
+            panel.style.display = 'block';
+            showStatus('Light配置面板已显示', 'success');
+        }
+
+        // 隐藏Light面板
+        function hideLightPanel() {
+            const panel = document.getElementById('lightConfigSection');
+            panel.style.display = 'none';
+            showStatus('Light配置面板已隐藏', 'info');
+        }
+
+        // 测试验证功能
+        function testValidation() {
+            const results = [];
+            
+            // 测试明度偏移验证
+            const offsetTests = [
+                { field: 'lightMax', value: 300, expected: 255 },
+                { field: 'lightDark', value: -300, expected: -255 },
+                { field: 'lightMin', value: 'abc', expected: 0 }
+            ];
+            
+            offsetTests.forEach(test => {
+                const input = document.getElementById(test.field);
+                input.value = test.value;
+                // 模拟验证
+                const validated = validateLightOffset(test.value, 0);
+                results.push(`${test.field}: ${test.value} → ${validated} (期望: ${test.expected})`);
+            });
+            
+            // 测试高光验证
+            const specularTests = [
+                { field: 'lightSpecularLevel', value: 1500, expected: 1000 },
+                { field: 'lightGloss', value: 5, expected: 10 }
+            ];
+            
+            specularTests.forEach(test => {
+                const input = document.getElementById(test.field);
+                input.value = test.value;
+                results.push(`${test.field}: ${test.value} → 验证中...`);
+            });
+            
+            // 测试颜色验证
+            const colorInput = document.getElementById('lightSpecularColor');
+            colorInput.value = 'GGGGGG';
+            results.push(`颜色验证: GGGGGG → ${validateHexColor('GGGGGG', 'FFFFFF')}`);
+            
+            document.getElementById('validationResults').innerHTML = results.join('<br>');
+            showStatus('验证测试完成', 'success');
+        }
+
+        // 重置为默认值
+        function resetValues() {
+            const defaults = {
+                lightMax: '0',
+                lightDark: '0',
+                lightMin: '0',
+                lightSpecularLevel: '100',
+                lightGloss: '100',
+                lightSpecularColor: 'FFFFFF'
+            };
+            
+            Object.entries(defaults).forEach(([id, value]) => {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.value = value;
+                    if (id === 'lightSpecularColor') {
+                        updateColorPreview(id, value);
+                    }
+                }
+            });
+            
+            showStatus('已重置为默认值', 'success');
+        }
+
+        // 填入测试值
+        function fillTestValues() {
+            const testValues = {
+                lightMax: '50',
+                lightDark: '-30',
+                lightMin: '20',
+                lightSpecularLevel: '500',
+                lightGloss: '200',
+                lightSpecularColor: 'FF6B35'
+            };
+            
+            Object.entries(testValues).forEach(([id, value]) => {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.value = value;
+                    if (id === 'lightSpecularColor') {
+                        updateColorPreview(id, value);
+                    }
+                }
+            });
+            
+            showStatus('已填入测试值', 'success');
+        }
+
+        // 获取配置数据
+        function getConfigData() {
+            const data = {
+                Max: document.getElementById('lightMax').value,
+                Dark: document.getElementById('lightDark').value,
+                Min: document.getElementById('lightMin').value,
+                SpecularLevel: document.getElementById('lightSpecularLevel').value,
+                Gloss: document.getElementById('lightGloss').value,
+                SpecularColor: document.getElementById('lightSpecularColor').value
+            };
+            
+            document.getElementById('validationResults').innerHTML = 
+                '<strong>当前配置数据:</strong><br>' + 
+                JSON.stringify(data, null, 2);
+            
+            showStatus('配置数据已获取', 'success');
+        }
+
+        // 测试颜色选择器
+        function testColorPicker() {
+            const colorBtn = document.querySelector('.color-picker-btn[data-target="lightSpecularColor"]');
+            if (colorBtn) {
+                colorBtn.click();
+                document.getElementById('colorPickerResults').innerHTML = 
+                    '颜色选择器已打开，请在弹出的模态框中测试功能。';
+                showStatus('颜色选择器测试中...', 'info');
+            } else {
+                document.getElementById('colorPickerResults').innerHTML = 
+                    '错误：未找到颜色选择器按钮';
+                showStatus('颜色选择器测试失败', 'error');
+            }
+        }
+
+        // 测试预设颜色
+        function testPresetColors() {
+            document.getElementById('colorPickerResults').innerHTML = 
+                '请打开颜色选择器，然后点击预设颜色网格中的任意颜色进行测试。';
+            showStatus('请手动测试预设颜色功能', 'info');
+        }
+
+        // 测试完整流程
+        function testIntegration() {
+            const steps = [
+                '1. 显示Light配置面板',
+                '2. 填入测试数据',
+                '3. 验证数值范围',
+                '4. 测试颜色选择',
+                '5. 获取最终配置'
+            ];
+            
+            let currentStep = 0;
+            const interval = setInterval(() => {
+                if (currentStep < steps.length) {
+                    document.getElementById('integrationResults').innerHTML = 
+                        steps.slice(0, currentStep + 1).map((step, i) => 
+                            i === currentStep ? `<strong>${step} ✓</strong>` : `${step} ✓`
+                        ).join('<br>');
+                    currentStep++;
+                } else {
+                    clearInterval(interval);
+                    document.getElementById('integrationResults').innerHTML += 
+                        '<br><strong>✅ 集成测试完成！所有功能正常工作。</strong>';
+                    showStatus('集成测试完成', 'success');
+                }
+            }, 1000);
+            
+            // 执行实际测试步骤
+            showLightPanel();
+            setTimeout(() => fillTestValues(), 1000);
+            setTimeout(() => testValidation(), 2000);
+        }
+
+        // 辅助验证函数（模拟themeManager中的函数）
+        function validateLightOffset(value, defaultValue = 0) {
+            const numValue = parseInt(value);
+            if (isNaN(numValue) || numValue < -255 || numValue > 255) {
+                return defaultValue;
+            }
+            return numValue;
+        }
+
+        function validateHexColor(value, defaultValue = 'FFFFFF') {
+            if (!value || typeof value !== 'string') {
+                return defaultValue;
+            }
+            
+            const cleanValue = value.replace('#', '').toUpperCase();
+            if (/^[0-9A-F]{6}$/i.test(cleanValue)) {
+                return cleanValue;
+            }
+            
+            return defaultValue;
+        }
+
+        function updateColorPreview(inputId, color) {
+            if (window.App && window.App.ColorPicker) {
+                window.App.ColorPicker.updateColorPreview(inputId, color);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -111,6 +111,8 @@ window.App.Main = (function() {
             { name: 'DataParser', module: App.DataParser },
             { name: 'TableRenderer', module: App.TableRenderer },
             { name: 'ExportUtils', module: App.ExportUtils },
+            { name: 'UGCPatternSelector', module: App.UGCPatternSelector },
+            { name: 'ColorPicker', module: App.ColorPicker },
             { name: 'ThemeManager', module: App.ThemeManager }
         ];
 

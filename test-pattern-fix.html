@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图案选择器修复测试</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .test-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 图案选择器修复测试</h1>
+        
+        <!-- 状态显示 -->
+        <div id="status" class="status info">
+            等待测试...
+        </div>
+
+        <!-- 模拟主题输入 -->
+        <div class="test-section">
+            <h3>1. 模拟主题输入（显示UGC面板）</h3>
+            <input type="text" id="testThemeInput" placeholder="输入主题名称" style="width: 200px; padding: 8px; margin-right: 10px;">
+            <button onclick="showUGCPanel()" style="padding: 8px 16px;">显示UGC面板</button>
+            <button onclick="hideUGCPanel()" style="padding: 8px 16px;">隐藏UGC面板</button>
+        </div>
+
+        <!-- UGC配置面板 -->
+        <div class="ugc-config-section" id="ugcConfigSection" style="display: none;">
+            <h4>🎮 UGCTheme 图案配置</h4>
+            <div class="ugc-config-content">
+                <div class="ugc-config-grid">
+                    <!-- 地板配置 -->
+                    <div class="ugc-config-group">
+                        <h5>🏠 地板 (Custom_Ground_Color)</h5>
+                        <div class="ugc-field-row">
+                            <label for="groundPatternIndex">地板图案ID:</label>
+                            <div class="pattern-selector-container">
+                                <input type="number" id="groundPatternIndex" min="0" value="0" placeholder="默认: 0" readonly>
+                                <button type="button" class="pattern-select-btn" data-target="groundPatternIndex" data-type="pattern">选择图案</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 玻璃配置 -->
+                    <div class="ugc-config-group">
+                        <h5>🔷 未踩中玻璃 (Custom_Fragile_Color)</h5>
+                        <div class="ugc-field-row">
+                            <label for="fragilePatternIndex">玻璃图案ID:</label>
+                            <div class="pattern-selector-container">
+                                <input type="number" id="fragilePatternIndex" min="0" value="0" placeholder="默认: 0" readonly>
+                                <button type="button" class="pattern-select-btn" data-target="fragilePatternIndex" data-type="pattern">选择图案</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 测试结果 -->
+        <div class="test-section">
+            <h3>2. 测试结果</h3>
+            <div id="testResults">
+                <p>请先显示UGC面板，然后点击"选择图案"按钮进行测试。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图案选择器模态框 -->
+    <div id="patternSelectorModal" class="pattern-modal" style="display: none;">
+        <div class="pattern-modal-content">
+            <div class="pattern-modal-header">
+                <h3 id="patternModalTitle">选择图案</h3>
+                <button class="pattern-modal-close" id="closePatternModal">&times;</button>
+            </div>
+            <div class="pattern-modal-body">
+                <div class="pattern-canvas-container">
+                    <canvas id="patternSelectorCanvas" class="pattern-canvas"></canvas>
+                    <div id="patternLoadingText" class="pattern-loading">正在加载图案...</div>
+                </div>
+                <div class="pattern-info">
+                    <div id="selectedPatternInfo" class="selected-pattern-info" style="display: none;">
+                        <h4>已选择图案</h4>
+                        <div id="patternPreviewContainer" class="pattern-preview-container">
+                            <canvas id="patternPreviewCanvas" class="pattern-preview-canvas"></canvas>
+                        </div>
+                        <div class="pattern-details">
+                            <p><strong>图案ID:</strong> <span id="selectedPatternId">-</span></p>
+                            <p><strong>位置:</strong> <span id="selectedPatternPosition">-</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="pattern-modal-footer">
+                <button id="confirmPatternSelection" class="pattern-btn pattern-btn-primary">确认选择</button>
+                <button id="cancelPatternSelection" class="pattern-btn pattern-btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载JavaScript文件 -->
+    <script src="js/utils.js"></script>
+    <script src="js/ugcPatternSelector.js"></script>
+    
+    <script>
+        let ugcPatternSelector = null;
+
+        // 显示状态
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        // 显示UGC面板
+        function showUGCPanel() {
+            const panel = document.getElementById('ugcConfigSection');
+            panel.style.display = 'block';
+            
+            // 重新绑定事件（模拟themeManager的行为）
+            if (ugcPatternSelector && typeof ugcPatternSelector.rebindButtonEvents === 'function') {
+                setTimeout(() => {
+                    ugcPatternSelector.rebindButtonEvents();
+                    showStatus('UGC面板已显示，图案选择器事件已重新绑定', 'success');
+                    updateTestResults();
+                }, 100);
+            } else {
+                showStatus('UGC面板已显示，但图案选择器未正确初始化', 'error');
+            }
+        }
+
+        // 隐藏UGC面板
+        function hideUGCPanel() {
+            const panel = document.getElementById('ugcConfigSection');
+            panel.style.display = 'none';
+            showStatus('UGC面板已隐藏', 'info');
+            updateTestResults();
+        }
+
+        // 更新测试结果
+        function updateTestResults() {
+            const resultsDiv = document.getElementById('testResults');
+            const panel = document.getElementById('ugcConfigSection');
+            const isVisible = panel.style.display !== 'none';
+            const buttons = document.querySelectorAll('.pattern-select-btn');
+            
+            let html = '<h4>当前状态:</h4>';
+            html += `<p>UGC面板: ${isVisible ? '✅ 显示' : '❌ 隐藏'}</p>`;
+            html += `<p>图案选择按钮数量: ${buttons.length}</p>`;
+            
+            if (isVisible) {
+                html += '<h4>测试说明:</h4>';
+                html += '<p>1. 点击任意"选择图案"按钮</p>';
+                html += '<p>2. 如果弹出图案选择器模态框，说明修复成功</p>';
+                html += '<p>3. 如果没有反应，说明还有问题</p>';
+            }
+            
+            resultsDiv.innerHTML = html;
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            showStatus('正在初始化图案选择器...', 'info');
+            
+            // 初始化UGCPatternSelector模块
+            if (window.App && window.App.UGCPatternSelector) {
+                try {
+                    window.App.UGCPatternSelector.init();
+                    ugcPatternSelector = window.App.UGCPatternSelector;
+                    showStatus('图案选择器初始化成功！请显示UGC面板进行测试。', 'success');
+                } catch (error) {
+                    showStatus(`图案选择器初始化失败: ${error.message}`, 'error');
+                }
+            } else {
+                showStatus('UGCPatternSelector模块未找到', 'error');
+            }
+            
+            updateTestResults();
+        });
+
+        // 监听模态框显示（用于测试）
+        const modal = document.getElementById('patternSelectorModal');
+        if (modal) {
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                        const isVisible = modal.style.display === 'flex';
+                        if (isVisible) {
+                            showStatus('🎉 图案选择器模态框已打开！修复成功！', 'success');
+                        }
+                    }
+                });
+            });
+            
+            observer.observe(modal, { attributes: true });
+        }
+    </script>
+</body>
+</html>

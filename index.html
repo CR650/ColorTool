@@ -220,6 +220,280 @@
                     </div>
                 </div>
 
+                <!-- UGCTheme字段配置区域（仅新建主题时显示） -->
+                <div class="ugc-config-section" id="ugcConfigSection" style="display: none;">
+                    <h4>🎮 UGCTheme 图案配置</h4>
+                    <div class="ugc-config-content">
+                        <div class="ugc-config-grid">
+                            <!-- 地板配置 -->
+                            <div class="ugc-config-group">
+                                <h5>🏠 地板 (Custom_Ground_Color)</h5>
+                                <div class="ugc-field-row">
+                                    <label for="groundPatternIndex">地板图案ID:</label>
+                                    <div class="pattern-selector-container">
+                                        <input type="number" id="groundPatternIndex" min="0" value="0" placeholder="默认: 0" readonly>
+                                        <button type="button" class="pattern-select-btn" data-target="groundPatternIndex" data-type="pattern">选择图案</button>
+                                    </div>
+                                </div>
+                                <div class="ugc-field-row">
+                                    <label for="groundFrameIndex">地板边框图案ID:</label>
+                                    <div class="pattern-selector-container">
+                                        <input type="number" id="groundFrameIndex" min="0" value="0" placeholder="默认: 0" readonly>
+                                        <button type="button" class="pattern-select-btn" data-target="groundFrameIndex" data-type="frame">选择边框</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 未踩中玻璃配置 -->
+                            <div class="ugc-config-group">
+                                <h5>🔷 未踩中玻璃 (Custom_Fragile_Color)</h5>
+                                <div class="ugc-field-row">
+                                    <label for="fragilePatternIndex">玻璃图案ID:</label>
+                                    <div class="pattern-selector-container">
+                                        <input type="number" id="fragilePatternIndex" min="0" value="0" placeholder="默认: 0" readonly>
+                                        <button type="button" class="pattern-select-btn" data-target="fragilePatternIndex" data-type="pattern">选择图案</button>
+                                    </div>
+                                </div>
+                                <div class="ugc-field-row">
+                                    <label for="fragileFrameIndex">玻璃边框图案ID:</label>
+                                    <select id="fragileFrameIndex" class="frame-border-select">
+                                        <option value="0">0 - 无边框</option>
+                                        <option value="1">1 - 有边框</option>
+                                    </select>
+                                </div>
+                                <div class="ugc-field-row">
+                                    <label for="fragileGlassAlpha">玻璃底色透明度:</label>
+                                    <input type="number" id="fragileGlassAlpha" min="0" max="100" value="50" placeholder="默认: 50">
+                                </div>
+                                <div class="ugc-field-row">
+                                    <label for="fragilePatternAlpha">玻璃图案透明度:</label>
+                                    <input type="number" id="fragilePatternAlpha" min="0" max="100" value="50" placeholder="默认: 50">
+                                </div>
+                            </div>
+
+                            <!-- 踩中玻璃配置 -->
+                            <div class="ugc-config-group">
+                                <h5>💎 踩中玻璃 (Custom_Fragile_Active_Color)</h5>
+                                <div class="ugc-field-row">
+                                    <label for="fragileActivePatternIndex">玻璃图案ID:</label>
+                                    <div class="pattern-selector-container">
+                                        <input type="number" id="fragileActivePatternIndex" min="0" value="0" placeholder="默认: 0" readonly>
+                                        <button type="button" class="pattern-select-btn" data-target="fragileActivePatternIndex" data-type="pattern">选择图案</button>
+                                    </div>
+                                </div>
+                                <div class="ugc-field-row">
+                                    <label for="fragileActiveFrameIndex">玻璃边框图案ID:</label>
+                                    <select id="fragileActiveFrameIndex" class="frame-border-select">
+                                        <option value="0">0 - 无边框</option>
+                                        <option value="1">1 - 有边框</option>
+                                    </select>
+                                </div>
+                                <div class="ugc-field-row">
+                                    <label for="fragileActiveGlassAlpha">玻璃底色透明度:</label>
+                                    <input type="number" id="fragileActiveGlassAlpha" min="0" max="100" value="50" placeholder="默认: 50">
+                                </div>
+                                <div class="ugc-field-row">
+                                    <label for="fragileActivePatternAlpha">玻璃图案透明度:</label>
+                                    <input type="number" id="fragileActivePatternAlpha" min="0" max="100" value="50" placeholder="默认: 50">
+                                </div>
+                            </div>
+
+                            <!-- 未踩中跳板配置 -->
+                            <div class="ugc-config-group">
+                                <h5>🚀 未踩中跳板 (Custom_Jump_Color)</h5>
+                                <div class="ugc-field-row">
+                                    <label for="jumpPatternIndex">跳板图案ID:</label>
+                                    <div class="pattern-selector-container">
+                                        <input type="number" id="jumpPatternIndex" min="0" value="0" placeholder="默认: 0" readonly>
+                                        <button type="button" class="pattern-select-btn" data-target="jumpPatternIndex" data-type="pattern">选择图案</button>
+                                    </div>
+                                </div>
+                                <div class="ugc-field-row">
+                                    <label for="jumpFrameIndex">跳板边框图案ID:</label>
+                                    <div class="pattern-selector-container">
+                                        <input type="number" id="jumpFrameIndex" min="0" value="0" placeholder="默认: 0" readonly>
+                                        <button type="button" class="pattern-select-btn" data-target="jumpFrameIndex" data-type="frame">选择边框</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 踩中跳板配置 -->
+                            <div class="ugc-config-group">
+                                <h5>⭐ 踩中跳板 (Custom_Jump_Active_Color)</h5>
+                                <div class="ugc-field-row">
+                                    <label for="jumpActivePatternIndex">跳板图案ID:</label>
+                                    <div class="pattern-selector-container">
+                                        <input type="number" id="jumpActivePatternIndex" min="0" value="0" placeholder="默认: 0" readonly>
+                                        <button type="button" class="pattern-select-btn" data-target="jumpActivePatternIndex" data-type="pattern">选择图案</button>
+                                    </div>
+                                </div>
+                                <div class="ugc-field-row">
+                                    <label for="jumpActiveFrameIndex">跳板激活边框图案ID:</label>
+                                    <div class="pattern-selector-container">
+                                        <input type="number" id="jumpActiveFrameIndex" min="0" value="0" placeholder="默认: 0" readonly>
+                                        <button type="button" class="pattern-select-btn" data-target="jumpActiveFrameIndex" data-type="frame">选择边框</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <small class="help-text">
+                            💡 这些配置将应用到UGCTheme表的相应字段中。创建新主题时使用默认值，更新现有主题时显示当前值。
+                        </small>
+                    </div>
+                </div>
+
+                <!-- RSC_Theme Light配置区域 -->
+                <div class="light-config-section" id="lightConfigSection" style="display: none;">
+                    <h4>💡 RSC_Theme Light 光照配置</h4>
+                    <div class="light-config-content">
+                        <div class="light-config-grid">
+                            <!-- 明度偏移配置 -->
+                            <div class="light-config-group">
+                                <h5>🌟 明度偏移设置</h5>
+                                <div class="light-field-row">
+                                    <label for="lightMax">顶面明度偏移 (Max):</label>
+                                    <input type="number" id="lightMax" min="-255" max="255" value="0" placeholder="范围: -255 到 255">
+                                    <span class="field-hint">调整顶面的明度偏移值</span>
+                                </div>
+                                <div class="light-field-row">
+                                    <label for="lightDark">侧面明度偏移 (Dark):</label>
+                                    <input type="number" id="lightDark" min="-255" max="255" value="0" placeholder="范围: -255 到 255">
+                                    <span class="field-hint">调整侧面的明度偏移值</span>
+                                </div>
+                                <div class="light-field-row">
+                                    <label for="lightMin">底面明度偏移 (Min):</label>
+                                    <input type="number" id="lightMin" min="-255" max="255" value="0" placeholder="范围: -255 到 255">
+                                    <span class="field-hint">调整底面的明度偏移值</span>
+                                </div>
+                            </div>
+
+                            <!-- 高光配置 -->
+                            <div class="light-config-group">
+                                <h5>✨ 高光设置</h5>
+                                <div class="light-field-row">
+                                    <label for="lightSpecularLevel">高光等级 (SpecularLevel):</label>
+                                    <input type="number" id="lightSpecularLevel" min="0" max="1000" value="100" placeholder="范围: 0 到 1000">
+                                    <span class="field-hint">游戏中实际应用是小数点向前移两位才是真实值</span>
+                                </div>
+                                <div class="light-field-row">
+                                    <label for="lightGloss">高光光泽度 (Gloss):</label>
+                                    <input type="number" id="lightGloss" min="10" max="1000" value="100" placeholder="范围: 10 到 1000">
+                                    <span class="field-hint">游戏中实际应用是小数点向前移两位才是真实值</span>
+                                </div>
+                                <div class="light-field-row">
+                                    <label for="lightSpecularColor">高光颜色 (SpecularColor):</label>
+                                    <div class="color-selector-container">
+                                        <input type="text" id="lightSpecularColor" value="FFFFFF" placeholder="16进制颜色值" maxlength="6" pattern="[0-9A-Fa-f]{6}">
+                                        <div class="color-preview" id="lightSpecularColorPreview" style="background-color: #FFFFFF;"></div>
+                                        <button type="button" class="color-picker-btn" data-target="lightSpecularColor">选择颜色</button>
+                                    </div>
+                                    <span class="field-hint">16进制格式的高光颜色值</span>
+                                </div>
+                            </div>
+                        </div>
+                        <small class="help-text">
+                            💡 这些配置将应用到RSC_Theme表的Light字段中。创建新主题时使用默认值，更新现有主题时显示当前值。
+                        </small>
+                    </div>
+                </div>
+
+                <!-- RSC_Theme ColorInfo配置区域 -->
+                <div class="colorinfo-config-section" id="colorinfoConfigSection" style="display: none;">
+                    <h4>🎨 RSC_Theme ColorInfo 颜色配置</h4>
+                    <div class="colorinfo-config-content">
+                        <div class="colorinfo-config-grid">
+                            <!-- RGB颜色配置 -->
+                            <div class="colorinfo-config-group">
+                                <h5>💎 钻石颜色设置</h5>
+                                <div class="colorinfo-field-row">
+                                    <label for="PickupDiffColor">钻石颜色 (PickupDiff):</label>
+                                    <div class="rgb-color-selector-container">
+                                        <div class="rgb-inputs">
+                                            <div class="rgb-input-group">
+                                                <label>R:</label>
+                                                <input type="number" id="PickupDiffR" min="0" max="255" value="255" placeholder="0-255">
+                                            </div>
+                                            <div class="rgb-input-group">
+                                                <label>G:</label>
+                                                <input type="number" id="PickupDiffG" min="0" max="255" value="255" placeholder="0-255">
+                                            </div>
+                                            <div class="rgb-input-group">
+                                                <label>B:</label>
+                                                <input type="number" id="PickupDiffB" min="0" max="255" value="255" placeholder="0-255">
+                                            </div>
+                                        </div>
+                                        <div class="color-preview" id="PickupDiffColorPreview" style="background-color: rgb(255, 255, 255);"></div>
+                                        <button type="button" class="color-picker-btn" data-target="PickupDiff" data-mode="rgb">选择颜色</button>
+                                    </div>
+                                    <span class="field-hint">钻石的基础颜色，RGB值范围0-255</span>
+                                </div>
+                                <div class="colorinfo-field-row">
+                                    <label for="PickupReflColor">钻石反光颜色 (PickupRefl):</label>
+                                    <div class="rgb-color-selector-container">
+                                        <div class="rgb-inputs">
+                                            <div class="rgb-input-group">
+                                                <label>R:</label>
+                                                <input type="number" id="PickupReflR" min="0" max="255" value="255" placeholder="0-255">
+                                            </div>
+                                            <div class="rgb-input-group">
+                                                <label>G:</label>
+                                                <input type="number" id="PickupReflG" min="0" max="255" value="255" placeholder="0-255">
+                                            </div>
+                                            <div class="rgb-input-group">
+                                                <label>B:</label>
+                                                <input type="number" id="PickupReflB" min="0" max="255" value="255" placeholder="0-255">
+                                            </div>
+                                        </div>
+                                        <div class="color-preview" id="PickupReflColorPreview" style="background-color: rgb(255, 255, 255);"></div>
+                                        <button type="button" class="color-picker-btn" data-target="PickupRefl" data-mode="rgb">选择颜色</button>
+                                    </div>
+                                    <span class="field-hint">钻石反光的颜色，RGB值范围0-255</span>
+                                </div>
+                            </div>
+
+                            <!-- 雾效配置 -->
+                            <div class="colorinfo-config-group">
+                                <h5>🌫️ 远景雾效设置</h5>
+                                <div class="colorinfo-field-row">
+                                    <label for="ForegroundFogColor">远景雾颜色 (ForegroundFog):</label>
+                                    <div class="rgb-color-selector-container">
+                                        <div class="rgb-inputs">
+                                            <div class="rgb-input-group">
+                                                <label>R:</label>
+                                                <input type="number" id="ForegroundFogR" min="0" max="255" value="128" placeholder="0-255">
+                                            </div>
+                                            <div class="rgb-input-group">
+                                                <label>G:</label>
+                                                <input type="number" id="ForegroundFogG" min="0" max="255" value="128" placeholder="0-255">
+                                            </div>
+                                            <div class="rgb-input-group">
+                                                <label>B:</label>
+                                                <input type="number" id="ForegroundFogB" min="0" max="255" value="128" placeholder="0-255">
+                                            </div>
+                                        </div>
+                                        <div class="color-preview" id="ForegroundFogColorPreview" style="background-color: rgb(128, 128, 128);"></div>
+                                        <button type="button" class="color-picker-btn" data-target="ForegroundFog" data-mode="rgb">选择颜色</button>
+                                    </div>
+                                    <span class="field-hint">远景雾效的颜色，RGB值范围0-255</span>
+                                </div>
+                                <div class="colorinfo-field-row">
+                                    <label for="FogStart">雾开始距离 (FogStart):</label>
+                                    <input type="number" id="FogStart" min="0" max="40" value="10" placeholder="范围: 0 到 40">
+                                    <span class="field-hint">远景雾效开始的距离值</span>
+                                </div>
+                                <div class="colorinfo-field-row">
+                                    <label for="FogEnd">雾结束距离 (FogEnd):</label>
+                                    <input type="number" id="FogEnd" min="0" max="90" value="50" placeholder="范围: 0 到 90">
+                                    <span class="field-hint">远景雾效结束的距离值</span>
+                                </div>
+                            </div>
+                        </div>
+                        <small class="help-text">
+                            💡 这些配置将应用到RSC_Theme表的ColorInfo字段中。RGB颜色值会自动拆分为独立的R、G、B列存储。
+                        </small>
+                    </div>
+                </div>
+
                 <div class="action-group">
                     <button class="action-btn primary" id="processThemeBtn" disabled>处理主题数据</button>
                     <button class="action-btn secondary" id="resetBtn">重置</button>
@@ -332,6 +606,38 @@
         <div class="status-message" id="statusMessage"></div>
     </div>
 
+    <!-- 图案选择器模态框 -->
+    <div id="patternSelectorModal" class="pattern-modal" style="display: none;">
+        <div class="pattern-modal-content">
+            <div class="pattern-modal-header">
+                <h3 id="patternModalTitle">选择图案</h3>
+                <button class="pattern-modal-close" id="closePatternModal">&times;</button>
+            </div>
+            <div class="pattern-modal-body">
+                <div class="pattern-canvas-container">
+                    <canvas id="patternSelectorCanvas" class="pattern-canvas"></canvas>
+                    <div id="patternLoadingText" class="pattern-loading">正在加载图案...</div>
+                </div>
+                <div class="pattern-info">
+                    <div id="selectedPatternInfo" class="selected-pattern-info" style="display: none;">
+                        <h4>已选择图案</h4>
+                        <div id="patternPreviewContainer" class="pattern-preview-container">
+                            <canvas id="patternPreviewCanvas" class="pattern-preview-canvas"></canvas>
+                        </div>
+                        <div class="pattern-details">
+                            <p><strong>图案ID:</strong> <span id="selectedPatternId">-</span></p>
+                            <p><strong>位置:</strong> <span id="selectedPatternPosition">-</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="pattern-modal-footer">
+                <button class="btn btn-secondary" id="cancelPatternSelection">取消</button>
+                <button class="btn btn-primary" id="confirmPatternSelection" disabled>确认选择</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 引入JavaScript模块文件 -->
     <script src="js/version.js"></script>
     <script src="js/utils.js"></script>
@@ -340,7 +646,10 @@
     <script src="js/tableRenderer.js"></script>
     <script src="js/exportUtils.js"></script>
     <script src="js/unityProjectFolderManager.js"></script>
+    <script src="js/ugcPatternSelector.js"></script>
+    <script src="js/colorPicker.js"></script>
     <script src="js/themeManager.js"></script>
     <script src="js/main.js"></script>
+
 </body>
 </html>

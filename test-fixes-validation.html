@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修复验证测试</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .test-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .test-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            background: #007bff;
+            color: white;
+            margin: 5px;
+        }
+        .test-btn:hover {
+            background: #0056b3;
+        }
+        .test-results {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .fix-demo {
+            background: #f0f8ff;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 修复验证测试</h1>
+        <p>验证三个问题的修复情况</p>
+
+        <!-- 状态显示 -->
+        <div id="status" class="status info">
+            等待测试...
+        </div>
+
+        <!-- 修复1：UGC跳板边框图案配置 -->
+        <div class="test-section">
+            <h3>🎯 修复1：UGC跳板边框图案配置</h3>
+            <p><strong>问题</strong>：跳板边框图案字段只能选择0或1，且缺少图案选择器</p>
+            <p><strong>修复</strong>：添加图案选择器，像地板边框图案一样，移除0/1注释</p>
+
+            <div class="fix-demo">
+                <h4>跳板边框图案选择器测试</h4>
+                <div class="ugc-field-row">
+                    <label for="jumpFrameIndex">跳板边框图案ID:</label>
+                    <div class="pattern-selector-container">
+                        <input type="number" id="jumpFrameIndex" min="0" value="0" placeholder="默认: 0" readonly>
+                        <button type="button" class="pattern-select-btn" data-target="jumpFrameIndex" data-type="frame">选择边框</button>
+                    </div>
+                </div>
+                <div class="ugc-field-row">
+                    <label for="jumpActiveFrameIndex">跳板激活边框图案ID:</label>
+                    <div class="pattern-selector-container">
+                        <input type="number" id="jumpActiveFrameIndex" min="0" value="0" placeholder="默认: 0" readonly>
+                        <button type="button" class="pattern-select-btn" data-target="jumpActiveFrameIndex" data-type="frame">选择边框</button>
+                    </div>
+                </div>
+                <div class="ugc-field-row">
+                    <label for="fragileGlassAlpha">玻璃透明度默认值测试:</label>
+                    <input type="number" id="fragileGlassAlpha" min="0" max="100" value="50" placeholder="默认: 50">
+                    <span class="field-hint">应该默认为50，不是0</span>
+                </div>
+            </div>
+
+            <button class="test-btn" onclick="testJumpFrameSelector()">测试跳板边框选择器</button>
+            <button class="test-btn" onclick="testGlassAlphaDefault()">测试玻璃透明度默认值</button>
+        </div>
+
+        <!-- 修复2：Light配置默认值 -->
+        <div class="test-section">
+            <h3>💡 修复2：Light配置默认值</h3>
+            <p><strong>问题</strong>：新建主题时Light配置使用硬编码默认值</p>
+            <p><strong>修复</strong>：新建主题时读取表中最后一个主题的Light数据作为默认值</p>
+            
+            <div class="fix-demo">
+                <h4>Light配置字段</h4>
+                <div class="light-config-grid">
+                    <div class="light-field-row">
+                        <label for="lightMax">顶面明度偏移 (Max):</label>
+                        <input type="number" id="lightMax" min="-255" max="255" value="0" placeholder="-255 到 255">
+                    </div>
+                    <div class="light-field-row">
+                        <label for="lightDark">侧面明度偏移 (Dark):</label>
+                        <input type="number" id="lightDark" min="-255" max="255" value="0" placeholder="-255 到 255">
+                    </div>
+                    <div class="light-field-row">
+                        <label for="lightMin">底面明度偏移 (Min):</label>
+                        <input type="number" id="lightMin" min="-255" max="255" value="0" placeholder="-255 到 255">
+                    </div>
+                    <div class="light-field-row">
+                        <label for="lightSpecularLevel">高光等级 (SpecularLevel):</label>
+                        <input type="number" id="lightSpecularLevel" min="0" max="1000" value="100" placeholder="0 到 1000">
+                        <span class="field-hint">游戏中实际应用是小数点向前移两位才是真实值</span>
+                    </div>
+                    <div class="light-field-row">
+                        <label for="lightGloss">高光光泽度 (Gloss):</label>
+                        <input type="number" id="lightGloss" min="10" max="1000" value="100" placeholder="10 到 1000">
+                        <span class="field-hint">游戏中实际应用是小数点向前移两位才是真实值</span>
+                    </div>
+                    <div class="light-field-row">
+                        <label for="lightSpecularColor">高光颜色 (SpecularColor):</label>
+                        <input type="text" id="lightSpecularColor" value="FFFFFF" placeholder="16进制颜色值">
+                        <div class="color-preview" id="lightSpecularColorPreview" style="background-color: #FFFFFF;"></div>
+                        <button type="button" class="color-picker-btn" data-target="lightSpecularColor">选择颜色</button>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="test-btn" onclick="testLightDefaults()">测试Light默认值逻辑</button>
+        </div>
+
+        <!-- 修复3：ColorInfo配置默认值 -->
+        <div class="test-section">
+            <h3>🎨 修复3：ColorInfo配置默认值</h3>
+            <p><strong>问题</strong>：新建主题时ColorInfo配置使用硬编码默认值</p>
+            <p><strong>修复</strong>：新建主题时读取表中最后一个主题的ColorInfo数据作为默认值</p>
+            
+            <div class="fix-demo">
+                <h4>ColorInfo配置字段</h4>
+                <div class="colorinfo-config-grid">
+                    <div class="colorinfo-config-group">
+                        <h5>💎 钻石颜色</h5>
+                        <div class="rgb-inputs">
+                            <div class="rgb-input-group">
+                                <label>R:</label>
+                                <input type="number" id="PickupDiffR" min="0" max="255" value="255" placeholder="0-255">
+                            </div>
+                            <div class="rgb-input-group">
+                                <label>G:</label>
+                                <input type="number" id="PickupDiffG" min="0" max="255" value="255" placeholder="0-255">
+                            </div>
+                            <div class="rgb-input-group">
+                                <label>B:</label>
+                                <input type="number" id="PickupDiffB" min="0" max="255" value="255" placeholder="0-255">
+                            </div>
+                        </div>
+                        <div class="color-preview" id="PickupDiffColorPreview" style="background-color: rgb(255, 255, 255);"></div>
+                    </div>
+                    <div class="colorinfo-config-group">
+                        <h5>🌫️ 雾效距离</h5>
+                        <div class="colorinfo-field-row">
+                            <label for="FogStart">雾开始距离:</label>
+                            <input type="number" id="FogStart" min="0" max="40" value="10" placeholder="0-40">
+                        </div>
+                        <div class="colorinfo-field-row">
+                            <label for="FogEnd">雾结束距离:</label>
+                            <input type="number" id="FogEnd" min="0" max="90" value="50" placeholder="0-90">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="test-btn" onclick="testColorInfoDefaults()">测试ColorInfo默认值逻辑</button>
+        </div>
+
+        <!-- 综合测试 -->
+        <div class="test-section">
+            <h3>🧪 综合测试</h3>
+            <button class="test-btn" onclick="testAllFixes()">测试所有修复</button>
+            <button class="test-btn" onclick="clearResults()">清除结果</button>
+        </div>
+
+        <!-- 测试结果 -->
+        <div class="test-section">
+            <h3>📊 测试结果</h3>
+            <div id="testResults" class="test-results">
+                点击测试按钮开始验证...
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载JavaScript文件 -->
+    <script src="js/utils.js"></script>
+    <script src="js/colorPicker.js"></script>
+    <script src="js/themeManager.js"></script>
+    
+    <script>
+        let testResults = [];
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            showStatus('正在初始化修复验证测试...', 'info');
+            
+            // 等待模块初始化
+            setTimeout(() => {
+                if (window.App && window.App.ThemeManager) {
+                    showStatus('修复验证测试环境初始化完成！', 'success');
+                    addTestResult('✅ ThemeManager模块已加载，修复验证功能已激活');
+                } else {
+                    showStatus('必要模块未找到', 'error');
+                    addTestResult('❌ ThemeManager模块未找到');
+                }
+            }, 1000);
+        });
+
+        // 显示状态
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        // 添加测试结果
+        function addTestResult(message) {
+            testResults.push(`[${new Date().toLocaleTimeString()}] ${message}`);
+            document.getElementById('testResults').innerHTML = testResults.join('<br>');
+        }
+
+        // 测试跳板边框选择器
+        function testJumpFrameSelector() {
+            addTestResult('🔍 开始测试跳板边框选择器修复...');
+
+            // 检查HTML结构
+            const jumpFrameInput = document.getElementById('jumpFrameIndex');
+            const jumpActiveFrameInput = document.getElementById('jumpActiveFrameIndex');
+
+            if (jumpFrameInput && jumpActiveFrameInput) {
+                addTestResult('✅ 跳板边框输入框存在');
+
+                // 检查是否为readonly
+                if (jumpFrameInput.readOnly && jumpActiveFrameInput.readOnly) {
+                    addTestResult('✅ 跳板边框输入框已设置为readonly');
+                } else {
+                    addTestResult('❌ 跳板边框输入框未设置为readonly');
+                }
+
+                // 检查选择按钮
+                const jumpFrameBtn = document.querySelector('button[data-target="jumpFrameIndex"]');
+                const jumpActiveFrameBtn = document.querySelector('button[data-target="jumpActiveFrameIndex"]');
+
+                if (jumpFrameBtn && jumpActiveFrameBtn) {
+                    addTestResult('✅ 跳板边框选择按钮存在');
+
+                    // 检查data-type属性
+                    if (jumpFrameBtn.getAttribute('data-type') === 'frame' &&
+                        jumpActiveFrameBtn.getAttribute('data-type') === 'frame') {
+                        addTestResult('✅ 跳板边框选择按钮data-type设置正确');
+                    } else {
+                        addTestResult('❌ 跳板边框选择按钮data-type设置错误');
+                    }
+                } else {
+                    addTestResult('❌ 跳板边框选择按钮不存在');
+                }
+            } else {
+                addTestResult('❌ 跳板边框输入框不存在');
+            }
+
+            addTestResult('✅ 跳板边框选择器修复测试完成');
+            showStatus('跳板边框选择器测试完成', 'success');
+        }
+
+        // 测试玻璃透明度默认值
+        function testGlassAlphaDefault() {
+            addTestResult('🔍 开始测试玻璃透明度默认值...');
+
+            if (window.App && window.App.ThemeManager) {
+                // 测试resetUGCConfigToDefaults函数
+                if (typeof window.App.ThemeManager.resetUGCConfigToDefaults === 'function') {
+                    try {
+                        window.App.ThemeManager.resetUGCConfigToDefaults();
+                        addTestResult('✅ resetUGCConfigToDefaults函数调用成功');
+
+                        // 检查玻璃透明度字段值
+                        const fragileGlassAlpha = document.getElementById('fragileGlassAlpha')?.value;
+                        const fragileActiveGlassAlpha = document.getElementById('fragileActiveGlassAlpha')?.value;
+
+                        addTestResult(`  fragileGlassAlpha: ${fragileGlassAlpha} (期望: 50) ${fragileGlassAlpha === '50' ? '✅' : '❌'}`);
+                        addTestResult(`  fragileActiveGlassAlpha: ${fragileActiveGlassAlpha} (期望: 50) ${fragileActiveGlassAlpha === '50' ? '✅' : '❌'}`);
+                    } catch (error) {
+                        addTestResult(`❌ resetUGCConfigToDefaults函数错误: ${error.message}`);
+                    }
+                } else {
+                    addTestResult('⚠️ resetUGCConfigToDefaults函数不可访问');
+                }
+            } else {
+                addTestResult('❌ ThemeManager模块未找到');
+            }
+
+            addTestResult('✅ 玻璃透明度默认值测试完成');
+            showStatus('玻璃透明度默认值测试完成', 'success');
+        }
+
+        // 测试Light默认值逻辑
+        function testLightDefaults() {
+            addTestResult('🔍 开始测试Light默认值逻辑修复...');
+            
+            if (window.App && window.App.ThemeManager) {
+                // 测试getLastThemeLightConfig函数
+                if (typeof window.App.ThemeManager.getLastThemeLightConfig === 'function') {
+                    try {
+                        const config = window.App.ThemeManager.getLastThemeLightConfig();
+                        addTestResult('✅ getLastThemeLightConfig函数可用');
+                        addTestResult(`  配置示例: Max=${config.lightMax}, SpecularColor=${config.lightSpecularColor}`);
+                    } catch (error) {
+                        addTestResult(`❌ getLastThemeLightConfig函数错误: ${error.message}`);
+                    }
+                } else {
+                    addTestResult('⚠️ getLastThemeLightConfig函数不可访问（可能是私有函数）');
+                }
+                
+                // 测试resetLightConfigToDefaults函数
+                if (typeof window.App.ThemeManager.resetLightConfigToDefaults === 'function') {
+                    try {
+                        window.App.ThemeManager.resetLightConfigToDefaults();
+                        addTestResult('✅ resetLightConfigToDefaults函数调用成功');
+                        
+                        // 检查字段值是否已更新
+                        const maxValue = document.getElementById('lightMax')?.value;
+                        const colorValue = document.getElementById('lightSpecularColor')?.value;
+                        addTestResult(`  当前值: Max=${maxValue}, SpecularColor=${colorValue}`);
+                    } catch (error) {
+                        addTestResult(`❌ resetLightConfigToDefaults函数错误: ${error.message}`);
+                    }
+                } else {
+                    addTestResult('⚠️ resetLightConfigToDefaults函数不可访问');
+                }
+            } else {
+                addTestResult('❌ ThemeManager模块未找到');
+            }
+            
+            addTestResult('✅ Light默认值逻辑修复测试完成');
+            showStatus('Light默认值测试完成', 'success');
+        }
+
+        // 测试ColorInfo默认值逻辑
+        function testColorInfoDefaults() {
+            addTestResult('🔍 开始测试ColorInfo默认值逻辑修复...');
+            
+            if (window.App && window.App.ThemeManager) {
+                // 测试getLastThemeColorInfoConfig函数
+                if (typeof window.App.ThemeManager.getLastThemeColorInfoConfig === 'function') {
+                    try {
+                        const config = window.App.ThemeManager.getLastThemeColorInfoConfig();
+                        addTestResult('✅ getLastThemeColorInfoConfig函数可用');
+                        addTestResult(`  配置示例: PickupDiffR=${config.PickupDiffR}, FogStart=${config.FogStart}`);
+                    } catch (error) {
+                        addTestResult(`❌ getLastThemeColorInfoConfig函数错误: ${error.message}`);
+                    }
+                } else {
+                    addTestResult('⚠️ getLastThemeColorInfoConfig函数不可访问（可能是私有函数）');
+                }
+                
+                // 测试resetColorInfoConfigToDefaults函数
+                if (typeof window.App.ThemeManager.resetColorInfoConfigToDefaults === 'function') {
+                    try {
+                        window.App.ThemeManager.resetColorInfoConfigToDefaults();
+                        addTestResult('✅ resetColorInfoConfigToDefaults函数调用成功');
+                        
+                        // 检查字段值是否已更新
+                        const rValue = document.getElementById('PickupDiffR')?.value;
+                        const fogValue = document.getElementById('FogStart')?.value;
+                        addTestResult(`  当前值: PickupDiffR=${rValue}, FogStart=${fogValue}`);
+                    } catch (error) {
+                        addTestResult(`❌ resetColorInfoConfigToDefaults函数错误: ${error.message}`);
+                    }
+                } else {
+                    addTestResult('⚠️ resetColorInfoConfigToDefaults函数不可访问');
+                }
+            } else {
+                addTestResult('❌ ThemeManager模块未找到');
+            }
+            
+            addTestResult('✅ ColorInfo默认值逻辑修复测试完成');
+            showStatus('ColorInfo默认值测试完成', 'success');
+        }
+
+        // 测试所有修复
+        function testAllFixes() {
+            addTestResult('🚀 开始完整修复验证测试...');
+            testJumpFrameSelector();
+            setTimeout(() => testGlassAlphaDefault(), 500);
+            setTimeout(() => testLightDefaults(), 1000);
+            setTimeout(() => testColorInfoDefaults(), 1500);
+            setTimeout(() => {
+                addTestResult('✅ 所有修复验证测试完成！');
+                showStatus('所有修复验证测试完成', 'success');
+            }, 2000);
+        }
+
+        // 清除结果
+        function clearResults() {
+            testResults = [];
+            document.getElementById('testResults').innerHTML = '测试结果已清除';
+            showStatus('等待测试...', 'info');
+        }
+    </script>
+</body>
+</html>

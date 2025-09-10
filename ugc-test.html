@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UGC配置测试页面</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .test-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+        
+        .test-button {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: 600;
+        }
+        
+        .test-button:hover {
+            background: linear-gradient(135deg, #45a049, #3d8b40);
+        }
+        
+        .test-output {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-family: monospace;
+            color: #ffffff;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 UGC配置功能测试</h1>
+            <p>测试UGCTheme字段配置功能</p>
+        </div>
+
+        <div class="test-container">
+            <!-- 主题输入测试 -->
+            <div class="test-section">
+                <h3>📝 主题输入测试</h3>
+                <p>输入主题名称来测试UGC配置面板的显示/隐藏：</p>
+                <input type="text" id="testThemeInput" placeholder="输入主题名称..." style="width: 300px; padding: 8px; margin-right: 10px;">
+                <button class="test-button" onclick="testThemeInput()">测试输入</button>
+                <button class="test-button" onclick="clearThemeInput()">清空</button>
+            </div>
+
+            <!-- UGC配置面板 -->
+            <div class="ugc-config-section" id="ugcConfigSection" style="display: none;">
+                <h4>🎮 UGCTheme 图案配置</h4>
+                <div class="ugc-config-content">
+                    <div class="ugc-config-grid">
+                        <!-- 地板配置 -->
+                        <div class="ugc-config-group">
+                            <h5>🏠 地板 (Custom_Ground_Color)</h5>
+                            <div class="ugc-field-row">
+                                <label for="groundPatternIndex">地板图案ID:</label>
+                                <input type="number" id="groundPatternIndex" min="0" value="0" placeholder="默认: 0">
+                            </div>
+                            <div class="ugc-field-row">
+                                <label for="groundFrameIndex">地板边框图案ID:</label>
+                                <input type="number" id="groundFrameIndex" min="0" value="0" placeholder="默认: 0">
+                            </div>
+                        </div>
+
+                        <!-- 未踩中玻璃配置 -->
+                        <div class="ugc-config-group">
+                            <h5>🔷 未踩中玻璃 (Custom_Fragile_Color)</h5>
+                            <div class="ugc-field-row">
+                                <label for="fragilePatternIndex">玻璃图案ID:</label>
+                                <input type="number" id="fragilePatternIndex" min="0" value="0" placeholder="默认: 0">
+                            </div>
+                            <div class="ugc-field-row">
+                                <label for="fragileFrameIndex">玻璃边框图案ID:</label>
+                                <input type="number" id="fragileFrameIndex" min="0" value="0" placeholder="默认: 0">
+                            </div>
+                            <div class="ugc-field-row">
+                                <label for="fragileGlassAlpha">玻璃底色透明度:</label>
+                                <input type="number" id="fragileGlassAlpha" min="0" max="100" value="50" placeholder="默认: 50">
+                            </div>
+                            <div class="ugc-field-row">
+                                <label for="fragilePatternAlpha">玻璃图案透明度:</label>
+                                <input type="number" id="fragilePatternAlpha" min="0" max="100" value="50" placeholder="默认: 50">
+                            </div>
+                        </div>
+
+                        <!-- 踩中玻璃配置 -->
+                        <div class="ugc-config-group">
+                            <h5>💎 踩中玻璃 (Custom_Fragile_Active_Color)</h5>
+                            <div class="ugc-field-row">
+                                <label for="fragileActivePatternIndex">玻璃图案ID:</label>
+                                <input type="number" id="fragileActivePatternIndex" min="0" value="0" placeholder="默认: 0">
+                            </div>
+                            <div class="ugc-field-row">
+                                <label for="fragileActiveFrameIndex">玻璃边框图案ID:</label>
+                                <input type="number" id="fragileActiveFrameIndex" min="0" value="0" placeholder="默认: 0">
+                            </div>
+                            <div class="ugc-field-row">
+                                <label for="fragileActiveGlassAlpha">玻璃底色透明度:</label>
+                                <input type="number" id="fragileActiveGlassAlpha" min="0" max="100" value="50" placeholder="默认: 50">
+                            </div>
+                            <div class="ugc-field-row">
+                                <label for="fragileActivePatternAlpha">玻璃图案透明度:</label>
+                                <input type="number" id="fragileActivePatternAlpha" min="0" max="100" value="50" placeholder="默认: 50">
+                            </div>
+                        </div>
+
+                        <!-- 未踩中跳板配置 -->
+                        <div class="ugc-config-group">
+                            <h5>🚀 未踩中跳板 (Custom_Jump_Color)</h5>
+                            <div class="ugc-field-row">
+                                <label for="jumpPatternIndex">跳板图案ID:</label>
+                                <input type="number" id="jumpPatternIndex" min="0" value="0" placeholder="默认: 0">
+                            </div>
+                            <div class="ugc-field-row">
+                                <label for="jumpFrameIndex">跳板边框图案ID:</label>
+                                <input type="number" id="jumpFrameIndex" min="0" value="0" placeholder="默认: 0">
+                            </div>
+                        </div>
+
+                        <!-- 踩中跳板配置 -->
+                        <div class="ugc-config-group">
+                            <h5>⭐ 踩中跳板 (Custom_Jump_Active_Color)</h5>
+                            <div class="ugc-field-row">
+                                <label for="jumpActivePatternIndex">跳板图案ID:</label>
+                                <input type="number" id="jumpActivePatternIndex" min="0" value="0" placeholder="默认: 0">
+                            </div>
+                            <div class="ugc-field-row">
+                                <label for="jumpActiveFrameIndex">跳板边框图案ID:</label>
+                                <input type="number" id="jumpActiveFrameIndex" min="0" value="0" placeholder="默认: 0">
+                            </div>
+                        </div>
+                    </div>
+                    <small class="help-text">
+                        💡 这些配置将应用到UGCTheme表的相应字段中。创建新主题时使用默认值，更新现有主题时显示当前值。
+                    </small>
+                </div>
+            </div>
+
+            <!-- 配置数据测试 -->
+            <div class="test-section">
+                <h3>📊 配置数据测试</h3>
+                <p>测试UGC配置数据的获取和设置：</p>
+                <button class="test-button" onclick="testGetConfig()">获取配置</button>
+                <button class="test-button" onclick="testSetConfig()">设置测试配置</button>
+                <button class="test-button" onclick="testResetConfig()">重置配置</button>
+                <div id="configOutput" class="test-output"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 测试函数
+        function testThemeInput() {
+            const input = document.getElementById('testThemeInput');
+            const panel = document.getElementById('ugcConfigSection');
+            
+            if (input.value.trim()) {
+                panel.style.display = 'block';
+                log('UGC配置面板已显示');
+            } else {
+                panel.style.display = 'none';
+                log('UGC配置面板已隐藏');
+            }
+        }
+
+        function clearThemeInput() {
+            const input = document.getElementById('testThemeInput');
+            const panel = document.getElementById('ugcConfigSection');
+            
+            input.value = '';
+            panel.style.display = 'none';
+            resetUGCConfigToDefaults();
+            log('主题输入已清空，UGC配置面板已隐藏，配置已重置');
+        }
+
+        function testGetConfig() {
+            const config = getUGCConfigData();
+            log('当前UGC配置数据:\n' + JSON.stringify(config, null, 2));
+        }
+
+        function testSetConfig() {
+            const testConfig = {
+                groundPatternIndex: 5,
+                groundFrameIndex: 3,
+                fragilePatternIndex: 8,
+                fragileFrameIndex: 2,
+                fragileGlassAlpha: 75,
+                fragilePatternAlpha: 60,
+                fragileActivePatternIndex: 12,
+                fragileActiveFrameIndex: 7,
+                fragileActiveGlassAlpha: 80,
+                fragileActivePatternAlpha: 65,
+                jumpPatternIndex: 15,
+                jumpFrameIndex: 9,
+                jumpActivePatternIndex: 20,
+                jumpActiveFrameIndex: 11
+            };
+            
+            setUGCConfigData(testConfig);
+            log('已设置测试配置数据:\n' + JSON.stringify(testConfig, null, 2));
+        }
+
+        function testResetConfig() {
+            resetUGCConfigToDefaults();
+            log('UGC配置已重置为默认值');
+        }
+
+        function log(message) {
+            const output = document.getElementById('configOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            output.textContent = `[${timestamp}] ${message}\n` + output.textContent;
+        }
+
+        // UGC配置相关函数（从themeManager.js复制）
+        function getUGCConfigData() {
+            return {
+                groundPatternIndex: parseInt(document.getElementById('groundPatternIndex')?.value || '0'),
+                groundFrameIndex: parseInt(document.getElementById('groundFrameIndex')?.value || '0'),
+                fragilePatternIndex: parseInt(document.getElementById('fragilePatternIndex')?.value || '0'),
+                fragileFrameIndex: parseInt(document.getElementById('fragileFrameIndex')?.value || '0'),
+                fragileGlassAlpha: parseInt(document.getElementById('fragileGlassAlpha')?.value || '50'),
+                fragilePatternAlpha: parseInt(document.getElementById('fragilePatternAlpha')?.value || '50'),
+                fragileActivePatternIndex: parseInt(document.getElementById('fragileActivePatternIndex')?.value || '0'),
+                fragileActiveFrameIndex: parseInt(document.getElementById('fragileActiveFrameIndex')?.value || '0'),
+                fragileActiveGlassAlpha: parseInt(document.getElementById('fragileActiveGlassAlpha')?.value || '50'),
+                fragileActivePatternAlpha: parseInt(document.getElementById('fragileActivePatternAlpha')?.value || '50'),
+                jumpPatternIndex: parseInt(document.getElementById('jumpPatternIndex')?.value || '0'),
+                jumpFrameIndex: parseInt(document.getElementById('jumpFrameIndex')?.value || '0'),
+                jumpActivePatternIndex: parseInt(document.getElementById('jumpActivePatternIndex')?.value || '0'),
+                jumpActiveFrameIndex: parseInt(document.getElementById('jumpActiveFrameIndex')?.value || '0')
+            };
+        }
+
+        function setUGCConfigData(configData) {
+            if (!configData) return;
+
+            const fieldMapping = {
+                'groundPatternIndex': configData.groundPatternIndex,
+                'groundFrameIndex': configData.groundFrameIndex,
+                'fragilePatternIndex': configData.fragilePatternIndex,
+                'fragileFrameIndex': configData.fragileFrameIndex,
+                'fragileGlassAlpha': configData.fragileGlassAlpha,
+                'fragilePatternAlpha': configData.fragilePatternAlpha,
+                'fragileActivePatternIndex': configData.fragileActivePatternIndex,
+                'fragileActiveFrameIndex': configData.fragileActiveFrameIndex,
+                'fragileActiveGlassAlpha': configData.fragileActiveGlassAlpha,
+                'fragileActivePatternAlpha': configData.fragileActivePatternAlpha,
+                'jumpPatternIndex': configData.jumpPatternIndex,
+                'jumpFrameIndex': configData.jumpFrameIndex,
+                'jumpActivePatternIndex': configData.jumpActivePatternIndex,
+                'jumpActiveFrameIndex': configData.jumpActiveFrameIndex
+            };
+
+            Object.entries(fieldMapping).forEach(([fieldId, value]) => {
+                const input = document.getElementById(fieldId);
+                if (input && value !== undefined) {
+                    input.value = value.toString();
+                }
+            });
+        }
+
+        function resetUGCConfigToDefaults() {
+            const ugcFields = [
+                'groundPatternIndex', 'groundFrameIndex',
+                'fragilePatternIndex', 'fragileFrameIndex', 'fragileGlassAlpha', 'fragilePatternAlpha',
+                'fragileActivePatternIndex', 'fragileActiveFrameIndex', 'fragileActiveGlassAlpha', 'fragileActivePatternAlpha',
+                'jumpPatternIndex', 'jumpFrameIndex',
+                'jumpActivePatternIndex', 'jumpActiveFrameIndex'
+            ];
+
+            ugcFields.forEach(fieldId => {
+                const input = document.getElementById(fieldId);
+                if (input) {
+                    if (fieldId.includes('Alpha')) {
+                        input.value = '50'; // 透明度默认50
+                    } else {
+                        input.value = '0'; // 图案ID默认0
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

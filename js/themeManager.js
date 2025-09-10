@@ -165,6 +165,15 @@ window.App.ThemeManager = (function() {
 
         // 初始化多语言功能
         initMultiLanguageFeatures();
+
+        // 初始化UGC配置验证
+        initUGCValidation();
+
+        // 初始化Light配置验证
+        initLightValidation();
+
+        // 初始化ColorInfo配置验证
+        initColorInfoValidation();
     }
 
     /**
@@ -181,6 +190,484 @@ window.App.ThemeManager = (function() {
         // 验证多语言ID输入
         if (multiLangIdInput) {
             multiLangIdInput.addEventListener('input', validateMultiLangId);
+        }
+    }
+
+    /**
+     * 初始化UGC配置验证
+     */
+    function initUGCValidation() {
+        // 透明度字段验证
+        const transparencyFields = [
+            'fragileGlassAlpha', 'fragilePatternAlpha',
+            'fragileActiveGlassAlpha', 'fragileActivePatternAlpha'
+        ];
+
+        transparencyFields.forEach(fieldId => {
+            const input = document.getElementById(fieldId);
+            if (input) {
+                input.addEventListener('input', function() {
+                    validateTransparencyInput(this);
+                });
+                input.addEventListener('blur', function() {
+                    validateTransparencyInput(this);
+                });
+            }
+        });
+
+        console.log('UGC配置验证已初始化');
+    }
+
+    /**
+     * 初始化Light配置验证
+     */
+    function initLightValidation() {
+        // 明度偏移字段验证 (-255 到 255)
+        const offsetFields = ['lightMax', 'lightDark', 'lightMin'];
+
+        offsetFields.forEach(fieldId => {
+            const input = document.getElementById(fieldId);
+            if (input) {
+                input.addEventListener('input', function() {
+                    validateLightOffsetInput(this);
+                });
+                input.addEventListener('blur', function() {
+                    validateLightOffsetInput(this);
+                });
+            }
+        });
+
+        // 高光等级字段验证 (0 到 1000)
+        const specularLevelInput = document.getElementById('lightSpecularLevel');
+        if (specularLevelInput) {
+            specularLevelInput.addEventListener('input', function() {
+                validateSpecularLevelInput(this);
+            });
+            specularLevelInput.addEventListener('blur', function() {
+                validateSpecularLevelInput(this);
+            });
+        }
+
+        // 光泽度字段验证 (10 到 1000)
+        const glossInput = document.getElementById('lightGloss');
+        if (glossInput) {
+            glossInput.addEventListener('input', function() {
+                validateGlossInput(this);
+            });
+            glossInput.addEventListener('blur', function() {
+                validateGlossInput(this);
+            });
+        }
+
+        // 颜色字段验证
+        const colorInput = document.getElementById('lightSpecularColor');
+        if (colorInput) {
+            colorInput.addEventListener('input', function() {
+                validateColorInput(this);
+            });
+            colorInput.addEventListener('blur', function() {
+                validateColorInput(this);
+            });
+        }
+
+        console.log('Light配置验证已初始化');
+    }
+
+    /**
+     * 初始化ColorInfo配置验证
+     */
+    function initColorInfoValidation() {
+        console.log('初始化ColorInfo配置验证...');
+
+        // RGB字段验证 (0 到 255)
+        const rgbFields = [
+            'PickupDiffR', 'PickupDiffG', 'PickupDiffB',
+            'PickupReflR', 'PickupReflG', 'PickupReflB',
+            'ForegroundFogR', 'ForegroundFogG', 'ForegroundFogB'
+        ];
+
+        rgbFields.forEach(fieldId => {
+            const input = document.getElementById(fieldId);
+            if (input) {
+                input.addEventListener('input', function() {
+                    validateRgbInput(this);
+                    updateRgbColorPreview(fieldId);
+                });
+                input.addEventListener('blur', function() {
+                    validateRgbInput(this);
+                    updateRgbColorPreview(fieldId);
+                });
+            }
+        });
+
+        // 雾开始距离验证 (0 到 40)
+        const fogStartInput = document.getElementById('FogStart');
+        if (fogStartInput) {
+            fogStartInput.addEventListener('input', function() {
+                validateFogStartInput(this);
+            });
+            fogStartInput.addEventListener('blur', function() {
+                validateFogStartInput(this);
+            });
+        }
+
+        // 雾结束距离验证 (0 到 90)
+        const fogEndInput = document.getElementById('FogEnd');
+        if (fogEndInput) {
+            fogEndInput.addEventListener('input', function() {
+                validateFogEndInput(this);
+            });
+            fogEndInput.addEventListener('blur', function() {
+                validateFogEndInput(this);
+            });
+        }
+
+        console.log('ColorInfo配置验证已初始化');
+    }
+
+    /**
+     * 验证透明度输入框
+     */
+    function validateTransparencyInput(input) {
+        const value = parseInt(input.value);
+        const fieldName = input.id;
+
+        // 移除之前的错误样式
+        input.classList.remove('validation-error');
+
+        // 移除之前的错误提示
+        const existingError = input.parentElement.querySelector('.validation-message');
+        if (existingError) {
+            existingError.remove();
+        }
+
+        if (isNaN(value) || value < 0 || value > 100) {
+            // 添加错误样式
+            input.classList.add('validation-error');
+
+            // 创建错误提示
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'validation-message error';
+            errorMsg.textContent = '透明度值必须在0-100之间';
+            input.parentElement.appendChild(errorMsg);
+
+            // 自动修正值
+            if (isNaN(value) || value < 0) {
+                input.value = '0';
+            } else if (value > 100) {
+                input.value = '100';
+            }
+
+            console.warn(`${fieldName} 透明度值无效: ${input.value}，已自动修正`);
+        } else {
+            console.log(`${fieldName} 透明度值有效: ${value}`);
+        }
+    }
+
+    /**
+     * 验证明度偏移输入框 (-255 到 255)
+     */
+    function validateLightOffsetInput(input) {
+        const value = parseInt(input.value);
+        const fieldName = input.id;
+
+        // 移除之前的错误样式
+        input.classList.remove('validation-error');
+
+        // 移除之前的错误提示
+        const existingError = input.parentElement.querySelector('.validation-message');
+        if (existingError) {
+            existingError.remove();
+        }
+
+        if (isNaN(value) || value < -255 || value > 255) {
+            // 添加错误样式
+            input.classList.add('validation-error');
+
+            // 创建错误提示
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'validation-message error';
+            errorMsg.textContent = '明度偏移值必须在-255到255之间';
+            input.parentElement.appendChild(errorMsg);
+
+            // 自动修正值
+            if (isNaN(value)) {
+                input.value = '0';
+            } else if (value < -255) {
+                input.value = '-255';
+            } else if (value > 255) {
+                input.value = '255';
+            }
+
+            console.warn(`${fieldName} 明度偏移值无效: ${input.value}，已自动修正`);
+        } else {
+            console.log(`${fieldName} 明度偏移值有效: ${value}`);
+        }
+    }
+
+    /**
+     * 验证高光等级输入框 (0 到 1000)
+     */
+    function validateSpecularLevelInput(input) {
+        const value = parseInt(input.value);
+        const fieldName = input.id;
+
+        // 移除之前的错误样式
+        input.classList.remove('validation-error');
+
+        // 移除之前的错误提示
+        const existingError = input.parentElement.querySelector('.validation-message');
+        if (existingError) {
+            existingError.remove();
+        }
+
+        if (isNaN(value) || value < 0 || value > 1000) {
+            // 添加错误样式
+            input.classList.add('validation-error');
+
+            // 创建错误提示
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'validation-message error';
+            errorMsg.textContent = '高光等级值必须在0到1000之间';
+            input.parentElement.appendChild(errorMsg);
+
+            // 自动修正值
+            if (isNaN(value) || value < 0) {
+                input.value = '0';
+            } else if (value > 1000) {
+                input.value = '1000';
+            }
+
+            console.warn(`${fieldName} 高光等级值无效: ${input.value}，已自动修正`);
+        } else {
+            console.log(`${fieldName} 高光等级值有效: ${value}`);
+        }
+    }
+
+    /**
+     * 验证光泽度输入框 (10 到 1000)
+     */
+    function validateGlossInput(input) {
+        const value = parseInt(input.value);
+        const fieldName = input.id;
+
+        // 移除之前的错误样式
+        input.classList.remove('validation-error');
+
+        // 移除之前的错误提示
+        const existingError = input.parentElement.querySelector('.validation-message');
+        if (existingError) {
+            existingError.remove();
+        }
+
+        if (isNaN(value) || value < 10 || value > 1000) {
+            // 添加错误样式
+            input.classList.add('validation-error');
+
+            // 创建错误提示
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'validation-message error';
+            errorMsg.textContent = '光泽度值必须在10到1000之间';
+            input.parentElement.appendChild(errorMsg);
+
+            // 自动修正值
+            if (isNaN(value) || value < 10) {
+                input.value = '10';
+            } else if (value > 1000) {
+                input.value = '1000';
+            }
+
+            console.warn(`${fieldName} 光泽度值无效: ${input.value}，已自动修正`);
+        } else {
+            console.log(`${fieldName} 光泽度值有效: ${value}`);
+        }
+    }
+
+    /**
+     * 验证颜色输入框 (16进制格式)
+     */
+    function validateColorInput(input) {
+        const value = input.value.trim().toUpperCase();
+        const fieldName = input.id;
+
+        // 移除之前的错误样式
+        input.classList.remove('validation-error');
+
+        // 移除之前的错误提示
+        const existingError = input.parentElement.querySelector('.validation-message');
+        if (existingError) {
+            existingError.remove();
+        }
+
+        if (!value || !/^[0-9A-F]{6}$/i.test(value)) {
+            // 添加错误样式
+            input.classList.add('validation-error');
+
+            // 创建错误提示
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'validation-message error';
+            errorMsg.textContent = '请输入6位16进制颜色值 (如: FFFFFF)';
+            input.parentElement.appendChild(errorMsg);
+
+            // 自动修正值
+            if (!value) {
+                input.value = 'FFFFFF';
+            } else {
+                // 尝试修正常见错误
+                const cleaned = value.replace(/[^0-9A-F]/gi, '');
+                if (cleaned.length >= 6) {
+                    input.value = cleaned.substring(0, 6);
+                } else {
+                    input.value = 'FFFFFF';
+                }
+            }
+
+            console.warn(`${fieldName} 颜色值无效: ${value}，已自动修正为: ${input.value}`);
+        } else {
+            // 更新颜色预览
+            if (window.App && window.App.ColorPicker) {
+                window.App.ColorPicker.updateColorPreview(fieldName, value);
+            }
+            console.log(`${fieldName} 颜色值有效: ${value}`);
+        }
+    }
+
+    /**
+     * 验证RGB输入框 (0 到 255)
+     */
+    function validateRgbInput(input) {
+        const value = parseInt(input.value);
+        const fieldName = input.id;
+
+        // 移除之前的错误样式
+        input.classList.remove('validation-error');
+
+        // 移除之前的错误提示
+        const existingError = input.parentElement.querySelector('.validation-message');
+        if (existingError) {
+            existingError.remove();
+        }
+
+        if (isNaN(value) || value < 0 || value > 255) {
+            // 添加错误样式
+            input.classList.add('validation-error');
+
+            // 创建错误提示
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'validation-message error';
+            errorMsg.textContent = 'RGB值范围: 0-255';
+            input.parentElement.appendChild(errorMsg);
+
+            // 自动修正值
+            const correctedValue = Math.max(0, Math.min(255, isNaN(value) ? 255 : value));
+            input.value = correctedValue;
+
+            console.warn(`${fieldName} RGB值无效: ${input.value}，已自动修正为: ${correctedValue}`);
+        } else {
+            console.log(`${fieldName} RGB值有效: ${value}`);
+        }
+    }
+
+    /**
+     * 验证雾开始距离输入框 (0 到 40)
+     */
+    function validateFogStartInput(input) {
+        const value = parseInt(input.value);
+        const fieldName = input.id;
+
+        // 移除之前的错误样式
+        input.classList.remove('validation-error');
+
+        // 移除之前的错误提示
+        const existingError = input.parentElement.querySelector('.validation-message');
+        if (existingError) {
+            existingError.remove();
+        }
+
+        if (isNaN(value) || value < 0 || value > 40) {
+            // 添加错误样式
+            input.classList.add('validation-error');
+
+            // 创建错误提示
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'validation-message error';
+            errorMsg.textContent = '雾开始距离范围: 0-40';
+            input.parentElement.appendChild(errorMsg);
+
+            // 自动修正值
+            const correctedValue = Math.max(0, Math.min(40, isNaN(value) ? 10 : value));
+            input.value = correctedValue;
+
+            console.warn(`${fieldName} 雾开始距离无效: ${input.value}，已自动修正为: ${correctedValue}`);
+        } else {
+            console.log(`${fieldName} 雾开始距离有效: ${value}`);
+        }
+    }
+
+    /**
+     * 验证雾结束距离输入框 (0 到 90)
+     */
+    function validateFogEndInput(input) {
+        const value = parseInt(input.value);
+        const fieldName = input.id;
+
+        // 移除之前的错误样式
+        input.classList.remove('validation-error');
+
+        // 移除之前的错误提示
+        const existingError = input.parentElement.querySelector('.validation-message');
+        if (existingError) {
+            existingError.remove();
+        }
+
+        if (isNaN(value) || value < 0 || value > 90) {
+            // 添加错误样式
+            input.classList.add('validation-error');
+
+            // 创建错误提示
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'validation-message error';
+            errorMsg.textContent = '雾结束距离范围: 0-90';
+            input.parentElement.appendChild(errorMsg);
+
+            // 自动修正值
+            const correctedValue = Math.max(0, Math.min(90, isNaN(value) ? 50 : value));
+            input.value = correctedValue;
+
+            console.warn(`${fieldName} 雾结束距离无效: ${input.value}，已自动修正为: ${correctedValue}`);
+        } else {
+            console.log(`${fieldName} 雾结束距离有效: ${value}`);
+        }
+    }
+
+    /**
+     * 更新RGB颜色预览
+     */
+    function updateRgbColorPreview(fieldId) {
+        // 确定RGB组
+        let rgbGroup = '';
+        if (fieldId.startsWith('PickupDiff')) {
+            rgbGroup = 'PickupDiff';
+        } else if (fieldId.startsWith('PickupRefl')) {
+            rgbGroup = 'PickupRefl';
+        } else if (fieldId.startsWith('ForegroundFog')) {
+            rgbGroup = 'ForegroundFog';
+        } else {
+            return;
+        }
+
+        // 获取RGB值
+        const rInput = document.getElementById(rgbGroup + 'R');
+        const gInput = document.getElementById(rgbGroup + 'G');
+        const bInput = document.getElementById(rgbGroup + 'B');
+        const preview = document.getElementById(rgbGroup + 'ColorPreview');
+
+        if (rInput && gInput && bInput && preview) {
+            const r = parseInt(rInput.value) || 0;
+            const g = parseInt(gInput.value) || 0;
+            const b = parseInt(bInput.value) || 0;
+
+            preview.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
         }
     }
 
@@ -302,6 +789,630 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 }
                 multiLangConfig = null;
             }
+        }
+    }
+
+    /**
+     * 显示/隐藏UGC配置面板
+     */
+    function toggleUGCConfigPanel(show) {
+        const panel = document.getElementById('ugcConfigSection');
+        if (panel) {
+            panel.style.display = show ? 'block' : 'none';
+
+            // 如果显示面板，重新绑定图案选择器事件
+            if (show && window.App && window.App.UGCPatternSelector) {
+                setTimeout(() => {
+                    if (typeof window.App.UGCPatternSelector.rebindButtonEvents === 'function') {
+                        window.App.UGCPatternSelector.rebindButtonEvents();
+                    }
+                }, 100); // 延迟一点确保DOM更新完成
+            }
+
+            // 如果隐藏面板，重置为默认值
+            if (!show) {
+                resetUGCConfigToDefaults();
+            }
+
+            console.log('UGC配置面板', show ? '已显示' : '已隐藏');
+        }
+    }
+
+    /**
+     * 显示/隐藏Light配置面板
+     */
+    function toggleLightConfigPanel(show) {
+        const panel = document.getElementById('lightConfigSection');
+        if (panel) {
+            panel.style.display = show ? 'block' : 'none';
+            console.log('Light配置面板', show ? '已显示' : '已隐藏');
+        }
+    }
+
+    /**
+     * 显示/隐藏ColorInfo配置面板
+     */
+    function toggleColorInfoConfigPanel(show) {
+        const panel = document.getElementById('colorinfoConfigSection');
+        if (panel) {
+            panel.style.display = show ? 'block' : 'none';
+            console.log('ColorInfo配置面板', show ? '已显示' : '已隐藏');
+        }
+    }
+
+    /**
+     * 重置UGC配置为默认值
+     */
+    function resetUGCConfigToDefaults() {
+        const ugcFields = [
+            'groundPatternIndex', 'groundFrameIndex',
+            'fragilePatternIndex', 'fragileFrameIndex', 'fragileGlassAlpha', 'fragilePatternAlpha',
+            'fragileActivePatternIndex', 'fragileActiveFrameIndex', 'fragileActiveGlassAlpha', 'fragileActivePatternAlpha',
+            'jumpPatternIndex', 'jumpFrameIndex',
+            'jumpActivePatternIndex', 'jumpActiveFrameIndex'
+        ];
+
+        ugcFields.forEach(fieldId => {
+            const input = document.getElementById(fieldId);
+            if (input) {
+                if (fieldId.includes('Alpha')) {
+                    input.value = '50'; // 透明度默认50
+                } else {
+                    input.value = '0'; // 图案ID默认0
+                }
+            }
+        });
+    }
+
+    /**
+     * 获取表中最后一个主题的Light配置数据
+     */
+    function getLastThemeLightConfig() {
+        if (!rscAllSheetsData || !rscAllSheetsData['Light']) {
+            console.log('RSC_Theme Light数据未加载，使用硬编码默认值');
+            return {
+                lightMax: '0',
+                lightDark: '0',
+                lightMin: '0',
+                lightSpecularLevel: '100',
+                lightGloss: '100',
+                lightSpecularColor: 'FFFFFF'
+            };
+        }
+
+        const lightData = rscAllSheetsData['Light'];
+        const lightHeaderRow = lightData[0];
+        const lightNotesColumnIndex = lightHeaderRow.findIndex(col => col === 'notes');
+
+        if (lightNotesColumnIndex === -1 || lightData.length <= 1) {
+            console.log('RSC_Theme Light sheet没有notes列或没有数据，使用硬编码默认值');
+            return {
+                lightMax: '0',
+                lightDark: '0',
+                lightMin: '0',
+                lightSpecularLevel: '100',
+                lightGloss: '100',
+                lightSpecularColor: 'FFFFFF'
+            };
+        }
+
+        // 获取最后一行数据（跳过标题行）
+        const lastRowIndex = lightData.length - 1;
+        const lastRow = lightData[lastRowIndex];
+
+        console.log(`读取表中最后一个主题的Light配置，行索引: ${lastRowIndex}`);
+
+        // 构建字段映射
+        const lightFieldMapping = {
+            'Max': 'lightMax',
+            'Dark': 'lightDark',
+            'Min': 'lightMin',
+            'SpecularLevel': 'lightSpecularLevel',
+            'Gloss': 'lightGloss',
+            'SpecularColor': 'lightSpecularColor'
+        };
+
+        const lastThemeConfig = {};
+        Object.entries(lightFieldMapping).forEach(([columnName, fieldId]) => {
+            const columnIndex = lightHeaderRow.findIndex(col => col === columnName);
+            if (columnIndex !== -1) {
+                const value = lastRow[columnIndex];
+                lastThemeConfig[fieldId] = (value !== undefined && value !== null && value !== '') ? value.toString() : '0';
+            } else {
+                // 如果找不到列，使用默认值
+                const defaults = {
+                    'lightMax': '0',
+                    'lightDark': '0',
+                    'lightMin': '0',
+                    'lightSpecularLevel': '100',
+                    'lightGloss': '100',
+                    'lightSpecularColor': 'FFFFFF'
+                };
+                lastThemeConfig[fieldId] = defaults[fieldId] || '0';
+            }
+        });
+
+        console.log('最后一个主题的Light配置:', lastThemeConfig);
+        return lastThemeConfig;
+    }
+
+    /**
+     * 重置Light配置为默认值（新建主题时使用表中最后一个主题的数据）
+     */
+    function resetLightConfigToDefaults() {
+        const lightDefaults = getLastThemeLightConfig();
+
+        Object.entries(lightDefaults).forEach(([fieldId, defaultValue]) => {
+            const input = document.getElementById(fieldId);
+            if (input) {
+                input.value = defaultValue;
+
+                // 更新颜色预览
+                if (fieldId === 'lightSpecularColor') {
+                    updateColorPreview(fieldId, defaultValue);
+                }
+            }
+        });
+
+        console.log('Light配置已重置为最后一个主题的配置');
+    }
+
+    /**
+     * 获取表中最后一个主题的ColorInfo配置数据
+     */
+    function getLastThemeColorInfoConfig() {
+        if (!rscAllSheetsData || !rscAllSheetsData['ColorInfo']) {
+            console.log('RSC_Theme ColorInfo数据未加载，使用硬编码默认值');
+            return {
+                PickupDiffR: '255',
+                PickupDiffG: '255',
+                PickupDiffB: '255',
+                PickupReflR: '255',
+                PickupReflG: '255',
+                PickupReflB: '255',
+                ForegroundFogR: '128',
+                ForegroundFogG: '128',
+                ForegroundFogB: '128',
+                FogStart: '10',
+                FogEnd: '50'
+            };
+        }
+
+        const colorInfoData = rscAllSheetsData['ColorInfo'];
+        const colorInfoHeaderRow = colorInfoData[0];
+        const colorInfoNotesColumnIndex = colorInfoHeaderRow.findIndex(col => col === 'notes');
+
+        if (colorInfoNotesColumnIndex === -1 || colorInfoData.length <= 1) {
+            console.log('RSC_Theme ColorInfo sheet没有notes列或没有数据，使用硬编码默认值');
+            return {
+                PickupDiffR: '255',
+                PickupDiffG: '255',
+                PickupDiffB: '255',
+                PickupReflR: '255',
+                PickupReflG: '255',
+                PickupReflB: '255',
+                ForegroundFogR: '128',
+                ForegroundFogG: '128',
+                ForegroundFogB: '128',
+                FogStart: '10',
+                FogEnd: '50'
+            };
+        }
+
+        // 获取最后一行数据（跳过标题行）
+        const lastRowIndex = colorInfoData.length - 1;
+        const lastRow = colorInfoData[lastRowIndex];
+
+        console.log(`读取表中最后一个主题的ColorInfo配置，行索引: ${lastRowIndex}`);
+
+        // 构建字段映射
+        const colorInfoFieldMapping = {
+            'PickupDiffR': 'PickupDiffR',
+            'PickupDiffG': 'PickupDiffG',
+            'PickupDiffB': 'PickupDiffB',
+            'PickupReflR': 'PickupReflR',
+            'PickupReflG': 'PickupReflG',
+            'PickupReflB': 'PickupReflB',
+            'ForegroundFogR': 'ForegroundFogR',
+            'ForegroundFogG': 'ForegroundFogG',
+            'ForegroundFogB': 'ForegroundFogB',
+            'FogStart': 'FogStart',
+            'FogEnd': 'FogEnd'
+        };
+
+        const lastThemeConfig = {};
+        Object.entries(colorInfoFieldMapping).forEach(([columnName, fieldId]) => {
+            const columnIndex = colorInfoHeaderRow.findIndex(col => col === columnName);
+            if (columnIndex !== -1) {
+                const value = lastRow[columnIndex];
+                lastThemeConfig[fieldId] = (value !== undefined && value !== null && value !== '') ? value.toString() : '0';
+            } else {
+                // 如果找不到列，使用默认值
+                const defaults = {
+                    'PickupDiffR': '255',
+                    'PickupDiffG': '255',
+                    'PickupDiffB': '255',
+                    'PickupReflR': '255',
+                    'PickupReflG': '255',
+                    'PickupReflB': '255',
+                    'ForegroundFogR': '128',
+                    'ForegroundFogG': '128',
+                    'ForegroundFogB': '128',
+                    'FogStart': '10',
+                    'FogEnd': '50'
+                };
+                lastThemeConfig[fieldId] = defaults[fieldId] || '0';
+            }
+        });
+
+        console.log('最后一个主题的ColorInfo配置:', lastThemeConfig);
+        return lastThemeConfig;
+    }
+
+    /**
+     * 重置ColorInfo配置为默认值（新建主题时使用表中最后一个主题的数据）
+     */
+    function resetColorInfoConfigToDefaults() {
+        const colorInfoDefaults = getLastThemeColorInfoConfig();
+
+        Object.entries(colorInfoDefaults).forEach(([fieldId, defaultValue]) => {
+            const input = document.getElementById(fieldId);
+            if (input) {
+                input.value = defaultValue;
+                input.classList.remove('validation-error');
+
+                // 移除错误提示
+                const errorMsg = input.parentElement.querySelector('.validation-message');
+                if (errorMsg) {
+                    errorMsg.remove();
+                }
+            }
+        });
+
+        // 更新颜色预览
+        updateRgbColorPreview('PickupDiffR');
+        updateRgbColorPreview('PickupReflR');
+        updateRgbColorPreview('ForegroundFogR');
+
+        console.log('ColorInfo配置已重置为最后一个主题的配置');
+    }
+
+    /**
+     * 验证透明度值（0-100范围）
+     */
+    function validateTransparency(value, defaultValue = 50) {
+        const numValue = parseInt(value);
+        if (isNaN(numValue) || numValue < 0 || numValue > 100) {
+            return defaultValue;
+        }
+        return numValue;
+    }
+
+    /**
+     * 验证边框ID值（只能是0或1）
+     */
+    function validateFrameIndex(value, defaultValue = 0) {
+        const numValue = parseInt(value);
+        if (numValue !== 0 && numValue !== 1) {
+            return defaultValue;
+        }
+        return numValue;
+    }
+
+
+
+    /**
+     * 验证明度偏移值（-255到255范围）
+     */
+    function validateLightOffset(value, defaultValue = 0) {
+        const numValue = parseInt(value);
+        if (isNaN(numValue) || numValue < -255 || numValue > 255) {
+            return defaultValue;
+        }
+        return numValue;
+    }
+
+    /**
+     * 验证高光等级值（0到1000范围）
+     */
+    function validateSpecularValue(value, defaultValue = 100) {
+        const numValue = parseInt(value);
+        if (isNaN(numValue) || numValue < 0 || numValue > 1000) {
+            return defaultValue;
+        }
+        return numValue;
+    }
+
+    /**
+     * 验证光泽度值（10到1000范围）
+     */
+    function validateGlossValue(value, defaultValue = 100) {
+        const numValue = parseInt(value);
+        if (isNaN(numValue) || numValue < 10 || numValue > 1000) {
+            return defaultValue;
+        }
+        return numValue;
+    }
+
+    /**
+     * 验证16进制颜色值
+     */
+    function validateHexColor(value, defaultValue = 'FFFFFF') {
+        if (!value || typeof value !== 'string') {
+            return defaultValue;
+        }
+
+        const cleanValue = value.replace('#', '').toUpperCase();
+        if (/^[0-9A-F]{6}$/i.test(cleanValue)) {
+            return cleanValue;
+        }
+
+        return defaultValue;
+    }
+
+    /**
+     * 验证RGB值（0-255范围）
+     */
+    function validateRgbValue(value, defaultValue = 255) {
+        const numValue = parseInt(value);
+        if (isNaN(numValue) || numValue < 0 || numValue > 255) {
+            return defaultValue;
+        }
+        return numValue;
+    }
+
+    /**
+     * 验证雾开始距离（0-40范围）
+     */
+    function validateFogStart(value, defaultValue = 10) {
+        const numValue = parseInt(value);
+        if (isNaN(numValue) || numValue < 0 || numValue > 40) {
+            return defaultValue;
+        }
+        return numValue;
+    }
+
+    /**
+     * 验证雾结束距离（0-90范围）
+     */
+    function validateFogEnd(value, defaultValue = 50) {
+        const numValue = parseInt(value);
+        if (isNaN(numValue) || numValue < 0 || numValue > 90) {
+            return defaultValue;
+        }
+        return numValue;
+    }
+
+    /**
+     * 获取UGC配置数据
+     */
+    function getUGCConfigData() {
+        return {
+            groundPatternIndex: parseInt(document.getElementById('groundPatternIndex')?.value || '0'),
+            groundFrameIndex: validateFrameIndex(document.getElementById('groundFrameIndex')?.value, 0),
+            fragilePatternIndex: parseInt(document.getElementById('fragilePatternIndex')?.value || '0'),
+            fragileFrameIndex: validateFrameIndex(document.getElementById('fragileFrameIndex')?.value, 0),
+            fragileGlassAlpha: validateTransparency(document.getElementById('fragileGlassAlpha')?.value, 50),
+            fragilePatternAlpha: validateTransparency(document.getElementById('fragilePatternAlpha')?.value, 50),
+            fragileActivePatternIndex: parseInt(document.getElementById('fragileActivePatternIndex')?.value || '0'),
+            fragileActiveFrameIndex: validateFrameIndex(document.getElementById('fragileActiveFrameIndex')?.value, 0),
+            fragileActiveGlassAlpha: validateTransparency(document.getElementById('fragileActiveGlassAlpha')?.value, 50),
+            fragileActivePatternAlpha: validateTransparency(document.getElementById('fragileActivePatternAlpha')?.value, 50),
+            jumpPatternIndex: parseInt(document.getElementById('jumpPatternIndex')?.value || '0'),
+            jumpFrameIndex: parseInt(document.getElementById('jumpFrameIndex')?.value || '0'),
+            jumpActivePatternIndex: parseInt(document.getElementById('jumpActivePatternIndex')?.value || '0'),
+            jumpActiveFrameIndex: parseInt(document.getElementById('jumpActiveFrameIndex')?.value || '0')
+        };
+    }
+
+    /**
+     * 获取Light配置数据
+     */
+    function getLightConfigData() {
+        return {
+            Max: validateLightOffset(document.getElementById('lightMax')?.value, 0),
+            Dark: validateLightOffset(document.getElementById('lightDark')?.value, 0),
+            Min: validateLightOffset(document.getElementById('lightMin')?.value, 0),
+            SpecularLevel: validateSpecularValue(document.getElementById('lightSpecularLevel')?.value, 100),
+            Gloss: validateGlossValue(document.getElementById('lightGloss')?.value, 100),
+            SpecularColor: validateHexColor(document.getElementById('lightSpecularColor')?.value, 'FFFFFF')
+        };
+    }
+
+    /**
+     * 获取ColorInfo配置数据
+     */
+    function getColorInfoConfigData() {
+        return {
+            PickupDiffR: validateRgbValue(document.getElementById('PickupDiffR')?.value, 255),
+            PickupDiffG: validateRgbValue(document.getElementById('PickupDiffG')?.value, 255),
+            PickupDiffB: validateRgbValue(document.getElementById('PickupDiffB')?.value, 255),
+            PickupReflR: validateRgbValue(document.getElementById('PickupReflR')?.value, 255),
+            PickupReflG: validateRgbValue(document.getElementById('PickupReflG')?.value, 255),
+            PickupReflB: validateRgbValue(document.getElementById('PickupReflB')?.value, 255),
+            ForegroundFogR: validateRgbValue(document.getElementById('ForegroundFogR')?.value, 128),
+            ForegroundFogG: validateRgbValue(document.getElementById('ForegroundFogG')?.value, 128),
+            ForegroundFogB: validateRgbValue(document.getElementById('ForegroundFogB')?.value, 128),
+            FogStart: validateFogStart(document.getElementById('FogStart')?.value, 10),
+            FogEnd: validateFogEnd(document.getElementById('FogEnd')?.value, 50)
+        };
+    }
+
+    /**
+     * 设置UGC配置数据（用于更新现有主题时显示当前值）
+     */
+    function setUGCConfigData(configData) {
+        if (!configData) return;
+
+        const fieldMapping = {
+            'groundPatternIndex': configData.groundPatternIndex,
+            'groundFrameIndex': configData.groundFrameIndex,
+            'fragilePatternIndex': configData.fragilePatternIndex,
+            'fragileFrameIndex': configData.fragileFrameIndex,
+            'fragileGlassAlpha': configData.fragileGlassAlpha,
+            'fragilePatternAlpha': configData.fragilePatternAlpha,
+            'fragileActivePatternIndex': configData.fragileActivePatternIndex,
+            'fragileActiveFrameIndex': configData.fragileActiveFrameIndex,
+            'fragileActiveGlassAlpha': configData.fragileActiveGlassAlpha,
+            'fragileActivePatternAlpha': configData.fragileActivePatternAlpha,
+            'jumpPatternIndex': configData.jumpPatternIndex,
+            'jumpFrameIndex': configData.jumpFrameIndex,
+            'jumpActivePatternIndex': configData.jumpActivePatternIndex,
+            'jumpActiveFrameIndex': configData.jumpActiveFrameIndex
+        };
+
+        Object.entries(fieldMapping).forEach(([fieldId, value]) => {
+            const input = document.getElementById(fieldId);
+            if (input && value !== undefined) {
+                input.value = value.toString();
+            }
+        });
+    }
+
+    /**
+     * 加载现有主题的UGC配置
+     */
+    function loadExistingUGCConfig(themeName) {
+        console.log('=== 开始加载现有UGC配置 ===');
+        console.log('主题名称:', themeName);
+        console.log('ugcAllSheetsData状态:', ugcAllSheetsData ? '已加载' : '未加载');
+        console.log('rscAllSheetsData状态:', rscAllSheetsData ? '已加载' : '未加载');
+
+        if (ugcAllSheetsData) {
+            console.log('UGC数据包含的sheets:', Object.keys(ugcAllSheetsData));
+        }
+
+        if (!ugcAllSheetsData || !rscAllSheetsData || !themeName) {
+            console.log('UGC数据或RSC数据未加载，或主题名称为空，使用默认值');
+            resetUGCConfigToDefaults();
+            return;
+        }
+
+        // 第一步：在RSC_Theme的Color表中找到主题对应的行号
+        const rscColorData = rscAllSheetsData['Color'];
+        if (!rscColorData || rscColorData.length === 0) {
+            console.log('RSC_Theme的Color表未找到或为空，使用默认值');
+            resetUGCConfigToDefaults();
+            return;
+        }
+
+        const rscHeaderRow = rscColorData[0];
+        const rscNotesColumnIndex = rscHeaderRow.findIndex(col => col === 'notes');
+
+        if (rscNotesColumnIndex === -1) {
+            console.log('RSC_Theme的Color表没有notes列，使用默认值');
+            resetUGCConfigToDefaults();
+            return;
+        }
+
+        // 查找主题在RSC中的行号
+        const rscThemeRowIndex = rscColorData.findIndex((row, index) =>
+            index > 0 && row[rscNotesColumnIndex] === themeName
+        );
+
+        if (rscThemeRowIndex === -1) {
+            console.log(`在RSC_Theme的Color表中未找到主题 "${themeName}"，使用默认值`);
+            resetUGCConfigToDefaults();
+            return;
+        }
+
+        console.log(`在RSC_Theme的Color表中找到主题 "${themeName}"，行索引: ${rscThemeRowIndex}`);
+
+        // 计算对应的数据行号（从1开始，因为第0行是表头）
+        const targetRowNumber = rscThemeRowIndex;
+
+        try {
+            // 定义需要查找的sheet和对应的字段映射
+            const sheetFieldMapping = {
+                'Custom_Ground_Color': {
+                    patternField: 'groundPatternIndex',
+                    frameField: 'groundFrameIndex',
+                    patternColumn: '_PatternUpIndex',
+                    frameColumn: '_FrameIndex'
+                },
+                'Custom_Fragile_Color': {
+                    patternField: 'fragilePatternIndex',
+                    frameField: 'fragileFrameIndex',
+                    glassAlphaField: 'fragileGlassAlpha',
+                    patternAlphaField: 'fragilePatternAlpha',
+                    patternColumn: '_PatternUpIndex',
+                    frameColumn: '_FrameIndex',
+                    glassAlphaColumn: '_GlassAlpha',
+                    patternAlphaColumn: '_PatternAlpha'
+                },
+                'Custom_Fragile_Active_Color': {
+                    patternField: 'fragileActivePatternIndex',
+                    frameField: 'fragileActiveFrameIndex',
+                    glassAlphaField: 'fragileActiveGlassAlpha',
+                    patternAlphaField: 'fragileActivePatternAlpha',
+                    patternColumn: '_PatternUpIndex',
+                    frameColumn: '_FrameIndex',
+                    glassAlphaColumn: '_GlassAlpha',
+                    patternAlphaColumn: '_PatternAlpha'
+                },
+                'Custom_Jump_Color': {
+                    patternField: 'jumpPatternIndex',
+                    frameField: 'jumpFrameIndex',
+                    patternColumn: '_PatternUpIndex',
+                    frameColumn: '_FrameIndex'
+                },
+                'Custom_Jump_Active_Color': {
+                    patternField: 'jumpActivePatternIndex',
+                    frameField: 'jumpActiveFrameIndex',
+                    patternColumn: '_PatternUpIndex',
+                    frameColumn: '_FrameIndex'
+                }
+            };
+
+            const configData = {};
+
+            // 遍历每个sheet查找主题数据（使用行号匹配）
+            Object.entries(sheetFieldMapping).forEach(([sheetName, mapping]) => {
+                console.log(`\n--- 处理Sheet: ${sheetName} ---`);
+                const sheetData = ugcAllSheetsData[sheetName];
+                if (!sheetData || sheetData.length === 0) {
+                    console.log(`Sheet ${sheetName} 不存在或为空`);
+                    return;
+                }
+
+                console.log(`Sheet ${sheetName} 数据行数: ${sheetData.length}`);
+                console.log(`目标行号: ${targetRowNumber}`);
+
+                // 检查目标行是否存在
+                if (targetRowNumber >= sheetData.length) {
+                    console.log(`Sheet ${sheetName} 中不存在行号 ${targetRowNumber}（总行数: ${sheetData.length}）`);
+                    return;
+                }
+
+                const headerRow = sheetData[0];
+                const themeRow = sheetData[targetRowNumber];
+
+                console.log(`Sheet ${sheetName} 表头:`, headerRow);
+                console.log(`Sheet ${sheetName} 目标行数据:`, themeRow);
+
+                // 提取字段值
+                Object.entries(mapping).forEach(([fieldKey, fieldValue]) => {
+                    if (fieldKey.endsWith('Field')) {
+                        const columnName = mapping[fieldKey.replace('Field', 'Column')];
+                        const columnIndex = headerRow.findIndex(col => col === columnName);
+
+                        if (columnIndex !== -1) {
+                            const value = themeRow[columnIndex];
+                            configData[fieldValue] = value !== undefined && value !== '' ? parseInt(value) || 0 : 0;
+                            console.log(`Sheet ${sheetName} 提取字段 ${columnName}(索引${columnIndex}) = ${value} -> ${fieldValue}`);
+                        } else {
+                            console.log(`Sheet ${sheetName} 未找到列 ${columnName}`);
+                        }
+                    }
+                });
+            });
+
+            console.log('加载的UGC配置数据:', configData);
+            setUGCConfigData(configData);
+
+        } catch (error) {
+            console.error('加载现有UGC配置失败:', error);
+            resetUGCConfigToDefaults();
         }
     }
 
@@ -845,6 +1956,18 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             // 隐藏多语言配置面板（更新模式不需要）
             toggleMultiLangPanel(false);
 
+            // 显示UGC配置面板并加载现有值
+            toggleUGCConfigPanel(true);
+            loadExistingUGCConfig(selectedTheme);
+
+            // 显示Light配置面板并加载现有值
+            toggleLightConfigPanel(true);
+            loadExistingLightConfig(selectedTheme);
+
+            // 显示ColorInfo配置面板并加载现有值
+            toggleColorInfoConfigPanel(true);
+            loadExistingColorInfoConfig(selectedTheme);
+
             // 启用处理按钮
             if (processThemeBtn) {
                 processThemeBtn.disabled = false;
@@ -858,6 +1981,9 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
             // 隐藏多语言配置面板
             toggleMultiLangPanel(false);
+
+            // 隐藏UGC配置面板
+            toggleUGCConfigPanel(false);
 
             // 禁用处理按钮
             if (processThemeBtn) {
@@ -887,6 +2013,19 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             const smartConfig = getSmartMultiLanguageConfig(inputValue);
             toggleMultiLangPanel(smartConfig.shouldShowConfig);
 
+            // 显示UGC配置面板（新建主题时总是显示）
+            toggleUGCConfigPanel(true);
+
+            // 显示Light配置面板（新建主题时总是显示）
+            toggleLightConfigPanel(true);
+            // 新建主题时使用最后一个主题的Light配置作为默认值
+            resetLightConfigToDefaults();
+
+            // 显示ColorInfo配置面板（新建主题时总是显示）
+            toggleColorInfoConfigPanel(true);
+            // 新建主题时使用最后一个主题的ColorInfo配置作为默认值
+            resetColorInfoConfigToDefaults();
+
             // 更新多语言配置状态提示
             updateThemeTypeIndicator(smartConfig);
 
@@ -898,6 +2037,15 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
             // 隐藏多语言配置面板
             toggleMultiLangPanel(false);
+
+            // 隐藏UGC配置面板
+            toggleUGCConfigPanel(false);
+
+            // 隐藏Light配置面板
+            toggleLightConfigPanel(false);
+
+            // 隐藏ColorInfo配置面板
+            toggleColorInfoConfigPanel(false);
 
             // 清除主题类型提示
             clearThemeTypeIndicator();
@@ -1968,6 +3116,216 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
     }
 
     /**
+     * 应用UGC字段设置到新行
+     * @param {string} sheetName - Sheet名称
+     * @param {Array} headerRow - 表头行
+     * @param {Array} newRow - 新行数据
+     */
+    function applyUGCFieldSettings(sheetName, headerRow, newRow) {
+        const ugcConfig = getUGCConfigData();
+        console.log(`应用UGC字段设置到Sheet ${sheetName}:`, ugcConfig);
+
+        // 定义每个sheet对应的字段映射
+        const sheetFieldMapping = {
+            'Custom_Ground_Color': {
+                '_PatternUpIndex': ugcConfig.groundPatternIndex,
+                '_FrameIndex': ugcConfig.groundFrameIndex
+            },
+            'Custom_Fragile_Color': {
+                '_PatternUpIndex': ugcConfig.fragilePatternIndex,
+                '_FrameIndex': ugcConfig.fragileFrameIndex,
+                '_GlassAlpha': ugcConfig.fragileGlassAlpha,
+                '_PatternAlpha': ugcConfig.fragilePatternAlpha
+            },
+            'Custom_Fragile_Active_Color': {
+                '_PatternUpIndex': ugcConfig.fragileActivePatternIndex,
+                '_FrameIndex': ugcConfig.fragileActiveFrameIndex,
+                '_GlassAlpha': ugcConfig.fragileActiveGlassAlpha,
+                '_PatternAlpha': ugcConfig.fragileActivePatternAlpha
+            },
+            'Custom_Jump_Color': {
+                '_PatternUpIndex': ugcConfig.jumpPatternIndex,
+                '_FrameIndex': ugcConfig.jumpFrameIndex
+            },
+            'Custom_Jump_Active_Color': {
+                '_PatternUpIndex': ugcConfig.jumpActivePatternIndex,
+                '_FrameIndex': ugcConfig.jumpActiveFrameIndex
+            }
+        };
+
+        const fieldMapping = sheetFieldMapping[sheetName];
+        if (!fieldMapping) {
+            console.log(`Sheet ${sheetName} 不需要UGC字段设置`);
+            return;
+        }
+
+        // 应用字段设置
+        Object.entries(fieldMapping).forEach(([columnName, value]) => {
+            const columnIndex = headerRow.findIndex(col => col === columnName);
+            if (columnIndex !== -1) {
+                newRow[columnIndex] = value.toString();
+                console.log(`Sheet ${sheetName} 设置 ${columnName} = ${value} (列索引: ${columnIndex})`);
+            } else {
+                console.warn(`Sheet ${sheetName} 中找不到列 ${columnName}`);
+            }
+        });
+    }
+
+    /**
+     * 更新现有主题的UGCTheme配置
+     * @param {string} themeName - 主题名称
+     * @returns {Object} 处理结果
+     */
+    async function updateExistingUGCTheme(themeName) {
+        console.log('=== 开始更新现有主题的UGCTheme配置 ===');
+        console.log('主题名称:', themeName);
+
+        if (!ugcThemeData || !ugcThemeData.workbook) {
+            console.error('UGCTheme数据未加载');
+            return { success: false, error: 'UGCTheme数据未加载' };
+        }
+
+        if (!rscAllSheetsData) {
+            console.error('RSC数据未加载');
+            return { success: false, error: 'RSC数据未加载' };
+        }
+
+        try {
+            // 第一步：在RSC_Theme的Color表中找到主题对应的行号
+            const rscColorData = rscAllSheetsData['Color'];
+            if (!rscColorData || rscColorData.length === 0) {
+                console.error('RSC_Theme的Color表未找到或为空');
+                return { success: false, error: 'RSC_Theme的Color表未找到' };
+            }
+
+            const rscHeaderRow = rscColorData[0];
+            const rscNotesColumnIndex = rscHeaderRow.findIndex(col => col === 'notes');
+
+            if (rscNotesColumnIndex === -1) {
+                console.error('RSC_Theme的Color表没有notes列');
+                return { success: false, error: 'RSC_Theme的Color表没有notes列' };
+            }
+
+            // 查找主题在RSC中的行号
+            const rscThemeRowIndex = rscColorData.findIndex((row, index) =>
+                index > 0 && row[rscNotesColumnIndex] === themeName
+            );
+
+            if (rscThemeRowIndex === -1) {
+                console.error(`在RSC_Theme的Color表中未找到主题 "${themeName}"`);
+                return { success: false, error: `主题 "${themeName}" 在RSC中不存在` };
+            }
+
+            console.log(`在RSC_Theme的Color表中找到主题 "${themeName}"，行索引: ${rscThemeRowIndex}`);
+            const targetRowNumber = rscThemeRowIndex;
+
+            // 第二步：获取用户配置的UGC数据
+            const ugcConfig = getUGCConfigData();
+            console.log('用户配置的UGC数据:', ugcConfig);
+
+            const workbook = ugcThemeData.workbook;
+            const processedSheets = [];
+
+            // 定义需要更新的sheet和字段映射
+            const sheetFieldMapping = {
+                'Custom_Ground_Color': {
+                    '_PatternUpIndex': ugcConfig.groundPatternIndex,
+                    '_FrameIndex': ugcConfig.groundFrameIndex
+                },
+                'Custom_Fragile_Color': {
+                    '_PatternUpIndex': ugcConfig.fragilePatternIndex,
+                    '_FrameIndex': ugcConfig.fragileFrameIndex,
+                    '_GlassAlpha': ugcConfig.fragileGlassAlpha,
+                    '_PatternAlpha': ugcConfig.fragilePatternAlpha
+                },
+                'Custom_Fragile_Active_Color': {
+                    '_PatternUpIndex': ugcConfig.fragileActivePatternIndex,
+                    '_FrameIndex': ugcConfig.fragileActiveFrameIndex,
+                    '_GlassAlpha': ugcConfig.fragileActiveGlassAlpha,
+                    '_PatternAlpha': ugcConfig.fragileActivePatternAlpha
+                },
+                'Custom_Jump_Color': {
+                    '_PatternUpIndex': ugcConfig.jumpPatternIndex,
+                    '_FrameIndex': ugcConfig.jumpFrameIndex
+                },
+                'Custom_Jump_Active_Color': {
+                    '_PatternUpIndex': ugcConfig.jumpActivePatternIndex,
+                    '_FrameIndex': ugcConfig.jumpActiveFrameIndex
+                }
+            };
+
+            // 第三步：更新每个相关的sheet
+            Object.entries(sheetFieldMapping).forEach(([sheetName, fieldMapping]) => {
+                console.log(`\n--- 更新Sheet: ${sheetName} ---`);
+
+                const worksheet = workbook.Sheets[sheetName];
+                if (!worksheet) {
+                    console.log(`Sheet ${sheetName} 不存在，跳过`);
+                    return;
+                }
+
+                const data = XLSX.utils.sheet_to_json(worksheet, {
+                    header: 1,
+                    defval: '',
+                    raw: false
+                });
+
+                if (data.length === 0 || targetRowNumber >= data.length) {
+                    console.log(`Sheet ${sheetName} 数据不足或目标行不存在，跳过`);
+                    return;
+                }
+
+                const headerRow = data[0];
+                const targetRow = data[targetRowNumber];
+
+                console.log(`Sheet ${sheetName} 更新行 ${targetRowNumber}:`, targetRow);
+
+                // 更新字段值
+                Object.entries(fieldMapping).forEach(([columnName, value]) => {
+                    const columnIndex = headerRow.findIndex(col => col === columnName);
+                    if (columnIndex !== -1) {
+                        const oldValue = targetRow[columnIndex];
+                        targetRow[columnIndex] = value.toString();
+                        console.log(`Sheet ${sheetName} 更新 ${columnName}: ${oldValue} -> ${value}`);
+                    } else {
+                        console.warn(`Sheet ${sheetName} 中找不到列 ${columnName}`);
+                    }
+                });
+
+                // 更新worksheet
+                const newWorksheet = XLSX.utils.aoa_to_sheet(data);
+                workbook.Sheets[sheetName] = newWorksheet;
+
+                processedSheets.push({
+                    sheetName: sheetName,
+                    updatedRowIndex: targetRowNumber,
+                    updatedFields: Object.keys(fieldMapping)
+                });
+            });
+
+            console.log('UGCTheme更新完成，处理的sheets:', processedSheets);
+
+            // 同步UGC内存数据状态
+            console.log('=== 开始同步UGC内存数据状态 ===');
+            syncUGCMemoryDataState(workbook);
+
+            return {
+                success: true,
+                action: 'update_existing',
+                processedSheets: processedSheets,
+                workbook: workbook
+            };
+
+        } catch (error) {
+            console.error('更新现有UGCTheme失败:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    /**
      * 处理UGCTheme文件（新增主题时添加新行）
      * @param {string} themeName - 主题名称
      * @param {boolean} isNewTheme - 是否为新增主题
@@ -1979,8 +3337,8 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         console.log('是否新增主题:', isNewTheme);
 
         if (!isNewTheme) {
-            console.log('覆盖现有主题，暂时不处理UGCTheme');
-            return { success: true, action: 'skip', reason: '覆盖现有主题' };
+            console.log('更新现有主题，开始更新UGCTheme配置');
+            return await updateExistingUGCTheme(themeName);
         }
 
         if (!ugcThemeData || !ugcThemeData.workbook) {
@@ -2172,6 +3530,9 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 } else {
                     console.warn(`Sheet ${sheetName} 中找不到Level_id相关列`);
                 }
+
+                // 处理UGC特定字段设置
+                applyUGCFieldSettings(sheetName, headerRow, newRow);
 
                 console.log(`Sheet ${sheetName} 新行:`, newRow);
 
@@ -3447,6 +4808,12 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             }
         });
 
+        // 隐藏配置面板
+        toggleUGCConfigPanel(false);
+        toggleLightConfigPanel(false);
+        toggleColorInfoConfigPanel(false);
+        toggleMultiLangPanel(false);
+
         // 重置文件状态
         updateFileStatus('sourceFileStatus', '未选择', '');
         updateFileStatus('rscThemeStatus', '未找到', '');
@@ -4698,6 +6065,153 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             throw error;
         }
     }
+
+    /**
+     * 加载现有主题的Light配置
+     */
+    function loadExistingLightConfig(themeName) {
+        console.log('加载现有主题的Light配置:', themeName);
+
+        if (!rscAllSheetsData || !rscAllSheetsData['Light']) {
+            console.log('RSC_Theme Light数据未加载，使用默认值');
+            resetLightConfigToDefaults();
+            return;
+        }
+
+        // 在RSC_Theme的Light sheet中查找主题
+        const lightData = rscAllSheetsData['Light'];
+        const lightHeaderRow = lightData[0];
+        const lightNotesColumnIndex = lightHeaderRow.findIndex(col => col === 'notes');
+
+        if (lightNotesColumnIndex === -1) {
+            console.log('RSC_Theme Light sheet没有notes列，使用默认值');
+            resetLightConfigToDefaults();
+            return;
+        }
+
+        // 查找主题在Light中的行号
+        const lightThemeRowIndex = lightData.findIndex((row, index) =>
+            index > 0 && row[lightNotesColumnIndex] === themeName
+        );
+
+        if (lightThemeRowIndex === -1) {
+            console.log(`在RSC_Theme Light sheet中未找到主题 "${themeName}"，使用默认值`);
+            resetLightConfigToDefaults();
+            return;
+        }
+
+        console.log(`在RSC_Theme Light sheet中找到主题 "${themeName}"，行索引: ${lightThemeRowIndex}`);
+
+        // 加载Light配置值
+        const lightRow = lightData[lightThemeRowIndex];
+        const lightFieldMapping = {
+            'Max': 'lightMax',
+            'Dark': 'lightDark',
+            'Min': 'lightMin',
+            'SpecularLevel': 'lightSpecularLevel',
+            'Gloss': 'lightGloss',
+            'SpecularColor': 'lightSpecularColor'
+        };
+
+        Object.entries(lightFieldMapping).forEach(([lightColumn, inputId]) => {
+            const columnIndex = lightHeaderRow.findIndex(col => col === lightColumn);
+            if (columnIndex !== -1) {
+                const value = lightRow[columnIndex] || '';
+                const input = document.getElementById(inputId);
+                if (input) {
+                    input.value = value;
+
+                    // 更新颜色预览
+                    if (inputId === 'lightSpecularColor' && window.App && window.App.ColorPicker) {
+                        window.App.ColorPicker.updateColorPreview(inputId, value);
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * 加载现有主题的ColorInfo配置
+     */
+    function loadExistingColorInfoConfig(themeName) {
+        console.log('加载现有主题的ColorInfo配置:', themeName);
+
+        if (!rscAllSheetsData || !rscAllSheetsData['ColorInfo']) {
+            console.log('RSC_Theme ColorInfo数据未加载，使用默认值');
+            resetColorInfoConfigToDefaults();
+            return;
+        }
+
+        // 在RSC_Theme的ColorInfo sheet中查找主题
+        const colorInfoData = rscAllSheetsData['ColorInfo'];
+        const colorInfoHeaderRow = colorInfoData[0];
+        const colorInfoNotesColumnIndex = colorInfoHeaderRow.findIndex(col => col === 'notes');
+
+        if (colorInfoNotesColumnIndex === -1) {
+            console.log('RSC_Theme ColorInfo sheet没有notes列，使用默认值');
+            resetColorInfoConfigToDefaults();
+            return;
+        }
+
+        // 查找主题在ColorInfo中的行号
+        const colorInfoThemeRowIndex = colorInfoData.findIndex((row, index) =>
+            index > 0 && row[colorInfoNotesColumnIndex] === themeName
+        );
+
+        if (colorInfoThemeRowIndex === -1) {
+            console.log(`在RSC_Theme ColorInfo sheet中未找到主题 "${themeName}"，使用默认值`);
+            resetColorInfoConfigToDefaults();
+            return;
+        }
+
+        console.log(`在RSC_Theme ColorInfo sheet中找到主题 "${themeName}"，行索引: ${colorInfoThemeRowIndex}`);
+
+        // 加载ColorInfo配置值
+        const colorInfoRow = colorInfoData[colorInfoThemeRowIndex];
+        const colorInfoFieldMapping = {
+            'PickupDiffR': 'PickupDiffR',
+            'PickupDiffG': 'PickupDiffG',
+            'PickupDiffB': 'PickupDiffB',
+            'PickupReflR': 'PickupReflR',
+            'PickupReflG': 'PickupReflG',
+            'PickupReflB': 'PickupReflB',
+            'ForegroundFogR': 'ForegroundFogR',
+            'ForegroundFogG': 'ForegroundFogG',
+            'ForegroundFogB': 'ForegroundFogB',
+            'FogStart': 'FogStart',
+            'FogEnd': 'FogEnd'
+        };
+
+        Object.entries(colorInfoFieldMapping).forEach(([columnName, inputId]) => {
+            const columnIndex = colorInfoHeaderRow.findIndex(col => col === columnName);
+            if (columnIndex !== -1) {
+                const value = colorInfoRow[columnIndex];
+                const input = document.getElementById(inputId);
+                if (input && value !== undefined && value !== null && value !== '') {
+                    input.value = value.toString();
+                    console.log(`设置 ${inputId} = ${value}`);
+                }
+            }
+        });
+
+        // 更新颜色预览
+        updateRgbColorPreview('PickupDiffR');
+        updateRgbColorPreview('PickupReflR');
+        updateRgbColorPreview('ForegroundFogR');
+
+        console.log('ColorInfo配置加载完成');
+    }
+
+    /**
+     * 更新颜色预览（辅助函数）
+     */
+    function updateColorPreview(inputId, color) {
+        if (window.App && window.App.ColorPicker) {
+            window.App.ColorPicker.updateColorPreview(inputId, color);
+        }
+    }
+
+
 
 })();
 
