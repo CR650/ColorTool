@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修复测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .status-display {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            min-height: 20px;
+        }
+        .file-selection-status {
+            border: 1px solid #ddd;
+            background: #f8f9fa;
+        }
+        .file-selection-status.success {
+            border-color: #28a745;
+            background: #d4edda;
+            color: #155724;
+        }
+        .file-selection-status.error {
+            border-color: #dc3545;
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .file-selection-status.loading {
+            border-color: #ffc107;
+            background: #fff3cd;
+            color: #856404;
+        }
+        .path-highlight {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>ColorToolConnectRC 修复测试页面</h1>
+    
+    <div class="test-section">
+        <h2>问题1：文件选择状态显示测试</h2>
+        <p>测试文件选择状态指示器是否正常工作</p>
+        
+        <input type="file" id="testFileInput" accept=".xls,.xlsx">
+        <div id="sourceFileStatus" class="status-display file-selection-status">
+            未选择文件
+        </div>
+        
+        <div>
+            <button class="test-button" onclick="testSuccessStatus()">测试成功状态</button>
+            <button class="test-button" onclick="testErrorStatus()">测试错误状态</button>
+            <button class="test-button" onclick="testLoadingStatus()">测试加载状态</button>
+            <button class="test-button" onclick="clearStatus()">清除状态</button>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>问题2：最终操作指引弹框测试</h2>
+        <p>测试弹框是否移除了自动关闭功能并显示动态路径</p>
+        
+        <div>
+            <button class="test-button" onclick="showTestModal()">显示测试弹框</button>
+            <button class="test-button" onclick="setTestPath()">设置测试路径</button>
+        </div>
+        
+        <div>
+            <label>模拟Unity项目路径：</label>
+            <input type="text" id="testProjectPath" value="C:\Users\admin\Documents\Unity\MyProject" style="width: 300px;">
+        </div>
+    </div>
+
+    <!-- 测试用的最终指引弹框 -->
+    <div id="testFinalGuideModal" class="final-guide-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>🎉 文件保存完成</h3>
+                <button onclick="hideTestModal()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+            </div>
+            <div>
+                <h4>📋 最后步骤：手动执行权限授权</h4>
+                <p>为了确保主题在游戏中正常使用，请执行以下操作：</p>
+
+                <div>
+                    <h5>🔧 操作步骤：</h5>
+                    <ol>
+                        <li>打开以下路径：</li>
+                        <div class="path-highlight" id="testToolsPathDisplay">您的Unity项目文件夹\Tools</div>
+                        <li>双击 <span class="path-highlight">"点我允许"</span> 文件</li>
+                        <li>等待3秒后程序自动消失，主题即可在游戏中使用</li>
+                    </ol>
+                </div>
+
+                <h4>❓ 为什么需要这个步骤？</h4>
+                <p>由于浏览器安全机制限制，需要手动确认权限设置，确保游戏能够正常读取新的主题配置。</p>
+            </div>
+            <div style="text-align: right; margin-top: 20px;">
+                <div id="testAutoCloseCountdown" style="display: none;">此弹框将在 <span>5</span> 秒后自动关闭</div>
+                <button class="test-button" onclick="hideTestModal()">我知道了</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟ThemeManager的状态更新函数
+        function updateFileSelectionStatus(containerId, status, options = {}) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            container.className = `status-display file-selection-status ${status}`;
+            
+            let content = '';
+            const currentTime = new Date().toLocaleString('zh-CN');
+            
+            switch (status) {
+                case 'success':
+                    content = `✅ ${options.fileName || '测试文件.xlsx'} (${formatFileSize(options.fileSize || 1024000)}) - 选择于 ${currentTime}`;
+                    break;
+                case 'error':
+                    content = `❌ ${options.fileName || '测试文件.xlsx'} - ${options.errorMessage || '未知错误'}`;
+                    break;
+                case 'loading':
+                    content = `⏳ 正在处理 ${options.fileName || '测试文件.xlsx'} (${formatFileSize(options.fileSize || 1024000)})...`;
+                    break;
+                default:
+                    content = '未选择文件';
+            }
+            
+            container.textContent = content;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 测试函数
+        function testSuccessStatus() {
+            updateFileSelectionStatus('sourceFileStatus', 'success', {
+                fileName: 'RSC_Theme.xlsx',
+                fileSize: 2048000
+            });
+        }
+
+        function testErrorStatus() {
+            updateFileSelectionStatus('sourceFileStatus', 'error', {
+                fileName: 'invalid_file.txt',
+                fileSize: 1024,
+                errorMessage: '文件格式不支持，请选择Excel文件(.xlsx或.xls)'
+            });
+        }
+
+        function testLoadingStatus() {
+            updateFileSelectionStatus('sourceFileStatus', 'loading', {
+                fileName: 'UGCTheme.xlsx',
+                fileSize: 1536000
+            });
+        }
+
+        function clearStatus() {
+            updateFileSelectionStatus('sourceFileStatus', 'default');
+        }
+
+        function showTestModal() {
+            const modal = document.getElementById('testFinalGuideModal');
+            const countdownElement = document.getElementById('testAutoCloseCountdown');
+            
+            // 隐藏倒计时元素（模拟修复后的行为）
+            if (countdownElement) {
+                countdownElement.style.display = 'none';
+            }
+            
+            modal.style.display = 'block';
+        }
+
+        function hideTestModal() {
+            const modal = document.getElementById('testFinalGuideModal');
+            modal.style.display = 'none';
+        }
+
+        function setTestPath() {
+            const pathInput = document.getElementById('testProjectPath');
+            const pathDisplay = document.getElementById('testToolsPathDisplay');
+            
+            if (pathInput.value.trim()) {
+                const toolsPath = `${pathInput.value.trim()}\\Tools`;
+                pathDisplay.textContent = toolsPath;
+                alert(`路径已更新为: ${toolsPath}`);
+            } else {
+                pathDisplay.textContent = '您的Unity项目文件夹\\Tools';
+                alert('路径已重置为默认值');
+            }
+        }
+
+        // 文件选择测试
+        document.getElementById('testFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // 模拟文件处理过程
+                updateFileSelectionStatus('sourceFileStatus', 'loading', {
+                    fileName: file.name,
+                    fileSize: file.size
+                });
+                
+                setTimeout(() => {
+                    if (file.name.toLowerCase().endsWith('.xls') || file.name.toLowerCase().endsWith('.xlsx')) {
+                        updateFileSelectionStatus('sourceFileStatus', 'success', {
+                            fileName: file.name,
+                            fileSize: file.size
+                        });
+                    } else {
+                        updateFileSelectionStatus('sourceFileStatus', 'error', {
+                            fileName: file.name,
+                            fileSize: file.size,
+                            errorMessage: '文件格式不支持，请选择Excel文件(.xlsx或.xls)'
+                        });
+                    }
+                }, 1000);
+            }
+        });
+    </script>
+</body>
+</html>

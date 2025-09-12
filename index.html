@@ -66,6 +66,31 @@
                         选择源数据文件
                     </button>
                 </div>
+
+                <!-- 源数据文件选择结果显示 -->
+                <div id="sourceFileSelectionResult" style="display: none; margin-top: 15px; padding: 15px; border: 1px solid #28a745; border-radius: 5px; background-color: #d4edda;">
+                    <div class="result-summary">
+                        <h5>✅ 源数据文件选择成功</h5>
+                        <div class="file-status-grid" style="display: grid; grid-template-columns: auto 1fr; gap: 10px; margin-top: 10px;">
+                            <div class="status-item" style="display: contents;">
+                                <span class="status-label" style="font-weight: bold; color: #155724;">文件名:</span>
+                                <span class="status-value" id="sourceFileName" style="color: #155724;">-</span>
+                            </div>
+                            <div class="status-item" style="display: contents;">
+                                <span class="status-label" style="font-weight: bold; color: #155724;">文件大小:</span>
+                                <span class="status-value" id="sourceFileSize" style="color: #155724;">-</span>
+                            </div>
+                            <div class="status-item" style="display: contents;">
+                                <span class="status-label" style="font-weight: bold; color: #155724;">选择时间:</span>
+                                <span class="status-value" id="sourceFileTime" style="color: #155724;">-</span>
+                            </div>
+                            <div class="status-item" style="display: contents;">
+                                <span class="status-label" style="font-weight: bold; color: #155724;">数据行数:</span>
+                                <span class="status-value" id="sourceFileRows" style="color: #155724;">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -90,6 +115,7 @@
                         <button class="upload-btn primary" id="selectFolderBtn" style="background: #007bff;">
                             📁 选择Unity项目文件夹
                         </button>
+
                     </div>
                 </div>
 
@@ -104,11 +130,11 @@
                             </div>
                             <div class="status-item" style="display: contents;">
                                 <span class="status-label" style="font-weight: bold;">RSC_Theme.xls:</span>
-                                <span class="status-value" id="rscFileStatus" style="color: #666;">-</span>
+                                <span class="status-value" id="folderRscFileStatus" style="color: #666;">-</span>
                             </div>
                             <div class="status-item" style="display: contents;">
                                 <span class="status-label" style="font-weight: bold;">UGCTheme.xls:</span>
-                                <span class="status-value" id="ugcFileStatus" style="color: #666;">-</span>
+                                <span class="status-value" id="folderUgcFileStatus" style="color: #666;">-</span>
                             </div>
                         </div>
                     </div>
@@ -145,6 +171,7 @@
                         <button class="upload-btn primary" id="enableDirectSaveBtn" style="background: #28a745;">
                             🎯 选择RSC_Theme文件并启用直接保存
                         </button>
+
                     </div>
                 </div>
 
@@ -163,6 +190,7 @@
                         <button class="upload-btn primary" id="enableUGCDirectSaveBtn" style="background: #17a2b8;">
                             🎯 选择UGCTheme文件并启用直接保存
                         </button>
+
                     </div>
                 </div>
             </div>
@@ -197,6 +225,17 @@
                     <label for="themeNameInput">✨ 创建新主题：</label>
                     <input type="text" id="themeNameInput" placeholder="请输入新主题名称" maxlength="50">
                     <div class="input-validation" id="themeInputValidation" style="display: none;"></div>
+
+                    <!-- 主题命名规范说明 -->
+                    <div class="operation-guide" style="margin-top: 10px;">
+                        <h5>📝 主题命名规范</h5>
+                        <ul>
+                            <li><strong>推荐格式</strong>：基础名称 + 数字序号，如"赛博1"、"赛博2"、"测试1"等</li>
+                            <li><strong>同系列主题</strong>：使用相同的基础名称，系统会自动识别并继承配置</li>
+                            <li><strong>全新系列</strong>：使用新的基础名称，需要完整配置多语言和UGC参数</li>
+                            <li><strong>字符限制</strong>：建议使用中文、英文、数字，避免特殊符号</li>
+                        </ul>
+                    </div>
                 </div>
 
                 <!-- 多语言配置区域（仅新建主题时显示） -->
@@ -214,11 +253,35 @@
                             💡 操作步骤：1) 点击按钮打开在线表 → 2) 在表格中添加主题信息 → 3) 回来输入分配的多语言ID
                         </small>
                     </div>
+
+                    <!-- 多语言配置详细指引 -->
+                    <div class="operation-guide">
+                        <h5>📋 多语言配置详细说明</h5>
+                        <ul>
+                            <li><strong>创建全新系列主题时</strong>（如"测试1"）：在多语言在线表中应填入<span class="highlight">基础名称"测试"</span>（不包含序列号）</li>
+                            <li><strong>创建同系列主题时</strong>（如"赛博3"）：系统会自动复用现有的"赛博"系列配置，无需重新填写</li>
+                            <li><strong>主题名称规范</strong>：建议使用"基础名称+数字"的格式，如"赛博1"、"赛博2"、"测试1"等</li>
+                            <li><strong>多语言ID</strong>：在在线表中添加主题信息后，系统会自动分配一个唯一的多语言ID</li>
+                        </ul>
+                    </div>
                 </div>
 
                 <!-- UGCTheme字段配置区域（仅新建主题时显示） -->
                 <div class="ugc-config-section" id="ugcConfigSection" style="display: none;">
                     <h4>🎮 UGCTheme 图案配置</h4>
+
+                    <!-- UGC配置参数说明 -->
+                    <div class="operation-guide" style="margin-bottom: 20px;">
+                        <h5>🎯 UGC配置参数说明</h5>
+                        <ul>
+                            <li><strong>地板图案ID</strong>：控制地板的纹理图案，0-63范围内的数值</li>
+                            <li><strong>地板边框图案ID</strong>：控制地板边缘的装饰图案，0-63范围内的数值</li>
+                            <li><strong>玻璃图案ID</strong>：控制未踩中玻璃的纹理图案</li>
+                            <li><strong>跳板图案ID</strong>：控制跳板的纹理图案和透明度设置</li>
+                            <li><strong>透明度</strong>：控制图案的透明程度，0-100范围（0=完全透明，100=完全不透明）</li>
+                        </ul>
+                    </div>
+
                     <div class="ugc-config-content">
                         <div class="ugc-config-grid">
                             <!-- 地板配置 -->
@@ -519,28 +582,7 @@
             </div>
         </section>
 
-        <!-- 文件状态信息区域 -->
-        <section class="file-status" id="fileStatus" style="display: none;">
-            <h3>文件状态</h3>
-            <div class="status-grid">
-                <div class="status-item">
-                    <span class="status-label">源数据文件:</span>
-                    <span class="status-value" id="sourceFileStatus">未选择</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">RSC_Theme.xls:</span>
-                    <span class="status-value" id="rscThemeStatus">未找到</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">UGCTheme.xls:</span>
-                    <span class="status-value" id="ugcThemeStatus">未找到</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">对比映射文件:</span>
-                    <span class="status-value" id="mappingStatus">未加载</span>
-                </div>
-            </div>
-        </section>
+
 
         <!-- 处理结果展示区域 -->
         <section class="result-display" id="resultDisplay" style="display: none;">
@@ -622,6 +664,37 @@
 
         <!-- 状态提示区域 -->
         <div class="status-message" id="statusMessage"></div>
+    </div>
+
+    <!-- 最终操作指引弹框 -->
+    <div id="finalGuideModal" class="final-guide-modal" style="display: none;">
+        <div class="final-guide-modal-content">
+            <div class="final-guide-modal-header">
+                <h3>🎉 文件保存完成</h3>
+                <button class="final-guide-modal-close" id="closeFinalGuideModal">&times;</button>
+            </div>
+            <div class="final-guide-modal-body">
+                <h4>📋 最后步骤：手动执行权限授权</h4>
+                <p>为了确保主题在游戏中正常使用，请执行以下操作：</p>
+
+                <div class="step-list">
+                    <h5>🔧 操作步骤：</h5>
+                    <ol>
+                        <li>打开以下路径：</li>
+                        <div class="path-highlight" id="toolsPathDisplay">您的Unity项目文件夹\Tools</div>
+                        <li>双击 <span class="path-highlight">"点我允许"</span> 文件</li>
+                        <li>等待3秒后程序自动消失，主题即可在游戏中使用</li>
+                    </ol>
+                </div>
+
+                <h4>❓ 为什么需要这个步骤？</h4>
+                <p>由于浏览器安全机制限制，需要手动确认权限设置，确保游戏能够正常读取新的主题配置。</p>
+            </div>
+            <div class="final-guide-modal-footer">
+                <div class="auto-close-info" id="autoCloseCountdown" style="display: none;">此弹框将在 <span>5</span> 秒后自动关闭</div>
+                <button id="finalGuideOkBtn">我知道了</button>
+            </div>
+        </div>
     </div>
 
     <!-- 图案选择器模态框 -->

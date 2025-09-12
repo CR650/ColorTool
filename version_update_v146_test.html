@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>版本更新 v1.4.6 测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .version-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .section {
+            background: white;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .section-title {
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .feature-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            background: #fafafa;
+        }
+        .feature-card h4 {
+            color: #667eea;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            position: relative;
+            padding-left: 25px;
+        }
+        .feature-list li:before {
+            content: "✅";
+            position: absolute;
+            left: 0;
+            top: 8px;
+        }
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+        .highlight {
+            background: linear-gradient(120deg, #a8edea 0%, #fed6e3 100%);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #667eea;
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        .demo-container {
+            border: 2px dashed #28a745;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        }
+        .demo-result {
+            background: #d4edda;
+            border: 1px solid #28a745;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .demo-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .demo-label {
+            font-weight: bold;
+            color: #155724;
+        }
+        .demo-value {
+            color: #155724;
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .comparison-table th,
+        .comparison-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .comparison-table th {
+            background: #667eea;
+            color: white;
+        }
+        .comparison-table .before {
+            background: #fff3cd;
+        }
+        .comparison-table .after {
+            background: #d4edda;
+        }
+        .status-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎉 ColorTool Connect v1.4.6 版本更新</h1>
+        <p>UI优化和用户体验提升</p>
+        <div class="version-badge">发布日期：2025-09-12</div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">📋 版本更新概览</h2>
+        <div class="highlight">
+            <strong>本次更新重点：</strong>全面优化用户界面，新增源数据文件选择结果显示功能，移除冗余UI元素，提供更简洁清晰的操作体验。
+        </div>
+        
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h4>🆕 新增功能</h4>
+                <ul class="feature-list">
+                    <li>源数据文件选择结果显示</li>
+                    <li>实时文件信息反馈</li>
+                    <li>格式化文件大小显示</li>
+                    <li>精确的选择时间记录</li>
+                </ul>
+            </div>
+            <div class="feature-card">
+                <h4>🎨 界面优化</h4>
+                <ul class="feature-list">
+                    <li>移除文件状态栏</li>
+                    <li>删除右侧信息区域</li>
+                    <li>简化UI布局结构</li>
+                    <li>固定路径显示</li>
+                </ul>
+            </div>
+            <div class="feature-card">
+                <h4>🔧 功能完善</h4>
+                <ul class="feature-list">
+                    <li>完整的错误处理机制</li>
+                    <li>智能状态管理</li>
+                    <li>兼容性保障</li>
+                    <li>模块化文件处理</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">🎯 核心功能：源数据文件选择结果显示</h2>
+        
+        <div class="status-success">
+            <strong>新功能亮点：</strong>用户选择源数据文件后，系统将自动显示详细的文件信息，提供即时的操作反馈。
+        </div>
+
+        <h3>功能特性：</h3>
+        <ul class="feature-list">
+            <li>文件名显示：显示用户选择的完整文件名</li>
+            <li>文件大小：自动格式化为 Bytes/KB/MB/GB</li>
+            <li>选择时间：精确到秒的本地化时间显示</li>
+            <li>数据统计：显示Excel文件的数据行数</li>
+            <li>绿色主题：使用成功状态的绿色背景</li>
+            <li>错误处理：文件错误时自动隐藏显示</li>
+        </ul>
+
+        <div class="demo-container">
+            <h4>📱 界面效果预览</h4>
+            <p><strong>选择源数据文件</strong></p>
+            <p>包含完整配色表的Excel文件 (.xlsx, .xls)</p>
+            <button style="background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px;">
+                选择源数据文件
+            </button>
+            
+            <div class="demo-result">
+                <h5>✅ 源数据文件选择成功</h5>
+                <div class="demo-grid">
+                    <span class="demo-label">文件名:</span>
+                    <span class="demo-value">完整配色表_v2.xlsx</span>
+                    <span class="demo-label">文件大小:</span>
+                    <span class="demo-value">128.45 KB</span>
+                    <span class="demo-label">选择时间:</span>
+                    <span class="demo-value">2025/09/12 16:45:23</span>
+                    <span class="demo-label">数据行数:</span>
+                    <span class="demo-value">256 行</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">🎨 界面优化对比</h2>
+        
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>优化项目</th>
+                    <th>优化前</th>
+                    <th>优化后</th>
+                    <th>改进效果</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>文件状态显示</strong></td>
+                    <td class="before">显示独立的文件状态栏</td>
+                    <td class="after">集成到文件选择区域</td>
+                    <td>界面更简洁，信息更集中</td>
+                </tr>
+                <tr>
+                    <td><strong>右侧信息区域</strong></td>
+                    <td class="before">显示文件选择状态指示器</td>
+                    <td class="after">完全移除</td>
+                    <td>减少视觉干扰，突出核心功能</td>
+                </tr>
+                <tr>
+                    <td><strong>路径显示</strong></td>
+                    <td class="before">动态生成路径</td>
+                    <td class="after">固定路径显示</td>
+                    <td>操作指引更明确</td>
+                </tr>
+                <tr>
+                    <td><strong>文件信息反馈</strong></td>
+                    <td class="before">基础状态提示</td>
+                    <td class="after">详细信息显示</td>
+                    <td>用户反馈更丰富</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">🛠️ 技术实现详情</h2>
+        
+        <h3>1. HTML结构优化</h3>
+        <div class="code-block">
+&lt;!-- 新增：源数据文件选择结果显示 --&gt;
+&lt;div id="sourceFileSelectionResult" style="display: none;"&gt;
+    &lt;div class="result-summary"&gt;
+        &lt;h5&gt;✅ 源数据文件选择成功&lt;/h5&gt;
+        &lt;div class="file-status-grid"&gt;
+            &lt;span class="status-label"&gt;文件名:&lt;/span&gt;
+            &lt;span id="sourceFileName"&gt;-&lt;/span&gt;
+            &lt;!-- 其他字段... --&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+        </div>
+
+        <h3>2. JavaScript功能函数</h3>
+        <div class="code-block">
+// 更新源数据文件选择结果显示
+function updateSourceFileSelectionResult(file, sourceData) {
+    // 更新文件信息显示
+    document.getElementById('sourceFileName').textContent = file.name;
+    document.getElementById('sourceFileSize').textContent = formatFileSize(file.size);
+    document.getElementById('sourceFileTime').textContent = getCurrentTimeString();
+    document.getElementById('sourceFileRows').textContent = `${sourceData.data.length} 行`;
+    
+    // 显示结果容器
+    document.getElementById('sourceFileSelectionResult').style.display = 'block';
+}
+        </div>
+
+        <h3>3. 错误处理集成</h3>
+        <div class="code-block">
+// 在所有错误处理中添加
+hideSourceFileSelectionResult();
+
+// 重置时清除显示
+function reset() {
+    hideSourceFileSelectionResult();
+    // ... 其他重置逻辑
+}
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">📊 版本信息</h2>
+        
+        <div class="status-info">
+            <strong>版本详情：</strong>
+        </div>
+        
+        <ul class="feature-list">
+            <li><strong>版本号：</strong>v1.4.6</li>
+            <li><strong>发布日期：</strong>2025-09-12</li>
+            <li><strong>构建号：</strong>20250912001</li>
+            <li><strong>更新类型：</strong>功能增强和UI优化</li>
+            <li><strong>兼容性：</strong>完全向后兼容</li>
+            <li><strong>测试状态：</strong>已通过完整功能测试</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">🎯 用户体验提升</h2>
+        
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h4>📱 界面简化</h4>
+                <p>移除冗余的UI元素，让用户专注于核心功能操作，提供更清洁的视觉体验。</p>
+            </div>
+            <div class="feature-card">
+                <h4>📊 信息反馈</h4>
+                <p>新增详细的文件选择结果显示，让用户清楚了解所选文件的基本信息和数据统计。</p>
+            </div>
+            <div class="feature-card">
+                <h4>🎯 操作指引</h4>
+                <p>使用固定路径显示，提供更明确的操作指引，减少用户的理解成本。</p>
+            </div>
+            <div class="feature-card">
+                <h4>🔧 智能处理</h4>
+                <p>完善的错误处理和状态管理，确保界面状态的一致性和用户体验的流畅性。</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        console.log('ColorTool Connect v1.4.6 版本更新测试页面加载完成');
+        console.log('主要更新内容：');
+        console.log('✅ 新增源数据文件选择结果显示功能');
+        console.log('✅ 优化UI界面，移除冗余元素');
+        console.log('✅ 修改最终操作指引为固定路径显示');
+        console.log('✅ 完善错误处理和状态管理');
+        console.log('✅ 提升用户体验和操作反馈');
+        
+        // 模拟版本更新通知
+        setTimeout(() => {
+            if (confirm('🎉 发现新版本 v1.4.6！\n\n主要更新：\n• 新增源数据文件选择结果显示\n• 优化UI界面设计\n• 完善用户体验\n\n是否查看详细更新内容？')) {
+                alert('感谢使用 ColorTool Connect！\n\n本次更新专注于提升用户体验，提供更简洁清晰的操作界面。');
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

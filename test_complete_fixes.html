@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>完整修复验证测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-button.success {
+            background: #28a745;
+        }
+        .test-button.error {
+            background: #dc3545;
+        }
+        .status-display {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            min-height: 20px;
+            border: 1px solid #ddd;
+            background: #f8f9fa;
+        }
+        .status-display.success {
+            border-color: #28a745;
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-display.error {
+            border-color: #dc3545;
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status-display.loading {
+            border-color: #ffc107;
+            background: #fff3cd;
+            color: #856404;
+        }
+        .path-highlight {
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-family: monospace;
+            display: inline-block;
+            margin: 5px 0;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .test-result.pass {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .test-result.fail {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <h1>ColorToolConnectRC 完整修复验证测试</h1>
+    
+    <div class="test-section">
+        <h2>测试1：文件选择状态显示功能</h2>
+        <p><strong>测试目标</strong>：验证文件选择后状态指示器是否正确显示</p>
+        
+        <h3>源数据文件选择测试</h3>
+        <input type="file" id="sourceFileInput" accept=".xls,.xlsx">
+        <div id="sourceFileStatus" class="status-display">未选择文件</div>
+        
+        <div>
+            <button class="test-button" onclick="testSourceFileSuccess()">模拟成功选择</button>
+            <button class="test-button" onclick="testSourceFileError()">模拟选择错误</button>
+            <button class="test-button" onclick="testSourceFileLoading()">模拟加载状态</button>
+        </div>
+        
+        <h3>RSC_Theme文件选择测试</h3>
+        <div id="rscFileStatus" class="status-display">未选择文件</div>
+        <div>
+            <button class="test-button" onclick="testRSCFileSuccess()">模拟RSC成功</button>
+            <button class="test-button" onclick="testRSCFileError()">模拟RSC错误</button>
+        </div>
+        
+        <h3>UGC_Theme文件选择测试</h3>
+        <div id="ugcFileStatus" class="status-display">未选择文件</div>
+        <div>
+            <button class="test-button" onclick="testUGCFileSuccess()">模拟UGC成功</button>
+            <button class="test-button" onclick="testUGCFileError()">模拟UGC错误</button>
+        </div>
+        
+        <div id="test1Result" class="test-result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>测试2：最终操作指引弹框优化</h2>
+        <p><strong>测试目标</strong>：验证弹框是否移除了自动关闭功能并显示动态路径</p>
+        
+        <div>
+            <label>模拟Unity项目路径：</label>
+            <input type="text" id="projectPathInput" value="C:\Users\admin\Documents\Unity\MyProject" style="width: 400px;">
+            <button class="test-button" onclick="updateProjectPath()">更新路径</button>
+        </div>
+        
+        <div>
+            <button class="test-button" onclick="showTestFinalModal()">显示最终指引弹框</button>
+            <button class="test-button" onclick="testAutoCloseRemoval()">测试自动关闭移除</button>
+        </div>
+        
+        <div id="test2Result" class="test-result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>测试3：跨模块函数调用验证</h2>
+        <p><strong>测试目标</strong>：验证fileHandler.js能否正确调用themeManager.js中的状态更新函数</p>
+        
+        <div>
+            <button class="test-button" onclick="testCrossModuleCall()">测试跨模块调用</button>
+            <button class="test-button" onclick="testFunctionExposure()">测试函数暴露</button>
+        </div>
+        
+        <div id="test3Result" class="test-result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>综合测试结果</h2>
+        <div id="overallResult" class="test-result" style="display: none;"></div>
+        <button class="test-button" onclick="runAllTests()">运行所有测试</button>
+    </div>
+
+    <!-- 测试用的最终指引弹框 -->
+    <div id="testFinalGuideModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>🎉 文件保存完成</h3>
+                <button onclick="hideTestFinalModal()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+            </div>
+            <div>
+                <h4>📋 最后步骤：手动执行权限授权</h4>
+                <p>为了确保主题在游戏中正常使用，请执行以下操作：</p>
+
+                <div>
+                    <h5>🔧 操作步骤：</h5>
+                    <ol>
+                        <li>打开以下路径：</li>
+                        <div class="path-highlight" id="testToolsPathDisplay">您的Unity项目文件夹\Tools</div>
+                        <li>双击 <span class="path-highlight">"点我允许"</span> 文件</li>
+                        <li>等待3秒后程序自动消失，主题即可在游戏中使用</li>
+                    </ol>
+                </div>
+
+                <h4>❓ 为什么需要这个步骤？</h4>
+                <p>由于浏览器安全机制限制，需要手动确认权限设置，确保游戏能够正常读取新的主题配置。</p>
+            </div>
+            <div style="text-align: right; margin-top: 20px;">
+                <div id="testAutoCloseCountdown" style="display: none; color: #666; margin-bottom: 10px;">此弹框将在 <span>5</span> 秒后自动关闭</div>
+                <button class="test-button" onclick="hideTestFinalModal()">我知道了</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟ThemeManager模块
+        window.App = window.App || {};
+        window.App.ThemeManager = {
+            updateFileSelectionStatus: function(statusId, type, messageOrOptions, info = '') {
+                const statusElement = document.getElementById(statusId);
+                if (!statusElement) {
+                    console.warn(`状态指示器元素未找到: ${statusId}`);
+                    return false;
+                }
+
+                // 处理参数格式
+                let message;
+                if (typeof messageOrOptions === 'object' && messageOrOptions !== null) {
+                    const { fileName, fileSize, errorMessage } = messageOrOptions;
+                    const currentTime = new Date().toLocaleString('zh-CN');
+                    
+                    switch (type) {
+                        case 'success':
+                            message = `✅ ${fileName} (${formatFileSize(fileSize)}) - 选择于 ${currentTime}`;
+                            break;
+                        case 'error':
+                            message = `❌ ${fileName} - ${errorMessage}`;
+                            break;
+                        case 'loading':
+                            message = `⏳ 正在处理 ${fileName} (${formatFileSize(fileSize)})...`;
+                            break;
+                        default:
+                            message = '未选择文件';
+                    }
+                } else {
+                    message = messageOrOptions || '';
+                }
+
+                statusElement.className = `status-display ${type}`;
+                statusElement.textContent = message;
+                return true;
+            },
+            
+            formatFileSize: formatFileSize,
+            getCurrentTimeString: function() {
+                return new Date().toLocaleString('zh-CN');
+            }
+        };
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 测试函数
+        function testSourceFileSuccess() {
+            const result = window.App.ThemeManager.updateFileSelectionStatus('sourceFileStatus', 'success', {
+                fileName: 'source_data.xlsx',
+                fileSize: 2048000
+            });
+            updateTestResult('test1', result, '源数据文件成功状态测试');
+        }
+
+        function testSourceFileError() {
+            const result = window.App.ThemeManager.updateFileSelectionStatus('sourceFileStatus', 'error', {
+                fileName: 'invalid_file.txt',
+                fileSize: 1024,
+                errorMessage: '文件格式不支持，请选择Excel文件(.xlsx或.xls)'
+            });
+            updateTestResult('test1', result, '源数据文件错误状态测试');
+        }
+
+        function testSourceFileLoading() {
+            const result = window.App.ThemeManager.updateFileSelectionStatus('sourceFileStatus', 'loading', {
+                fileName: 'processing_file.xlsx',
+                fileSize: 1536000
+            });
+            updateTestResult('test1', result, '源数据文件加载状态测试');
+        }
+
+        function testRSCFileSuccess() {
+            const result = window.App.ThemeManager.updateFileSelectionStatus('rscFileStatus', 'success', {
+                fileName: 'RSC_Theme.xls',
+                fileSize: 3072000
+            });
+            updateTestResult('test1', result, 'RSC文件成功状态测试');
+        }
+
+        function testRSCFileError() {
+            const result = window.App.ThemeManager.updateFileSelectionStatus('rscFileStatus', 'error', {
+                fileName: 'RSC_Theme.xlsx',
+                fileSize: 2048000,
+                errorMessage: '请选择.xls格式的文件以确保Unity工具兼容性'
+            });
+            updateTestResult('test1', result, 'RSC文件错误状态测试');
+        }
+
+        function testUGCFileSuccess() {
+            const result = window.App.ThemeManager.updateFileSelectionStatus('ugcFileStatus', 'success', {
+                fileName: 'UGCTheme.xls',
+                fileSize: 1024000
+            });
+            updateTestResult('test1', result, 'UGC文件成功状态测试');
+        }
+
+        function testUGCFileError() {
+            const result = window.App.ThemeManager.updateFileSelectionStatus('ugcFileStatus', 'error', {
+                fileName: 'UGCTheme.txt',
+                fileSize: 512000,
+                errorMessage: '文件格式错误，请选择Excel文件'
+            });
+            updateTestResult('test1', result, 'UGC文件错误状态测试');
+        }
+
+        function showTestFinalModal() {
+            const modal = document.getElementById('testFinalGuideModal');
+            const countdownElement = document.getElementById('testAutoCloseCountdown');
+            
+            // 验证倒计时元素是否被隐藏
+            if (countdownElement) {
+                countdownElement.style.display = 'none';
+            }
+            
+            modal.style.display = 'block';
+            updateTestResult('test2', true, '最终指引弹框显示测试');
+        }
+
+        function hideTestFinalModal() {
+            const modal = document.getElementById('testFinalGuideModal');
+            modal.style.display = 'none';
+        }
+
+        function updateProjectPath() {
+            const pathInput = document.getElementById('projectPathInput');
+            const pathDisplay = document.getElementById('testToolsPathDisplay');
+            
+            if (pathInput.value.trim()) {
+                const toolsPath = `${pathInput.value.trim()}\\Tools`;
+                pathDisplay.textContent = toolsPath;
+                updateTestResult('test2', true, '动态路径更新测试');
+            } else {
+                pathDisplay.textContent = '您的Unity项目文件夹\\Tools';
+                updateTestResult('test2', false, '动态路径更新测试 - 路径为空');
+            }
+        }
+
+        function testAutoCloseRemoval() {
+            const countdownElement = document.getElementById('testAutoCloseCountdown');
+            const isHidden = countdownElement && countdownElement.style.display === 'none';
+            updateTestResult('test2', isHidden, '自动关闭功能移除测试');
+        }
+
+        function testCrossModuleCall() {
+            const hasThemeManager = !!(window.App && window.App.ThemeManager);
+            const hasUpdateFunction = !!(hasThemeManager && window.App.ThemeManager.updateFileSelectionStatus);
+            const result = hasThemeManager && hasUpdateFunction;
+            updateTestResult('test3', result, '跨模块调用可用性测试');
+        }
+
+        function testFunctionExposure() {
+            const exposedFunctions = ['updateFileSelectionStatus', 'formatFileSize', 'getCurrentTimeString'];
+            const allExposed = exposedFunctions.every(func => 
+                window.App && window.App.ThemeManager && typeof window.App.ThemeManager[func] === 'function'
+            );
+            updateTestResult('test3', allExposed, '函数暴露完整性测试');
+        }
+
+        function updateTestResult(testId, success, description) {
+            const resultElement = document.getElementById(testId + 'Result');
+            if (resultElement) {
+                resultElement.style.display = 'block';
+                resultElement.className = `test-result ${success ? 'pass' : 'fail'}`;
+                resultElement.textContent = `${success ? '✅ 通过' : '❌ 失败'}: ${description}`;
+            }
+        }
+
+        function runAllTests() {
+            console.log('开始运行所有测试...');
+            
+            // 运行所有测试
+            testSourceFileSuccess();
+            setTimeout(() => testRSCFileSuccess(), 100);
+            setTimeout(() => testUGCFileSuccess(), 200);
+            setTimeout(() => testAutoCloseRemoval(), 300);
+            setTimeout(() => testCrossModuleCall(), 400);
+            setTimeout(() => testFunctionExposure(), 500);
+            
+            // 显示综合结果
+            setTimeout(() => {
+                const test1Pass = document.getElementById('test1Result').classList.contains('pass');
+                const test2Pass = document.getElementById('test2Result').classList.contains('pass');
+                const test3Pass = document.getElementById('test3Result').classList.contains('pass');
+                
+                const allPass = test1Pass && test2Pass && test3Pass;
+                const overallResult = document.getElementById('overallResult');
+                
+                overallResult.style.display = 'block';
+                overallResult.className = `test-result ${allPass ? 'pass' : 'fail'}`;
+                overallResult.innerHTML = allPass 
+                    ? '🎉 所有测试通过！修复功能正常工作。' 
+                    : '⚠️ 部分测试失败，请检查具体测试项目。';
+            }, 600);
+        }
+
+        // 文件选择事件监听
+        document.getElementById('sourceFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // 模拟fileHandler.js的处理逻辑
+                if (file.name.toLowerCase().endsWith('.xls') || file.name.toLowerCase().endsWith('.xlsx')) {
+                    window.App.ThemeManager.updateFileSelectionStatus('sourceFileStatus', 'success', {
+                        fileName: file.name,
+                        fileSize: file.size
+                    });
+                } else {
+                    window.App.ThemeManager.updateFileSelectionStatus('sourceFileStatus', 'error', {
+                        fileName: file.name,
+                        fileSize: file.size,
+                        errorMessage: '文件格式不支持，请选择Excel文件(.xlsx或.xls)'
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html>

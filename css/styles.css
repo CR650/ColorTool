@@ -2384,3 +2384,277 @@ body {
         font-size: 0.95rem;
     }
 }
+
+/* ========================================
+   文件选择状态指示器样式
+   ======================================== */
+
+/* 文件状态指示器容器 */
+.file-status-indicator {
+    margin-top: 15px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+/* 状态内容布局 */
+.file-status-indicator .status-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* 状态图标 */
+.file-status-indicator .status-icon {
+    font-size: 24px;
+    min-width: 24px;
+    text-align: center;
+}
+
+/* 状态详情 */
+.file-status-indicator .status-details {
+    flex: 1;
+}
+
+/* 状态消息 */
+.file-status-indicator .status-message {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+/* 状态信息 */
+.file-status-indicator .status-info {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.4;
+}
+
+/* 成功状态样式 */
+.file-status-indicator.success {
+    border-color: #28a745;
+    background-color: #d4edda;
+}
+
+.file-status-indicator.success .status-icon {
+    color: #28a745;
+}
+
+.file-status-indicator.success .status-message {
+    color: #155724;
+}
+
+/* 错误状态样式 */
+.file-status-indicator.error {
+    border-color: #dc3545;
+    background-color: #f8d7da;
+}
+
+.file-status-indicator.error .status-icon {
+    color: #dc3545;
+}
+
+.file-status-indicator.error .status-message {
+    color: #721c24;
+}
+
+/* 加载状态样式 */
+.file-status-indicator.loading {
+    border-color: #007bff;
+    background-color: #d1ecf1;
+}
+
+.file-status-indicator.loading .status-icon {
+    color: #007bff;
+    animation: spin 1s linear infinite;
+}
+
+.file-status-indicator.loading .status-message {
+    color: #0c5460;
+}
+
+/* 旋转动画 */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 操作指引样式 */
+.operation-guide {
+    margin-top: 15px;
+    padding: 15px;
+    background-color: #e7f3ff;
+    border: 1px solid #b3d9ff;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.operation-guide h5 {
+    margin: 0 0 10px 0;
+    color: #0056b3;
+    font-size: 16px;
+}
+
+.operation-guide ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.operation-guide li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.operation-guide .highlight {
+    background-color: #fff3cd;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+/* 最终操作指引弹框样式 */
+.final-guide-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+}
+
+.final-guide-modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    position: relative;
+    animation: slideIn 0.3s ease;
+}
+
+.final-guide-modal-header {
+    text-align: center;
+    margin-bottom: 25px;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 15px;
+}
+
+.final-guide-modal-header h3 {
+    margin: 0;
+    color: #28a745;
+    font-size: 24px;
+}
+
+.final-guide-modal-body {
+    line-height: 1.6;
+}
+
+.final-guide-modal-body h4 {
+    color: #495057;
+    margin: 20px 0 10px 0;
+    font-size: 18px;
+}
+
+.final-guide-modal-body p {
+    margin-bottom: 15px;
+    color: #6c757d;
+}
+
+.final-guide-modal-body .step-list {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin: 15px 0;
+}
+
+.final-guide-modal-body .step-list ol {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.final-guide-modal-body .step-list li {
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.final-guide-modal-body .path-highlight {
+    background-color: #fff3cd;
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    color: #856404;
+    display: inline-block;
+    margin: 5px 0;
+}
+
+.final-guide-modal-close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #adb5bd;
+    transition: color 0.2s ease;
+}
+
+.final-guide-modal-close:hover {
+    color: #6c757d;
+}
+
+.final-guide-modal-footer {
+    text-align: center;
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 1px solid #e9ecef;
+}
+
+.final-guide-modal-footer .auto-close-info {
+    color: #6c757d;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+.final-guide-modal-footer button {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s ease;
+}
+
+.final-guide-modal-footer button:hover {
+    background: #218838;
+}
+
+/* 弹框动画 */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}

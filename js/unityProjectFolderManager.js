@@ -25,6 +25,7 @@ window.App.UnityProjectFolderManager = (function() {
             this.ugcThemeHandle = null;
             this.rscLanguageHandle = null;
             this.levelsHandle = null;
+            this.selectedFolderPath = null; // 存储选择的文件夹路径信息
             this.isSupported = 'showDirectoryPicker' in window;
             this.cache = new Map();
             this.maxCacheAge = 5 * 60 * 1000; // 5分钟缓存
@@ -58,6 +59,9 @@ window.App.UnityProjectFolderManager = (function() {
 
                 console.log('文件夹选择成功:', this.directoryHandle.name);
 
+                // 存储文件夹路径信息（用于后续路径显示）
+                this.selectedFolderPath = this.directoryHandle.name;
+
                 // 验证文件夹路径
                 const isValidFolder = await this.validateUnityFolder();
                 if (!isValidFolder) {
@@ -66,10 +70,11 @@ window.App.UnityProjectFolderManager = (function() {
 
                 // 自动定位主题文件
                 const locatedFiles = await this.locateThemeFiles();
-                
+
                 const result = {
                     success: true,
                     directoryPath: this.directoryHandle.name,
+                    selectedFolderPath: this.selectedFolderPath, // 添加路径信息
                     rscThemeFound: !!locatedFiles.rscTheme,
                     ugcThemeFound: !!locatedFiles.ugcTheme,
                     rscLanguageFound: !!locatedFiles.rscLanguage,

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI修改测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-title {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        .code {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        .button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>ColorToolConnectRC UI修改测试</h1>
+    
+    <div class="test-section">
+        <h2 class="test-title">✅ 修改1：移除文件状态栏</h2>
+        <div class="status success">
+            <strong>已完成：</strong>完全删除了页面中显示"文件状态"的UI区域
+        </div>
+        <p><strong>修改内容：</strong></p>
+        <ul>
+            <li>删除了包含源数据文件、RSC_Theme.xls、UGCTheme.xls和对比映射文件状态的整个区块</li>
+            <li>移除了对应的HTML元素：<code>&lt;section class="file-status" id="fileStatus"&gt;</code></li>
+        </ul>
+        <div class="code">
+            删除的HTML区域：
+            &lt;!-- 文件状态信息区域 --&gt;
+            &lt;section class="file-status" id="fileStatus"&gt;
+                &lt;h3&gt;文件状态&lt;/h3&gt;
+                &lt;div class="status-grid"&gt;...&lt;/div&gt;
+            &lt;/section&gt;
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2 class="test-title">✅ 修改2：修改弹窗路径显示</h2>
+        <div class="status success">
+            <strong>已完成：</strong>将动态路径改为固定路径显示
+        </div>
+        <p><strong>修改内容：</strong></p>
+        <ul>
+            <li>移除了基于用户选择文件夹的动态路径生成逻辑</li>
+            <li>设置固定路径：<code>rs_ugc2\RS_UGC_Unity_2021.3.31\Tools</code></li>
+        </ul>
+        <div class="code">
+            修改前：动态路径生成
+            // 获取动态路径信息
+            let toolsPath = '您的Unity项目文件夹\\Tools';
+            if (folderManager && folderManager.selectedFolderPath) {
+                // 复杂的动态路径逻辑...
+            }
+
+            修改后：固定路径
+            // 使用固定路径显示
+            const toolsPath = 'rs_ugc2\\RS_UGC_Unity_2021.3.31\\Tools';
+        </div>
+        <button class="button" onclick="testFinalModal()">测试最终操作指引弹窗</button>
+    </div>
+
+    <div class="test-section">
+        <h2 class="test-title">✅ 修改3：移除右侧信息区域</h2>
+        <div class="status success">
+            <strong>已完成：</strong>删除了所有文件选择状态指示器
+        </div>
+        <p><strong>修改内容：</strong></p>
+        <ul>
+            <li>移除了源数据文件选择状态指示器</li>
+            <li>移除了文件夹选择状态指示器</li>
+            <li>移除了RSC文件选择状态指示器</li>
+            <li>移除了UGC文件选择状态指示器</li>
+            <li>修改了<code>updateFileSelectionStatus</code>函数，静默处理不存在的元素</li>
+        </ul>
+        <div class="code">
+            删除的HTML元素：
+            &lt;div class="file-status-indicator" id="sourceFileStatus"&gt;
+            &lt;div class="file-status-indicator" id="folderSelectionStatus"&gt;
+            &lt;div class="file-status-indicator" id="rscFileStatus"&gt;
+            &lt;div class="file-status-indicator" id="ugcFileStatus"&gt;
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2 class="test-title">🔧 兼容性处理</h2>
+        <div class="status info">
+            <strong>已处理：</strong>确保核心功能不受影响
+        </div>
+        <p><strong>兼容性措施：</strong></p>
+        <ul>
+            <li>修改了<code>updateFileSelectionStatus</code>函数，当状态指示器元素不存在时静默处理</li>
+            <li>保留了所有状态更新的函数调用，避免JavaScript错误</li>
+            <li>核心的文件处理、主题管理功能完全不受影响</li>
+        </ul>
+        <div class="code">
+            兼容性代码：
+            function updateFileSelectionStatus(statusId, type, messageOrOptions, info = '') {
+                const statusElement = document.getElementById(statusId);
+                if (!statusElement) {
+                    // 静默处理，不显示警告（因为某些状态指示器可能已被移除）
+                    return;
+                }
+                // ... 其他逻辑
+            }
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2 class="test-title">📋 修改总结</h2>
+        <div class="status success">
+            <strong>所有修改已完成！</strong>
+        </div>
+        <p><strong>修改效果：</strong></p>
+        <ol>
+            <li>✅ 页面更加简洁，移除了冗余的状态显示区域</li>
+            <li>✅ 最终操作指引显示固定的具体路径，更加明确</li>
+            <li>✅ 右侧不再显示文件选择状态信息，界面更清爽</li>
+            <li>✅ 核心功能完全保留，不影响正常使用</li>
+        </ol>
+        <div class="warning">
+            <strong>注意：</strong>虽然移除了状态显示，但所有文件处理逻辑和功能都保持完整。
+        </div>
+    </div>
+
+    <script>
+        function testFinalModal() {
+            alert('最终操作指引弹窗将显示固定路径：\n\nrs_ugc2\\RS_UGC_Unity_2021.3.31\\Tools\n\n这个路径不再根据用户选择的文件夹动态生成。');
+        }
+        
+        // 页面加载完成提示
+        window.addEventListener('load', function() {
+            console.log('UI修改测试页面加载完成');
+            console.log('所有三项UI修改已成功实施：');
+            console.log('1. ✅ 移除文件状态栏');
+            console.log('2. ✅ 修改弹窗路径显示为固定路径');
+            console.log('3. ✅ 移除右侧信息区域（文件选择状态指示器）');
+        });
+    </script>
+</body>
+</html>

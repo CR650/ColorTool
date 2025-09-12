@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>源数据文件选择结果显示测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-title {
+            color: #333;
+            border-bottom: 2px solid #28a745;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .code {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        .demo-container {
+            border: 2px dashed #28a745;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            background-color: #f8fff8;
+        }
+        .demo-result {
+            margin-top: 15px;
+            padding: 15px;
+            border: 1px solid #28a745;
+            border-radius: 5px;
+            background-color: #d4edda;
+        }
+        .demo-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .demo-label {
+            font-weight: bold;
+            color: #155724;
+        }
+        .demo-value {
+            color: #155724;
+        }
+        .feature-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .feature-list li:before {
+            content: "✅ ";
+            color: #28a745;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>源数据文件选择结果显示功能测试</h1>
+    
+    <div class="test-section">
+        <h2 class="test-title">📋 功能概述</h2>
+        <div class="status success">
+            <strong>已实现：</strong>在源数据文件选择区域添加了文件选择结果显示功能
+        </div>
+        
+        <h3>实现的功能特性：</h3>
+        <ul class="feature-list">
+            <li>文件选择成功后自动显示选择结果</li>
+            <li>显示文件名、文件大小、选择时间和数据行数</li>
+            <li>使用绿色背景表示成功状态</li>
+            <li>默认隐藏，选择文件后自动显示</li>
+            <li>错误时自动隐藏结果显示</li>
+            <li>重置时清除显示内容</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2 class="test-title">🎨 UI设计展示</h2>
+        <p><strong>以下是文件选择成功后的显示效果预览：</strong></p>
+        
+        <div class="demo-container">
+            <h4>选择源数据文件</h4>
+            <p>包含完整配色表的Excel文件 (.xlsx, .xls)</p>
+            <button style="background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px;">
+                选择源数据文件
+            </button>
+            
+            <!-- 模拟的文件选择结果显示 -->
+            <div class="demo-result">
+                <h5>✅ 源数据文件选择成功</h5>
+                <div class="demo-grid">
+                    <span class="demo-label">文件名:</span>
+                    <span class="demo-value">颜色配置表.xlsx</span>
+                    <span class="demo-label">文件大小:</span>
+                    <span class="demo-value">45.67 KB</span>
+                    <span class="demo-label">选择时间:</span>
+                    <span class="demo-value">2025/09/12 16:45:23</span>
+                    <span class="demo-label">数据行数:</span>
+                    <span class="demo-value">128 行</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2 class="test-title">🔧 技术实现</h2>
+        
+        <h3>1. HTML结构添加</h3>
+        <div class="code">
+&lt;!-- 源数据文件选择结果显示 --&gt;
+&lt;div id="sourceFileSelectionResult" style="display: none; margin-top: 15px; padding: 15px; border: 1px solid #28a745; border-radius: 5px; background-color: #d4edda;"&gt;
+    &lt;div class="result-summary"&gt;
+        &lt;h5&gt;✅ 源数据文件选择成功&lt;/h5&gt;
+        &lt;div class="file-status-grid" style="display: grid; grid-template-columns: auto 1fr; gap: 10px; margin-top: 10px;"&gt;
+            &lt;span class="status-label"&gt;文件名:&lt;/span&gt;
+            &lt;span class="status-value" id="sourceFileName"&gt;-&lt;/span&gt;
+            &lt;!-- 其他字段... --&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+        </div>
+
+        <h3>2. JavaScript功能函数</h3>
+        <div class="code">
+// 更新源数据文件选择结果显示
+function updateSourceFileSelectionResult(file, sourceData) {
+    const resultContainer = document.getElementById('sourceFileSelectionResult');
+    // 更新文件信息
+    document.getElementById('sourceFileName').textContent = file.name;
+    document.getElementById('sourceFileSize').textContent = formatFileSize(file.size);
+    document.getElementById('sourceFileTime').textContent = getCurrentTimeString();
+    document.getElementById('sourceFileRows').textContent = `${sourceData.data.length} 行`;
+    // 显示结果容器
+    resultContainer.style.display = 'block';
+}
+
+// 隐藏源数据文件选择结果显示
+function hideSourceFileSelectionResult() {
+    const resultContainer = document.getElementById('sourceFileSelectionResult');
+    if (resultContainer) {
+        resultContainer.style.display = 'none';
+    }
+}
+        </div>
+
+        <h3>3. 错误处理集成</h3>
+        <div class="code">
+// 在所有错误处理函数中添加
+hideSourceFileSelectionResult();
+
+// 在重置函数中添加
+function reset() {
+    // ... 其他重置逻辑
+    hideSourceFileSelectionResult();
+}
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2 class="test-title">📊 功能流程</h2>
+        <div class="status info">
+            <strong>完整的功能流程：</strong>
+        </div>
+        
+        <ol>
+            <li><strong>用户选择文件</strong> → 触发文件处理逻辑</li>
+            <li><strong>文件验证</strong> → 检查格式和大小</li>
+            <li><strong>文件解析</strong> → 读取Excel数据</li>
+            <li><strong>成功处理</strong> → 调用 <code>updateSourceFileSelectionResult()</code></li>
+            <li><strong>显示结果</strong> → 展示文件信息和数据统计</li>
+            <li><strong>错误处理</strong> → 调用 <code>hideSourceFileSelectionResult()</code></li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2 class="test-title">✅ 兼容性保证</h2>
+        <div class="status success">
+            <strong>完全兼容现有系统</strong>
+        </div>
+        
+        <ul>
+            <li>保留了原有的状态管理系统调用</li>
+            <li>新增功能不影响现有的错误处理逻辑</li>
+            <li>使用与其他文件选择区域一致的样式</li>
+            <li>响应式设计，支持移动端显示</li>
+            <li>与项目整体UI风格保持一致</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2 class="test-title">🎯 测试建议</h2>
+        <div class="status info">
+            <strong>建议测试以下场景：</strong>
+        </div>
+        
+        <ol>
+            <li>选择有效的Excel文件 (.xlsx, .xls)</li>
+            <li>选择无效格式的文件</li>
+            <li>选择过大的文件 (>10MB)</li>
+            <li>选择损坏的Excel文件</li>
+            <li>重复选择不同文件</li>
+            <li>使用重置功能</li>
+        </ol>
+        
+        <p><strong>预期结果：</strong>成功时显示绿色结果框，失败时隐藏结果框并显示错误信息。</p>
+    </div>
+
+    <script>
+        console.log('源数据文件选择结果显示功能测试页面加载完成');
+        console.log('功能特性：');
+        console.log('✅ HTML结构已添加到源数据文件选择区域');
+        console.log('✅ JavaScript函数已实现文件信息显示');
+        console.log('✅ 错误处理已集成隐藏逻辑');
+        console.log('✅ 重置功能已包含清除显示');
+        console.log('✅ 使用绿色主题表示成功状态');
+        console.log('✅ 显示文件名、大小、时间、行数等信息');
+    </script>
+</body>
+</html>

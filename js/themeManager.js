@@ -91,8 +91,8 @@ window.App.ThemeManager = (function() {
         folderUploadArea = document.getElementById('folderUploadArea');
         folderSelectionResult = document.getElementById('folderSelectionResult');
         selectedFolderPath = document.getElementById('selectedFolderPath');
-        rscFileStatus = document.getElementById('rscFileStatus');
-        ugcFileStatus = document.getElementById('ugcFileStatus');
+        rscFileStatus = document.getElementById('folderRscFileStatus');
+        ugcFileStatus = document.getElementById('folderUgcFileStatus');
 
         // 获取Sheet选择器相关DOM元素
         sheetSelectorSection = document.getElementById('sheetSelectorSection');
@@ -1726,7 +1726,10 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
      */
     function setSourceData(data) {
         sourceData = data;
-        updateFileStatus('sourceFileStatus', `已选择: ${data.fileName}`, 'success');
+
+        // 使用新的文件选择状态更新函数，保持与其他文件选择的一致性
+        const fileInfo = `文件名: ${data.fileName} | 大小: ${formatFileSize(data.fileSize || 0)} | 选择时间: ${getCurrentTimeString()}`;
+        updateFileSelectionStatus('sourceFileStatus', 'success', '源数据文件选择成功', fileInfo);
 
         // 调试：输出源数据结构
         console.log('源数据加载完成:', {
@@ -3193,35 +3196,45 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             return null;
         }
 
-        // 查找notes列，通常包含主题名称
-        const headerRow = sheetData[0];
-        const notesColumnIndex = headerRow.findIndex(col =>
-            col === 'notes' ||
-            col === 'Notes' ||
-            col === 'note' ||
-            col.toLowerCase().includes('note')
-        );
-
-        if (notesColumnIndex === -1) {
-            console.warn('找不到notes列，无法查找基础主题的多语言ID');
+        // 检查RSC数据是否可用
+        if (!rscAllSheetsData || !rscAllSheetsData['Color']) {
+            console.warn('RSC_Theme Color数据未加载，无法查找基础主题的多语言ID');
             return null;
         }
 
-        // 遍历数据行，查找匹配的主题
-        for (let i = 1; i < sheetData.length; i++) {
-            const row = sheetData[i];
-            const notesValue = row[notesColumnIndex];
+        // 第一步：在RSC_Theme的Color表中找到基础主题的行索引
+        const rscColorData = rscAllSheetsData['Color'];
+        const rscHeaderRow = rscColorData[0];
+        const rscNotesColumnIndex = rscHeaderRow.findIndex(col => col === 'notes');
 
-            if (notesValue && notesValue.toString().trim() === baseThemeName.trim()) {
-                const multiLangId = row[levelNameColumnIndex];
-                if (multiLangId) {
-                    console.log(`找到基础主题 "${baseThemeName}" 的多语言ID: ${multiLangId}`);
-                    return multiLangId.toString();
-                }
+        if (rscNotesColumnIndex === -1) {
+            console.warn('RSC_Theme Color表中找不到notes列，无法查找基础主题的多语言ID');
+            return null;
+        }
+
+        // 查找基础主题在RSC中的行索引
+        const rscThemeRowIndex = rscColorData.findIndex((row, index) =>
+            index > 0 && row[rscNotesColumnIndex] === baseThemeName.trim()
+        );
+
+        if (rscThemeRowIndex === -1) {
+            console.warn(`在RSC_Theme Color表中未找到基础主题 "${baseThemeName}"`);
+            return null;
+        }
+
+        console.log(`在RSC_Theme Color表中找到基础主题 "${baseThemeName}"，行索引: ${rscThemeRowIndex}`);
+
+        // 第二步：使用行索引在UGCTheme目标表中获取对应行的多语言ID
+        if (rscThemeRowIndex < sheetData.length) {
+            const targetRow = sheetData[rscThemeRowIndex];
+            const multiLangId = targetRow[levelNameColumnIndex];
+            if (multiLangId) {
+                console.log(`找到基础主题 "${baseThemeName}" 的多语言ID: ${multiLangId} (行索引: ${rscThemeRowIndex})`);
+                return multiLangId.toString();
             }
         }
 
-        console.warn(`未找到基础主题 "${baseThemeName}" 的多语言ID`);
+        console.warn(`未找到基础主题 "${baseThemeName}" 的多语言ID (行索引: ${rscThemeRowIndex})`);
         return null;
     }
 
@@ -3233,36 +3246,453 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             return null;
         }
 
-        // 查找notes列，通常包含主题名称
-        const headerRow = sheetData[0];
-        const notesColumnIndex = headerRow.findIndex(col =>
-            col === 'notes' ||
-            col === 'Notes' ||
-            col === 'note' ||
-            col.toLowerCase().includes('note')
-        );
-
-        if (notesColumnIndex === -1) {
-            console.warn('找不到notes列，无法查找基础主题的Level_id');
+        // 检查RSC数据是否可用
+        if (!rscAllSheetsData || !rscAllSheetsData['Color']) {
+            console.warn('RSC_Theme Color数据未加载，无法查找基础主题的Level_id');
             return null;
         }
 
-        // 遍历数据行，查找匹配的主题
-        for (let i = 1; i < sheetData.length; i++) {
-            const row = sheetData[i];
-            const notesValue = row[notesColumnIndex];
+        // 第一步：在RSC_Theme的Color表中找到基础主题的行索引
+        const rscColorData = rscAllSheetsData['Color'];
+        const rscHeaderRow = rscColorData[0];
+        const rscNotesColumnIndex = rscHeaderRow.findIndex(col => col === 'notes');
 
-            if (notesValue && notesValue.toString().trim() === baseThemeName.trim()) {
-                const levelId = row[levelIdColumnIndex];
-                if (levelId) {
-                    console.log(`找到基础主题 "${baseThemeName}" 的Level_id: ${levelId}`);
-                    return levelId.toString();
+        if (rscNotesColumnIndex === -1) {
+            console.warn('RSC_Theme Color表中找不到notes列，无法查找基础主题的Level_id');
+            return null;
+        }
+
+        // 查找基础主题在RSC中的行索引
+        const rscThemeRowIndex = rscColorData.findIndex((row, index) =>
+            index > 0 && row[rscNotesColumnIndex] === baseThemeName.trim()
+        );
+
+        if (rscThemeRowIndex === -1) {
+            console.warn(`在RSC_Theme Color表中未找到基础主题 "${baseThemeName}"`);
+            return null;
+        }
+
+        console.log(`在RSC_Theme Color表中找到基础主题 "${baseThemeName}"，行索引: ${rscThemeRowIndex}`);
+
+        // 第二步：使用行索引在UGCTheme目标表中获取对应行的Level_id
+        if (rscThemeRowIndex < sheetData.length) {
+            const targetRow = sheetData[rscThemeRowIndex];
+            const levelId = targetRow[levelIdColumnIndex];
+            if (levelId) {
+                console.log(`找到基础主题 "${baseThemeName}" 的Level_id: ${levelId} (行索引: ${rscThemeRowIndex})`);
+                return levelId.toString();
+            }
+        }
+
+        console.warn(`未找到基础主题 "${baseThemeName}" 的Level_id (行索引: ${rscThemeRowIndex})`);
+        return null;
+    }
+
+    /**
+     * 从现有主题数据中查找Level_show_bg_ID
+     */
+    function findLevelShowBgIdFromExistingTheme(baseThemeName, sheetData, levelShowBgIdColumnIndex) {
+        if (!baseThemeName || !sheetData || levelShowBgIdColumnIndex === -1) {
+            return null;
+        }
+
+        // 检查RSC数据是否可用
+        if (!rscAllSheetsData || !rscAllSheetsData['Color']) {
+            console.warn('RSC_Theme Color数据未加载，无法查找基础主题的Level_show_bg_ID');
+            return null;
+        }
+
+        // 第一步：在RSC_Theme的Color表中找到基础主题的行索引
+        const rscColorData = rscAllSheetsData['Color'];
+        const rscHeaderRow = rscColorData[0];
+        const rscNotesColumnIndex = rscHeaderRow.findIndex(col => col === 'notes');
+
+        if (rscNotesColumnIndex === -1) {
+            console.warn('RSC_Theme Color表中找不到notes列，无法查找基础主题的Level_show_bg_ID');
+            return null;
+        }
+
+        // 查找基础主题在RSC中的行索引
+        const rscThemeRowIndex = rscColorData.findIndex((row, index) =>
+            index > 0 && row[rscNotesColumnIndex] === baseThemeName.trim()
+        );
+
+        if (rscThemeRowIndex === -1) {
+            console.warn(`在RSC_Theme Color表中未找到基础主题 "${baseThemeName}"`);
+            return null;
+        }
+
+        console.log(`在RSC_Theme Color表中找到基础主题 "${baseThemeName}"，行索引: ${rscThemeRowIndex}`);
+
+        // 第二步：使用行索引在UGCTheme目标表中获取对应行的Level_show_bg_ID
+        if (rscThemeRowIndex < sheetData.length) {
+            const targetRow = sheetData[rscThemeRowIndex];
+            const levelShowBgId = targetRow[levelShowBgIdColumnIndex];
+            if (levelShowBgId !== undefined && levelShowBgId !== null) {
+                console.log(`找到基础主题 "${baseThemeName}" 的Level_show_bg_ID: ${levelShowBgId} (行索引: ${rscThemeRowIndex})`);
+                return levelShowBgId.toString();
+            }
+        }
+
+        console.warn(`未找到基础主题 "${baseThemeName}" 的Level_show_bg_ID (行索引: ${rscThemeRowIndex})`);
+        return null;
+    }
+
+    /**
+     * 查找同系列主题的最后一个主题ID
+     */
+    function findLastSimilarThemeId(baseThemeName, sheetData, idColumnIndex) {
+        if (!baseThemeName || !sheetData || idColumnIndex === -1) {
+            return null;
+        }
+
+        // 检查RSC数据是否可用
+        if (!rscAllSheetsData || !rscAllSheetsData['Color']) {
+            console.warn('RSC_Theme Color数据未加载，无法查找同系列主题ID');
+            return null;
+        }
+
+        // 提取基础主题名称（去除数字）
+        const baseName = extractThemeBaseName(baseThemeName);
+        if (!baseName) {
+            console.warn(`无法提取基础主题名称: ${baseThemeName}`);
+            return null;
+        }
+
+        console.log(`查找同系列主题，基础名称: "${baseName}"`);
+
+        // 在RSC_Theme Color表中查找所有同系列主题
+        const rscColorData = rscAllSheetsData['Color'];
+        const rscHeaderRow = rscColorData[0];
+        const rscNotesColumnIndex = rscHeaderRow.findIndex(col => col === 'notes');
+
+        if (rscNotesColumnIndex === -1) {
+            console.warn('RSC_Theme Color表中找不到notes列');
+            return null;
+        }
+
+        const similarThemes = [];
+        for (let i = 1; i < rscColorData.length; i++) {
+            const row = rscColorData[i];
+            const themeName = row[rscNotesColumnIndex];
+            if (themeName && extractThemeBaseName(themeName) === baseName) {
+                // 获取对应的UGC主题ID
+                if (i < sheetData.length) {
+                    const ugcRow = sheetData[i];
+                    const themeId = parseInt(ugcRow[idColumnIndex]) || 0;
+                    if (themeId > 0) {
+                        similarThemes.push({
+                            name: themeName,
+                            id: themeId,
+                            rscIndex: i,
+                            ugcIndex: i
+                        });
+                    }
                 }
             }
         }
 
-        console.warn(`未找到基础主题 "${baseThemeName}" 的Level_id`);
-        return null;
+        if (similarThemes.length === 0) {
+            console.log(`未找到同系列主题: ${baseName}`);
+            return null;
+        }
+
+        // 按ID排序，找到最大的ID（最后一个主题）
+        similarThemes.sort((a, b) => a.id - b.id);
+        const lastTheme = similarThemes[similarThemes.length - 1];
+
+        console.log(`找到 ${similarThemes.length} 个同系列主题:`, similarThemes.map(t => `${t.name}(ID:${t.id})`));
+        console.log(`最后一个同系列主题: ${lastTheme.name} (ID: ${lastTheme.id})`);
+
+        return lastTheme.id;
+    }
+
+    /**
+     * 执行同系列主题的排序插入操作
+     */
+    function performSortedInsertion(data, headerRow, newThemeId, targetLevelShowId, themeName) {
+        console.log('=== 开始执行排序插入操作 ===');
+        console.log(`新主题ID: ${newThemeId}, 目标Level_show_id: ${targetLevelShowId}, 主题名称: ${themeName}`);
+
+        // 查找Level_show_id列和M列的索引
+        const levelShowIdColumnIndex = headerRow.findIndex(col => col === 'Level_show_id');
+        const mColumnIndex = 12; // M列固定为索引12
+
+        if (levelShowIdColumnIndex === -1) {
+            console.error('未找到Level_show_id列，无法执行排序插入');
+            return { success: false, error: '未找到Level_show_id列' };
+        }
+
+        console.log(`Level_show_id列索引: ${levelShowIdColumnIndex}, M列索引: ${mColumnIndex}`);
+
+        // 查找目标Level_show_id值对应的行（从第6行开始查找）
+        let targetRowIndex = -1;
+        for (let i = 5; i < data.length; i++) { // 从第6行开始（索引5，跳过前5行）
+            const row = data[i];
+            const levelShowIdValue = parseInt(row[levelShowIdColumnIndex]) || 0;
+            if (levelShowIdValue === targetLevelShowId) {
+                targetRowIndex = i;
+                break;
+            }
+        }
+
+        console.log(`在Custom_Ground_Color中从第6行开始查找Level_show_id=${targetLevelShowId}`);
+
+        if (targetRowIndex === -1) {
+            console.warn(`未找到Level_show_id值为 ${targetLevelShowId} 的行，排序插入操作取消`);
+            return { success: false, error: `未找到Level_show_id值为 ${targetLevelShowId} 的行` };
+        }
+
+        console.log(`找到目标插入位置: 行索引 ${targetRowIndex} (Level_show_id=${targetLevelShowId})`);
+
+        // 执行数据下移操作：将目标行以下的所有行的Level_show_id和M列数据向下移动
+        const movedRows = [];
+
+        // 从最后一行开始向前处理，避免数据覆盖
+        for (let i = data.length - 1; i > targetRowIndex; i--) {
+            const currentRow = data[i];
+            const prevRow = data[i - 1];
+
+            const oldLevelShowId = currentRow[levelShowIdColumnIndex];
+            const oldMValue = currentRow[mColumnIndex];
+
+            // 将上一行的Level_show_id和M列数据复制到当前行
+            currentRow[levelShowIdColumnIndex] = prevRow[levelShowIdColumnIndex];
+            currentRow[mColumnIndex] = prevRow[mColumnIndex];
+
+            movedRows.push({
+                rowIndex: i,
+                oldLevelShowId: oldLevelShowId,
+                oldMValue: oldMValue,
+                newLevelShowId: currentRow[levelShowIdColumnIndex],
+                newMValue: currentRow[mColumnIndex]
+            });
+        }
+
+        console.log(`数据下移完成，影响 ${movedRows.length} 行:`, movedRows);
+
+        // 在目标行的下一行插入新主题数据
+        const insertRowIndex = targetRowIndex + 1;
+        if (insertRowIndex < data.length) {
+            const insertRow = data[insertRowIndex];
+            insertRow[levelShowIdColumnIndex] = (newThemeId - 1).toString();
+            insertRow[mColumnIndex] = themeName;
+
+            console.log(`新主题数据已插入到行索引 ${insertRowIndex}:`);
+            console.log(`  Level_show_id: ${insertRow[levelShowIdColumnIndex]}`);
+            console.log(`  M列: ${insertRow[mColumnIndex]}`);
+        } else {
+            console.error(`插入位置 ${insertRowIndex} 超出数据范围`);
+            return { success: false, error: '插入位置超出数据范围' };
+        }
+
+        console.log('=== 排序插入操作完成 ===');
+        return {
+            success: true,
+            targetRowIndex: targetRowIndex,
+            insertRowIndex: insertRowIndex,
+            movedRowsCount: movedRows.length,
+            newLevelShowId: newThemeId - 1
+        };
+    }
+
+    /**
+     * 更新文件选择状态显示
+     * @param {string} statusId - 状态指示器的ID
+     * @param {string} type - 状态类型：'success', 'error', 'loading'
+     * @param {string|object} messageOrOptions - 状态消息或选项对象
+     * @param {string} info - 详细信息（可选，用于向后兼容）
+     */
+    function updateFileSelectionStatus(statusId, type, messageOrOptions, info = '') {
+        const statusElement = document.getElementById(statusId);
+        if (!statusElement) {
+            // 静默处理，不显示警告（因为某些状态指示器可能已被移除）
+            return;
+        }
+
+        // 处理参数格式：支持新格式（对象）和旧格式（字符串）
+        let message, fileName, fileSize, errorMessage;
+
+        if (typeof messageOrOptions === 'object' && messageOrOptions !== null) {
+            // 新格式：options对象
+            fileName = messageOrOptions.fileName;
+            fileSize = messageOrOptions.fileSize;
+            errorMessage = messageOrOptions.errorMessage;
+
+            // 根据状态类型生成消息
+            const currentTime = getCurrentTimeString();
+            switch (type) {
+                case 'success':
+                    message = `✅ ${fileName} (${formatFileSize(fileSize)}) - 选择于 ${currentTime}`;
+                    break;
+                case 'error':
+                    message = `❌ ${fileName} - ${errorMessage}`;
+                    break;
+                case 'loading':
+                    message = `⏳ 正在处理 ${fileName} (${formatFileSize(fileSize)})...`;
+                    break;
+                default:
+                    message = '未选择文件';
+            }
+        } else {
+            // 旧格式：字符串消息
+            message = messageOrOptions || '';
+        }
+
+        // 显示状态指示器
+        statusElement.style.display = 'block';
+
+        // 清除之前的状态类
+        statusElement.classList.remove('success', 'error', 'loading');
+
+        // 添加新的状态类
+        statusElement.classList.add(type);
+
+        // 设置状态图标和消息
+        const statusIcon = statusElement.querySelector('.status-icon');
+        const statusMessage = statusElement.querySelector('.status-message');
+        const statusInfo = statusElement.querySelector('.status-info');
+
+        if (statusIcon) {
+            switch (type) {
+                case 'success':
+                    statusIcon.textContent = '✅';
+                    break;
+                case 'error':
+                    statusIcon.textContent = '❌';
+                    break;
+                case 'loading':
+                    statusIcon.textContent = '⏳';
+                    break;
+                default:
+                    statusIcon.textContent = 'ℹ️';
+            }
+        }
+
+        if (statusMessage) {
+            statusMessage.textContent = message;
+        }
+
+        if (statusInfo) {
+            statusInfo.textContent = info;
+        }
+
+        console.log(`文件选择状态已更新: ${statusId} - ${type} - ${message}`);
+    }
+
+    /**
+     * 隐藏文件选择状态显示
+     * @param {string} statusId - 状态指示器的ID
+     */
+    function hideFileSelectionStatus(statusId) {
+        const statusElement = document.getElementById(statusId);
+        if (statusElement) {
+            statusElement.style.display = 'none';
+            statusElement.classList.remove('success', 'error', 'loading');
+        }
+    }
+
+    /**
+     * 格式化文件大小
+     * @param {number} bytes - 文件大小（字节）
+     * @returns {string} 格式化后的文件大小
+     */
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    /**
+     * 获取当前时间字符串
+     * @returns {string} 格式化的时间字符串
+     */
+    function getCurrentTimeString() {
+        const now = new Date();
+        return now.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    }
+
+    /**
+     * 显示最终操作指引弹框
+     */
+    function showFinalGuideModal() {
+        const modal = document.getElementById('finalGuideModal');
+        if (!modal) {
+            console.error('最终操作指引弹框元素未找到');
+            return;
+        }
+
+        // 使用固定路径显示
+        const toolsPath = 'rs_ugc2\\RS_UGC_Unity_2021.3.31\\Tools';
+
+        // 更新弹框中的路径信息
+        const pathElement = document.getElementById('toolsPathDisplay');
+        if (pathElement) {
+            pathElement.textContent = toolsPath;
+        }
+
+        // 显示弹框
+        modal.style.display = 'flex';
+
+        // 移除自动关闭功能，隐藏倒计时元素
+        const countdownElement = document.getElementById('autoCloseCountdown');
+        if (countdownElement) {
+            countdownElement.style.display = 'none';
+        }
+
+        // 绑定关闭事件（仅在用户点击按钮时关闭）
+        const closeBtn = document.getElementById('closeFinalGuideModal');
+        const okBtn = document.getElementById('finalGuideOkBtn');
+
+        const closeHandler = () => {
+            hideFinalGuideModal();
+        };
+
+        if (closeBtn) {
+            closeBtn.onclick = closeHandler;
+        }
+
+        if (okBtn) {
+            okBtn.onclick = closeHandler;
+        }
+
+        // 点击背景关闭
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                closeHandler();
+            }
+        };
+
+        console.log('最终操作指引弹框已显示，Tools路径:', toolsPath);
+    }
+
+    /**
+     * 隐藏最终操作指引弹框
+     */
+    function hideFinalGuideModal() {
+        const modal = document.getElementById('finalGuideModal');
+        if (modal) {
+            modal.style.display = 'none';
+
+            // 清除事件监听器
+            const closeBtn = document.getElementById('closeFinalGuideModal');
+            const okBtn = document.getElementById('finalGuideOkBtn');
+
+            if (closeBtn) closeBtn.onclick = null;
+            if (okBtn) okBtn.onclick = null;
+            modal.onclick = null;
+        }
+
+        console.log('最终操作指引弹框已隐藏');
     }
 
     /**
@@ -3720,10 +4150,34 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                     console.warn(`Sheet ${sheetName} 中找不到LevelName相关列`);
                 }
 
-                // 通过列名查找索引并设置值
+                // 处理Level_show_bg_ID列的智能设置（同系列主题复用）
                 let targetColumnIndex = headerRow.findIndex(col => col === 'Level_show_bg_ID');
                 if (targetColumnIndex !== -1) {
-                    newRow[targetColumnIndex] = "-1"; // 主题对应的HSV背景ID，现在工具里面固定填-1
+                    let finalLevelShowBgId = null;
+                    let levelShowBgIdSource = 'unknown';
+
+                    if (smartConfig.similarity.isSimilar) {
+                        // 同系列主题，复用基础主题的Level_show_bg_ID
+                        const baseLevelShowBgId = findLevelShowBgIdFromExistingTheme(smartConfig.similarity.matchedTheme, data, targetColumnIndex);
+                        if (baseLevelShowBgId) {
+                            finalLevelShowBgId = baseLevelShowBgId;
+                            levelShowBgIdSource = `auto_from_${smartConfig.similarity.matchedTheme}`;
+                            console.log(`Sheet ${sheetName} 同系列主题，复用基础主题 "${smartConfig.similarity.matchedTheme}" 的Level_show_bg_ID: ${finalLevelShowBgId}`);
+                        } else {
+                            // 找不到基础主题的Level_show_bg_ID，使用默认值
+                            finalLevelShowBgId = "-1";
+                            levelShowBgIdSource = 'default_fallback';
+                            console.log(`Sheet ${sheetName} 无法找到基础主题的Level_show_bg_ID，使用默认值: ${finalLevelShowBgId}`);
+                        }
+                    } else {
+                        // 全新主题系列，使用默认值
+                        finalLevelShowBgId = "-1";
+                        levelShowBgIdSource = 'default_new_series';
+                        console.log(`Sheet ${sheetName} 全新主题系列，使用默认Level_show_bg_ID: ${finalLevelShowBgId}`);
+                    }
+
+                    newRow[targetColumnIndex] = finalLevelShowBgId;
+                    console.log(`Sheet ${sheetName} 最终设置Level_show_bg_ID: ${finalLevelShowBgId} (来源: ${levelShowBgIdSource})`);
                 }else{
                     console.warn(`在${sheetName}中找不到Level_show_bg_ID列`);
                 }
@@ -3794,10 +4248,61 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 // 处理UGC特定字段设置
                 applyUGCFieldSettings(sheetName, headerRow, newRow);
 
+                // 设置L列和M列的主题名称
+                const lColumnIndex = 11; // L列通常是第12列（索引11）
+                const mColumnIndex = 12; // M列通常是第13列（索引12）
+
+                if (lColumnIndex < newRow.length) {
+                    newRow[lColumnIndex] = themeName;
+                    console.log(`Sheet ${sheetName} 设置L列(索引${lColumnIndex})主题名称: ${themeName}`);
+                } else {
+                    console.warn(`Sheet ${sheetName} L列索引${lColumnIndex}超出范围，当前行长度: ${newRow.length}`);
+                }
+
+                if (mColumnIndex < newRow.length) {
+                    newRow[mColumnIndex] = themeName;
+                    console.log(`Sheet ${sheetName} 设置M列(索引${mColumnIndex})主题名称: ${themeName}`);
+                } else {
+                    console.warn(`Sheet ${sheetName} M列索引${mColumnIndex}超出范围，当前行长度: ${newRow.length}`);
+                }
+
                 console.log(`Sheet ${sheetName} 新行:`, newRow);
 
-                // 添加新行到数据
-                data.push(newRow);
+                // 同系列主题排序插入功能（仅针对Custom_Ground_Color工作表）
+                if (sheetName === 'Custom_Ground_Color' && smartConfig.similarity.isSimilar) {
+                    console.log('=== 检测到同系列主题，开始排序插入处理 ===');
+
+                    // 查找同系列最后主题的ID
+                    const lastSimilarThemeId = findLastSimilarThemeId(smartConfig.similarity.matchedTheme, data, idColumnIndex);
+
+                    if (lastSimilarThemeId) {
+                        // 计算目标Level_show_id值
+                        const targetLevelShowId = lastSimilarThemeId - 1;
+                        console.log(`同系列最后主题ID: ${lastSimilarThemeId}, 目标Level_show_id: ${targetLevelShowId}`);
+
+                        // 添加新行到数据（先添加，再进行排序插入）
+                        data.push(newRow);
+
+                        // 执行排序插入操作
+                        const sortResult = performSortedInsertion(data, headerRow, newId, targetLevelShowId, themeName);
+
+                        if (sortResult.success) {
+                            console.log(`✅ 排序插入成功: 新主题 "${themeName}" 已插入到合适位置`);
+                            console.log(`插入详情: 目标行=${sortResult.targetRowIndex}, 插入行=${sortResult.insertRowIndex}, 影响行数=${sortResult.movedRowsCount}`);
+                        } else {
+                            console.warn(`⚠️ 排序插入失败: ${sortResult.error}，使用默认添加方式`);
+                        }
+                    } else {
+                        console.log('未找到同系列最后主题ID，使用默认添加方式');
+                        // 添加新行到数据
+                        data.push(newRow);
+                    }
+                } else {
+                    // 非Custom_Ground_Color工作表或非同系列主题，使用默认添加方式
+                    console.log(`Sheet ${sheetName}: 使用默认添加方式 (同系列: ${smartConfig.similarity.isSimilar})`);
+                    // 添加新行到数据
+                    data.push(newRow);
+                }
 
                 // 更新worksheet
                 const newWorksheet = XLSX.utils.aoa_to_sheet(data);
@@ -4422,6 +4927,12 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
                         const message = ugcMessage ? `RSC_Theme文件保存成功，${ugcMessage}` : 'RSC_Theme文件已成功保存到原位置';
                         App.Utils.showStatus(message, 'success');
+
+                        // 显示最终操作指引弹框
+                        setTimeout(() => {
+                            showFinalGuideModal();
+                        }, 1000); // 延迟1秒显示，让用户看到成功消息
+
                         return;
                     } else if (rscSuccess && !ugcSuccess) {
                         // RSC成功但UGC失败，提供重新选择UGC文件的选项
@@ -4434,6 +4945,11 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                                 const ugcRetryResult = await saveUGCFileDirectly(ugcResult.workbook);
                                 if (ugcRetryResult) {
                                     App.Utils.showStatus('所有文件已成功保存', 'success');
+
+                                    // 显示最终操作指引弹框
+                                    setTimeout(() => {
+                                        showFinalGuideModal();
+                                    }, 1000);
                                 } else {
                                     App.Utils.showStatus('UGCTheme文件仍然保存失败，请检查文件状态', 'error');
                                 }
@@ -4663,6 +5179,11 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 App.Utils.showStatus('RSC文件下载成功', 'success');
             }
 
+            // 显示最终操作指引弹框（下载方式也需要手动操作）
+            setTimeout(() => {
+                showFinalGuideModal();
+            }, 1000);
+
             // 下载完成后刷新数据预览
             console.log('文件下载完成，开始刷新数据预览...');
             refreshDataPreview();
@@ -4675,7 +5196,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
 
     /**
-     * 确认是否直接保存到原文件
+     * 确认是否直接保存到原文件（简化版，仅保留直接保存选项）
      */
     async function confirmDirectSave() {
         return new Promise((resolve) => {
@@ -4688,34 +5209,35 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
             modal.innerHTML = `
                 <div style="background: white; padding: 30px; border-radius: 10px; max-width: 500px; text-align: center;">
-                    <h3>🎯 保存方式选择</h3>
-                    <p><strong>您希望如何保存更新后的文件？</strong></p>
+                    <h3>💾 文件保存确认</h3>
+                    <p><strong>主题数据处理完成，准备保存文件</strong></p>
                     <div style="margin: 20px 0;">
-                        <button id="saveDirectBtn" style="background: #28a745; color: white; border: none; padding: 10px 20px; margin: 5px; border-radius: 5px; cursor: pointer;">
+                        <button id="saveDirectBtn" style="background: #28a745; color: white; border: none; padding: 15px 30px; margin: 10px; border-radius: 8px; cursor: pointer; font-size: 16px;">
                             ✅ 直接保存到原文件
                         </button>
-                        <button id="downloadBtn" style="background: #007bff; color: white; border: none; padding: 10px 20px; margin: 5px; border-radius: 5px; cursor: pointer;">
-                            📥 下载新文件
-                        </button>
                     </div>
-                    <p style="font-size: 12px; color: #666;">
-                        直接保存：立即覆盖原文件（推荐）<br>
-                        下载新文件：传统方式，需要手动替换
+                    <p style="font-size: 14px; color: #666; margin-top: 15px;">
+                        将直接覆盖原文件，无需手动替换<br>
+                        <small>建议在保存前备份重要文件</small>
                     </p>
                 </div>
             `;
 
             document.body.appendChild(modal);
 
+            // 绑定事件
             document.getElementById('saveDirectBtn').onclick = () => {
                 document.body.removeChild(modal);
                 resolve(true);
             };
 
-            document.getElementById('downloadBtn').onclick = () => {
-                document.body.removeChild(modal);
-                resolve(false);
-            };
+            // 点击背景关闭（默认选择直接保存）
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                    resolve(true);
+                }
+            });
         });
     }
 
@@ -5281,11 +5803,15 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 App.Utils.showStatus(`提示：上次选择的文件是 ${lastFileInfo.fileName}`, 'info', 2000);
             }
 
+            // 显示选择中状态
+            updateFileSelectionStatus('rscFileStatus', 'loading', '正在选择RSC_Theme文件...', '请在文件选择器中选择文件');
+
             // 选择RSC_Theme文件并获取写入权限
             const [fileHandle] = await window.showOpenFilePicker(pickerOptions);
 
             // 验证文件格式
             if (!fileHandle.name.toLowerCase().endsWith('.xls')) {
+                updateFileSelectionStatus('rscFileStatus', 'error', '文件格式错误', '请选择.xls格式的RSC_Theme文件以确保Unity工具兼容性');
                 App.Utils.showStatus('请选择.xls格式的RSC_Theme文件以确保Unity工具兼容性', 'error');
                 return false;
             }
@@ -5298,12 +5824,16 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             // 请求写入权限
             const permission = await fileHandle.requestPermission({ mode: 'readwrite' });
             if (permission !== 'granted') {
+                updateFileSelectionStatus('rscFileStatus', 'error', '权限获取失败', '无法获取文件写入权限，请重新选择文件');
                 App.Utils.showStatus('无法获取文件写入权限', 'error');
                 return false;
             }
 
             // 读取文件内容
             const file = await fileHandle.getFile();
+
+            // 显示加载状态
+            updateFileSelectionStatus('rscFileStatus', 'loading', '正在加载文件...', `文件名: ${file.name}, 大小: ${formatFileSize(file.size)}`);
             const arrayBuffer = await file.arrayBuffer();
             const workbook = XLSX.read(arrayBuffer, { type: 'array' });
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -5333,6 +5863,10 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 rscAllSheetsData[sheetName] = sheetData;
             });
 
+            // 显示成功状态
+            const fileInfo = `文件名: ${file.name} | 大小: ${formatFileSize(file.size)} | 选择时间: ${getCurrentTimeString()}`;
+            updateFileSelectionStatus('rscFileStatus', 'success', 'RSC_Theme文件选择成功', fileInfo);
+
             updateFileStatus('rscThemeStatus', `已加载 (支持直接保存): ${file.name}`, 'success');
             App.Utils.showStatus('RSC_Theme文件已加载，支持直接保存到原位置', 'success');
             checkReadyState();
@@ -5340,6 +5874,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             return true;
         } catch (error) {
             console.error('启用直接文件保存失败:', error);
+            updateFileSelectionStatus('rscFileStatus', 'error', '文件加载失败', error.message);
             App.Utils.showStatus('启用直接文件保存失败: ' + error.message, 'error');
             return false;
         }
@@ -5376,11 +5911,15 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 App.Utils.showStatus(`提示：上次选择的文件是 ${lastFileInfo.fileName}`, 'info', 2000);
             }
 
+            // 显示选择中状态
+            updateFileSelectionStatus('ugcFileStatus', 'loading', '正在选择UGCTheme文件...', '请在文件选择器中选择文件');
+
             // 选择UGCTheme文件并获取写入权限
             const [fileHandle] = await window.showOpenFilePicker(pickerOptions);
 
             // 验证文件格式
             if (!fileHandle.name.toLowerCase().endsWith('.xls')) {
+                updateFileSelectionStatus('ugcFileStatus', 'error', '文件格式错误', '请选择.xls格式的UGCTheme文件以确保Unity工具兼容性');
                 App.Utils.showStatus('请选择.xls格式的UGCTheme文件以确保Unity工具兼容性', 'error');
                 return false;
             }
@@ -5393,12 +5932,16 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             // 请求写入权限
             const permission = await fileHandle.requestPermission({ mode: 'readwrite' });
             if (permission !== 'granted') {
+                updateFileSelectionStatus('ugcFileStatus', 'error', '权限获取失败', '无法获取文件写入权限，请重新选择文件');
                 App.Utils.showStatus('无法获取文件写入权限', 'error');
                 return false;
             }
 
             // 读取文件内容
             const file = await fileHandle.getFile();
+
+            // 显示加载状态
+            updateFileSelectionStatus('ugcFileStatus', 'loading', '正在加载文件...', `文件名: ${file.name}, 大小: ${formatFileSize(file.size)}`);
             const arrayBuffer = await file.arrayBuffer();
             const workbook = XLSX.read(arrayBuffer, { type: 'array' });
 
@@ -5423,6 +5966,10 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
             console.log('UGCTheme所有Sheet数据已存储:', Object.keys(ugcAllSheetsData));
 
+            // 显示成功状态
+            const fileInfo = `文件名: ${file.name} | 大小: ${formatFileSize(file.size)} | 选择时间: ${getCurrentTimeString()}`;
+            updateFileSelectionStatus('ugcFileStatus', 'success', 'UGCTheme文件选择成功', fileInfo);
+
             updateFileStatus('ugcThemeStatus', `已加载 (支持直接保存): ${file.name}`, 'success');
             App.Utils.showStatus('UGCTheme文件已加载，支持直接保存到原位置', 'success');
             checkReadyState();
@@ -5430,6 +5977,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             return true;
         } catch (error) {
             console.error('启用UGC直接文件保存失败:', error);
+            updateFileSelectionStatus('ugcFileStatus', 'error', '文件加载失败', error.message);
             App.Utils.showStatus('启用UGC直接文件保存失败: ' + error.message, 'error');
             return false;
         }
@@ -5875,7 +6423,13 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         // 多语言功能
         getMultiLanguageConfig: getMultiLanguageConfig,
         checkMultiLanguageReadiness: checkMultiLanguageReadiness,
-        processRSCLanguage: processRSCLanguage
+        processRSCLanguage: processRSCLanguage,
+
+        // 文件选择状态管理功能
+        updateFileSelectionStatus: updateFileSelectionStatus,
+        hideFileSelectionStatus: hideFileSelectionStatus,
+        formatFileSize: formatFileSize,
+        getCurrentTimeString: getCurrentTimeString
     };
 
 
@@ -6025,6 +6579,11 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
             // 设置文件夹选择模式标志
             folderSelectionActive = true;
+
+            // 存储文件夹路径信息到 folderManager 实例
+            if (folderManager && result.selectedFolderPath) {
+                folderManager.selectedFolderPath = result.selectedFolderPath;
+            }
 
             // 更新UI显示
             updateFolderSelectionUI(result);

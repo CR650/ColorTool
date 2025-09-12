@@ -154,13 +154,45 @@ window.App.FileHandler = (function() {
 
         if (!allowedTypes.includes(file.type) && !file.name.toLowerCase().match(/\.(xlsx|xls)$/)) {
             App.Utils.showStatus('源数据文件必须是Excel格式 (.xlsx, .xls)', 'error');
+
+            // 隐藏文件选择结果显示
+            hideSourceFileSelectionResult();
+
+            // 显示错误状态
+            if (window.App && window.App.ThemeManager && window.App.ThemeManager.updateFileSelectionStatus) {
+                window.App.ThemeManager.updateFileSelectionStatus('sourceFileStatus', 'error', {
+                    fileName: file.name,
+                    fileSize: file.size,
+                    errorMessage: '文件格式不支持，请选择Excel文件(.xlsx或.xls)'
+                });
+            }
             return;
         }
 
         // 验证文件大小
         if (!App.Utils.validateFileSize(file, 10)) {
             App.Utils.showStatus('文件过大！请选择小于10MB的文件', 'error');
+
+            // 隐藏文件选择结果显示
+            hideSourceFileSelectionResult();
+
+            // 显示错误状态
+            if (window.App && window.App.ThemeManager && window.App.ThemeManager.updateFileSelectionStatus) {
+                window.App.ThemeManager.updateFileSelectionStatus('sourceFileStatus', 'error', {
+                    fileName: file.name,
+                    fileSize: file.size,
+                    errorMessage: '文件过大，请选择小于10MB的文件'
+                });
+            }
             return;
+        }
+
+        // 显示加载状态
+        if (window.App && window.App.ThemeManager && window.App.ThemeManager.updateFileSelectionStatus) {
+            window.App.ThemeManager.updateFileSelectionStatus('sourceFileStatus', 'loading', {
+                fileName: file.name,
+                fileSize: file.size
+            });
         }
 
         // 保存文件记忆
@@ -280,6 +312,7 @@ window.App.FileHandler = (function() {
                     headers: headers,
                     data: data,
                     fileName: file.name,
+                    fileSize: file.size, // 添加文件大小信息
                     validation: {
                         hasColorCode,
                         hasColorValue,
@@ -292,23 +325,138 @@ window.App.FileHandler = (function() {
                 if (App.ThemeManager) {
                     App.ThemeManager.setSourceData(sourceData);
                     App.Utils.showStatus('源数据文件读取成功', 'success');
+
+                    // 显示文件选择结果
+                    updateSourceFileSelectionResult(file, sourceData);
+
+                    // 显示成功状态（保持兼容性）
+                    if (window.App && window.App.ThemeManager && window.App.ThemeManager.updateFileSelectionStatus) {
+                        window.App.ThemeManager.updateFileSelectionStatus('sourceFileStatus', 'success', {
+                            fileName: file.name,
+                            fileSize: file.size
+                        });
+                    }
                 } else {
                     App.Utils.showStatus('主题管理模块未加载', 'error');
+
+                    // 隐藏文件选择结果显示
+                    hideSourceFileSelectionResult();
+
+                    // 显示错误状态
+                    if (window.App && window.App.ThemeManager && window.App.ThemeManager.updateFileSelectionStatus) {
+                        window.App.ThemeManager.updateFileSelectionStatus('sourceFileStatus', 'error', {
+                            fileName: file.name,
+                            fileSize: file.size,
+                            errorMessage: '主题管理模块未加载'
+                        });
+                    }
                 }
             } catch (error) {
                 console.error('源数据文件解析错误:', error);
                 App.Utils.showStatus('源数据文件解析失败：' + error.message, 'error');
+
+                // 隐藏文件选择结果显示
+                hideSourceFileSelectionResult();
+
+                // 显示错误状态
+                if (window.App && window.App.ThemeManager && window.App.ThemeManager.updateFileSelectionStatus) {
+                    window.App.ThemeManager.updateFileSelectionStatus('sourceFileStatus', 'error', {
+                        fileName: file.name,
+                        fileSize: file.size,
+                        errorMessage: '文件解析失败：' + error.message
+                    });
+                }
             }
         };
 
         reader.onerror = function() {
             App.Utils.showStatus('源数据文件读取失败', 'error');
+
+            // 隐藏文件选择结果显示
+            hideSourceFileSelectionResult();
+
+            // 显示错误状态
+            if (window.App && window.App.ThemeManager && window.App.ThemeManager.updateFileSelectionStatus) {
+                window.App.ThemeManager.updateFileSelectionStatus('sourceFileStatus', 'error', {
+                    fileName: file.name,
+                    fileSize: file.size,
+                    errorMessage: '文件读取失败'
+                });
+            }
         };
 
         reader.readAsArrayBuffer(file);
     }
 
 
+
+    /**
+     * 更新源数据文件选择结果显示
+     * @param {File} file - 选择的文件对象
+     * @param {Object} sourceData - 解析后的源数据
+     */
+    function updateSourceFileSelectionResult(file, sourceData) {
+        const resultContainer = document.getElementById('sourceFileSelectionResult');
+        const fileNameElement = document.getElementById('sourceFileName');
+        const fileSizeElement = document.getElementById('sourceFileSize');
+        const fileTimeElement = document.getElementById('sourceFileTime');
+        const fileRowsElement = document.getElementById('sourceFileRows');
+
+        if (!resultContainer) {
+            console.warn('源数据文件选择结果容器未找到');
+            return;
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 获取当前时间
+        function getCurrentTimeString() {
+            const now = new Date();
+            return now.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        // 更新显示内容
+        if (fileNameElement) {
+            fileNameElement.textContent = file.name;
+        }
+        if (fileSizeElement) {
+            fileSizeElement.textContent = formatFileSize(file.size);
+        }
+        if (fileTimeElement) {
+            fileTimeElement.textContent = getCurrentTimeString();
+        }
+        if (fileRowsElement) {
+            const rowCount = sourceData.data ? sourceData.data.length : 0;
+            fileRowsElement.textContent = `${rowCount} 行`;
+        }
+
+        // 显示结果容器
+        resultContainer.style.display = 'block';
+    }
+
+    /**
+     * 隐藏源数据文件选择结果显示
+     */
+    function hideSourceFileSelectionResult() {
+        const resultContainer = document.getElementById('sourceFileSelectionResult');
+        if (resultContainer) {
+            resultContainer.style.display = 'none';
+        }
+    }
 
     /**
      * 重置文件处理状态
@@ -321,6 +469,9 @@ window.App.FileHandler = (function() {
         if (sourceUploadArea) {
             sourceUploadArea.classList.remove('dragover');
         }
+
+        // 隐藏文件选择结果显示
+        hideSourceFileSelectionResult();
     }
 
     /**
