@@ -17,13 +17,21 @@ window.App.Version = (function() {
 
     // 当前版本信息
     const VERSION_INFO = {
-        current: '1.4.4',
-        releaseDate: '2025-09-10',
-        buildNumber: '20250110004'
+        current: '1.4.5',
+        releaseDate: '2025-09-12',
+        buildNumber: '20250110005'
     };
 
     // 版本历史记录
     const VERSION_HISTORY = [
+        {
+            version: '1.4.5',
+            date: '2025-09-12',
+            changes: [
+                '更新图案'
+            ],
+            type: 'minor'
+        },
         {
             version: '1.4.4',
             date: '2025-09-10',
