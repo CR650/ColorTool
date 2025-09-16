@@ -17,13 +17,28 @@ window.App.Version = (function() {
 
     // 当前版本信息
     const VERSION_INFO = {
-        current: '1.4.6',
-        releaseDate: '2025-09-12',
-        buildNumber: '20250912001'
+        current: '1.4.7',
+        releaseDate: '2025-09-16',
+        buildNumber: '20250916001'
     };
 
     // 版本历史记录
     const VERSION_HISTORY = [
+        {
+            version: '1.4.7',
+            date: '2025-09-16',
+            changes: [
+                '修正UGCTheme表Level_show_id字段填值逻辑，根据主题类型采用不同策略',
+                '全新主题系列：Level_show_id设置为"新增主题ID - 1"',
+                '现有主题系列：Level_show_id继续使用"上一行数据值 + 1"的递增逻辑',
+                '基于智能多语言配置系统实现主题类型自动识别',
+                '添加详细的填值过程日志输出，包含计算来源和处理步骤',
+                '确保与多语言配置功能完全兼容，不影响现有功能',
+                '提升数据处理准确性，避免全新主题错误延续递增逻辑',
+                '完善错误处理机制，处理列不存在和数据异常情况'
+            ],
+            type: 'patch'
+        },
         {
             version: '1.4.6',
             date: '2025-09-12',

@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Level_show_id 填值逻辑测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .section {
+            background: white;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .section-title {
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        .test-case {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            background: #fafafa;
+        }
+        .test-case h4 {
+            color: #667eea;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .scenario-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .scenario-card {
+            border: 2px solid #28a745;
+            border-radius: 8px;
+            padding: 20px;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        }
+        .scenario-card.existing {
+            border-color: #17a2b8;
+            background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        .logic-flow {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .comparison-table th,
+        .comparison-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .comparison-table th {
+            background: #667eea;
+            color: white;
+        }
+        .comparison-table .before {
+            background: #fff3cd;
+        }
+        .comparison-table .after {
+            background: #d4edda;
+        }
+        .highlight {
+            background: linear-gradient(120deg, #a8edea 0%, #fed6e3 100%);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #667eea;
+        }
+        .status-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .formula {
+            background: #e7f3ff;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            text-align: center;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔧 Level_show_id 填值逻辑修正</h1>
+        <p>UGCTheme表字段填值策略优化</p>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">📋 问题描述与修正方案</h2>
+        
+        <div class="highlight">
+            <strong>问题：</strong>当前Level_show_id字段统一使用"上一行数据值+1"的逻辑，没有区分全新主题和现有主题系列，导致填值不准确。
+        </div>
+
+        <div class="status-success">
+            <strong>修正方案：</strong>根据主题类型（全新主题 vs 现有主题系列）采用不同的Level_show_id填值策略。
+        </div>
+
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>主题类型</th>
+                    <th>修正前逻辑</th>
+                    <th>修正后逻辑</th>
+                    <th>计算公式</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>全新主题</strong></td>
+                    <td class="before">上一行数据值 + 1</td>
+                    <td class="after">新增的主题ID - 1</td>
+                    <td><code>newId - 1</code></td>
+                </tr>
+                <tr>
+                    <td><strong>现有主题系列</strong></td>
+                    <td class="before">上一行数据值 + 1</td>
+                    <td class="after">上一行数据值 + 1</td>
+                    <td><code>lastValue + 1</code></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">🎯 修正后的逻辑流程</h2>
+        
+        <div class="logic-flow">
+            <h4>智能填值决策流程：</h4>
+            <ol>
+                <li><strong>获取智能多语言配置</strong>：通过 <code>getSmartMultiLanguageConfig(themeName)</code> 判断主题类型</li>
+                <li><strong>检查相似性</strong>：<code>smartConfig.similarity.isSimilar</code> 判断是否为现有主题系列</li>
+                <li><strong>应用对应策略</strong>：根据主题类型选择不同的Level_show_id计算方式</li>
+                <li><strong>记录处理来源</strong>：添加详细的日志输出，便于调试和验证</li>
+            </ol>
+        </div>
+
+        <div class="scenario-grid">
+            <div class="scenario-card">
+                <h4>🆕 全新主题系列</h4>
+                <p><strong>判断条件：</strong><code>!smartConfig.similarity.isSimilar</code></p>
+                <div class="formula">Level_show_id = newId - 1</div>
+                <p><strong>示例：</strong></p>
+                <ul>
+                    <li>新增主题ID：15</li>
+                    <li>Level_show_id：14</li>
+                    <li>来源：new_theme_id_minus_one</li>
+                </ul>
+            </div>
+            
+            <div class="scenario-card existing">
+                <h4>🔄 现有主题系列</h4>
+                <p><strong>判断条件：</strong><code>smartConfig.similarity.isSimilar</code></p>
+                <div class="formula">Level_show_id = lastValue + 1</div>
+                <p><strong>示例：</strong></p>
+                <ul>
+                    <li>上一行Level_show_id：8</li>
+                    <li>新行Level_show_id：9</li>
+                    <li>来源：existing_series_increment</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">💻 代码实现</h2>
+        
+        <h3>修正前的代码：</h3>
+        <div class="code-block">
+targetColumnIndex = headerRow.findIndex(col => col === 'Level_show_id');
+if (targetColumnIndex !== -1) {
+    // 确保数值类型转换
+    const currentValue = parseInt(lastRow[targetColumnIndex]) || 0;
+    newRow[targetColumnIndex] = (currentValue + 1).toString(); // 上一行的数值加一
+} else {
+    console.warn(`在${sheetName}中找不到Level_show_id列`);
+}
+        </div>
+
+        <h3>修正后的代码：</h3>
+        <div class="code-block">
+// 处理Level_show_id列的智能设置（根据主题类型决定填值策略）
+targetColumnIndex = headerRow.findIndex(col => col === 'Level_show_id');
+if (targetColumnIndex !== -1) {
+    let finalLevelShowId = null;
+    let levelShowIdSource = 'unknown';
+
+    if (smartConfig.similarity.isSimilar) {
+        // 现有主题系列新增行，使用"上一行数据值+1"的逻辑
+        const currentValue = parseInt(lastRow[targetColumnIndex]) || 0;
+        finalLevelShowId = (currentValue + 1).toString();
+        levelShowIdSource = 'existing_series_increment';
+        console.log(`Sheet ${sheetName} 现有主题系列，Level_show_id递增: ${currentValue} + 1 = ${finalLevelShowId}`);
+    } else {
+        // 全新主题行，Level_show_id设置为"新增的主题ID - 1"
+        finalLevelShowId = (newId - 1).toString();
+        levelShowIdSource = 'new_theme_id_minus_one';
+        console.log(`Sheet ${sheetName} 全新主题系列，Level_show_id设置为新ID减1: ${newId} - 1 = ${finalLevelShowId}`);
+    }
+
+    newRow[targetColumnIndex] = finalLevelShowId;
+    console.log(`Sheet ${sheetName} 最终设置Level_show_id: ${finalLevelShowId} (来源: ${levelShowIdSource})`);
+} else {
+    console.warn(`在${sheetName}中找不到Level_show_id列`);
+}
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">🧪 测试场景</h2>
+        
+        <div class="test-case">
+            <h4>场景1：创建全新主题系列</h4>
+            <p><strong>输入：</strong>主题名称 "NewSeries_Theme1"（与现有主题无相似性）</p>
+            <p><strong>预期行为：</strong></p>
+            <ul>
+                <li>智能检测：<code>smartConfig.similarity.isSimilar = false</code></li>
+                <li>新增ID：假设为 20</li>
+                <li>Level_show_id：19 (20 - 1)</li>
+                <li>日志输出：<code>全新主题系列，Level_show_id设置为新ID减1: 20 - 1 = 19</code></li>
+            </ul>
+        </div>
+
+        <div class="test-case">
+            <h4>场景2：现有主题系列新增</h4>
+            <p><strong>输入：</strong>主题名称 "ExistingSeries_Theme3"（与 "ExistingSeries_Theme1" 相似）</p>
+            <p><strong>预期行为：</strong></p>
+            <ul>
+                <li>智能检测：<code>smartConfig.similarity.isSimilar = true</code></li>
+                <li>上一行Level_show_id：假设为 12</li>
+                <li>新行Level_show_id：13 (12 + 1)</li>
+                <li>日志输出：<code>现有主题系列，Level_show_id递增: 12 + 1 = 13</code></li>
+            </ul>
+        </div>
+
+        <div class="test-case">
+            <h4>场景3：边界情况处理</h4>
+            <p><strong>输入：</strong>Level_show_id列不存在或数据异常</p>
+            <p><strong>预期行为：</strong></p>
+            <ul>
+                <li>列不存在：输出警告信息</li>
+                <li>数据为空：使用默认值 0 进行计算</li>
+                <li>数据格式错误：通过 <code>parseInt()</code> 转换，失败时使用 0</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">📊 修正效果</h2>
+        
+        <div class="status-info">
+            <strong>修正完成的功能特性：</strong>
+        </div>
+        
+        <ul>
+            <li>✅ <strong>智能主题类型识别</strong>：基于现有的智能多语言配置系统</li>
+            <li>✅ <strong>差异化填值策略</strong>：全新主题和现有系列使用不同计算方式</li>
+            <li>✅ <strong>详细日志输出</strong>：记录填值来源和计算过程</li>
+            <li>✅ <strong>兼容性保障</strong>：与多语言配置功能完全兼容</li>
+            <li>✅ <strong>错误处理</strong>：处理列不存在和数据异常情况</li>
+            <li>✅ <strong>向后兼容</strong>：现有主题系列的行为保持不变</li>
+        </ul>
+
+        <div class="highlight">
+            <strong>关键改进：</strong>通过智能检测主题相似性，确保Level_show_id字段的填值逻辑符合业务需求，避免了全新主题错误延续上一行递增逻辑的问题。
+        </div>
+    </div>
+
+    <script>
+        console.log('Level_show_id 填值逻辑修正测试页面加载完成');
+        console.log('修正要点：');
+        console.log('✅ 全新主题：Level_show_id = newId - 1');
+        console.log('✅ 现有系列：Level_show_id = lastValue + 1');
+        console.log('✅ 智能识别：基于主题相似性检测');
+        console.log('✅ 详细日志：记录填值来源和计算过程');
+        
+        // 模拟测试场景
+        function simulateLogic() {
+            console.log('\n=== 模拟测试场景 ===');
+            
+            // 场景1：全新主题
+            const newThemeId = 20;
+            const newThemeLevelShowId = newThemeId - 1;
+            console.log(`场景1 - 全新主题: newId=${newThemeId}, Level_show_id=${newThemeLevelShowId}`);
+            
+            // 场景2：现有系列
+            const lastValue = 12;
+            const existingSeriesLevelShowId = lastValue + 1;
+            console.log(`场景2 - 现有系列: lastValue=${lastValue}, Level_show_id=${existingSeriesLevelShowId}`);
+        }
+        
+        setTimeout(simulateLogic, 1000);
+    </script>
+</body>
+</html>

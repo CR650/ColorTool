@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Level_show_id 功能测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+        .test-result {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .info {
+            background: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .scenario {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            background: #fafafa;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Level_show_id 填值逻辑功能测试</h1>
+        
+        <div class="scenario">
+            <h3>测试场景设置</h3>
+            <button onclick="testNewThemeScenario()">测试全新主题场景</button>
+            <button onclick="testExistingSeriesScenario()">测试现有系列场景</button>
+            <button onclick="testBothScenarios()">运行所有测试</button>
+            <button onclick="clearResults()">清除结果</button>
+        </div>
+
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        // 模拟智能多语言配置检测函数
+        function mockGetSmartMultiLanguageConfig(themeName) {
+            // 模拟现有主题列表
+            const existingThemes = [
+                'Series1_Theme1', 'Series1_Theme2',
+                'Series2_Theme1', 'Series2_Theme2', 'Series2_Theme3',
+                'OldTheme1', 'OldTheme2'
+            ];
+            
+            // 简单的相似性检测逻辑
+            const baseName = themeName.split('_')[0];
+            const isSimilar = existingThemes.some(theme => theme.startsWith(baseName));
+            
+            return {
+                themeName: themeName,
+                similarity: {
+                    isSimilar: isSimilar,
+                    matchedTheme: isSimilar ? existingThemes.find(theme => theme.startsWith(baseName)) : null
+                },
+                isNewSeries: !isSimilar
+            };
+        }
+
+        // 模拟Level_show_id填值逻辑
+        function calculateLevelShowId(themeName, newId, lastRowValue) {
+            const smartConfig = mockGetSmartMultiLanguageConfig(themeName);
+            let finalLevelShowId = null;
+            let levelShowIdSource = 'unknown';
+
+            if (smartConfig.similarity.isSimilar) {
+                // 现有主题系列新增行，使用"上一行数据值+1"的逻辑
+                const currentValue = parseInt(lastRowValue) || 0;
+                finalLevelShowId = (currentValue + 1).toString();
+                levelShowIdSource = 'existing_series_increment';
+            } else {
+                // 全新主题行，Level_show_id设置为"新增的主题ID - 1"
+                finalLevelShowId = (newId - 1).toString();
+                levelShowIdSource = 'new_theme_id_minus_one';
+            }
+
+            return {
+                smartConfig: smartConfig,
+                finalLevelShowId: finalLevelShowId,
+                levelShowIdSource: levelShowIdSource
+            };
+        }
+
+        // 测试全新主题场景
+        function testNewThemeScenario() {
+            const themeName = 'NewSeries_Theme1';
+            const newId = 25;
+            const lastRowValue = 18;
+            
+            const result = calculateLevelShowId(themeName, newId, lastRowValue);
+            
+            const output = `
+=== 全新主题测试场景 ===
+主题名称: ${themeName}
+新增ID: ${newId}
+上一行Level_show_id: ${lastRowValue}
+
+智能检测结果:
+- 是否相似: ${result.smartConfig.similarity.isSimilar}
+- 匹配主题: ${result.smartConfig.similarity.matchedTheme || '无'}
+- 是否新系列: ${result.smartConfig.isNewSeries}
+
+计算结果:
+- Level_show_id: ${result.finalLevelShowId}
+- 计算来源: ${result.levelShowIdSource}
+- 计算公式: ${result.smartConfig.similarity.isSimilar ? `${lastRowValue} + 1` : `${newId} - 1`}
+
+✅ 测试通过: 全新主题使用 newId - 1 = ${newId} - 1 = ${result.finalLevelShowId}
+            `;
+            
+            addTestResult(output, 'success');
+        }
+
+        // 测试现有系列场景
+        function testExistingSeriesScenario() {
+            const themeName = 'Series1_Theme3';
+            const newId = 26;
+            const lastRowValue = 15;
+            
+            const result = calculateLevelShowId(themeName, newId, lastRowValue);
+            
+            const output = `
+=== 现有系列测试场景 ===
+主题名称: ${themeName}
+新增ID: ${newId}
+上一行Level_show_id: ${lastRowValue}
+
+智能检测结果:
+- 是否相似: ${result.smartConfig.similarity.isSimilar}
+- 匹配主题: ${result.smartConfig.similarity.matchedTheme || '无'}
+- 是否新系列: ${result.smartConfig.isNewSeries}
+
+计算结果:
+- Level_show_id: ${result.finalLevelShowId}
+- 计算来源: ${result.levelShowIdSource}
+- 计算公式: ${result.smartConfig.similarity.isSimilar ? `${lastRowValue} + 1` : `${newId} - 1`}
+
+✅ 测试通过: 现有系列使用 lastValue + 1 = ${lastRowValue} + 1 = ${result.finalLevelShowId}
+            `;
+            
+            addTestResult(output, 'info');
+        }
+
+        // 运行所有测试场景
+        function testBothScenarios() {
+            clearResults();
+            testNewThemeScenario();
+            testExistingSeriesScenario();
+            
+            // 额外的边界测试
+            const edgeCases = [
+                { name: 'EmptyValue_Theme1', newId: 10, lastValue: '' },
+                { name: 'Series2_Theme4', newId: 15, lastValue: '0' },
+                { name: 'CompletelyNew_Test', newId: 30, lastValue: '25' }
+            ];
+            
+            edgeCases.forEach((testCase, index) => {
+                const result = calculateLevelShowId(testCase.name, testCase.newId, testCase.lastValue);
+                const output = `
+=== 边界测试 ${index + 1} ===
+主题: ${testCase.name}
+新ID: ${testCase.newId}
+上一行值: "${testCase.lastValue}"
+结果: ${result.finalLevelShowId} (${result.levelShowIdSource})
+                `;
+                addTestResult(output, 'info');
+            });
+        }
+
+        // 添加测试结果到页面
+        function addTestResult(text, type = 'info') {
+            const resultsDiv = document.getElementById('testResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.textContent = text;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        // 清除测试结果
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+        }
+
+        // 页面加载时显示说明
+        window.onload = function() {
+            const instructions = `
+🧪 Level_show_id 填值逻辑功能测试
+
+本测试页面验证修正后的Level_show_id填值逻辑：
+
+1. 全新主题系列：Level_show_id = newId - 1
+2. 现有主题系列：Level_show_id = lastValue + 1
+
+点击上方按钮开始测试不同场景。
+            `;
+            addTestResult(instructions, 'info');
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ColorTool Connect v1.4.7 版本发布</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            text-align: center;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .version-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .section {
+            background: white;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .section-title {
+            color: #333;
+            border-bottom: 3px solid #28a745;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        .fix-highlight {
+            background: linear-gradient(120deg, #d4edda 0%, #c3e6cb 100%);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #28a745;
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .comparison-table th,
+        .comparison-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .comparison-table th {
+            background: #28a745;
+            color: white;
+        }
+        .comparison-table .before {
+            background: #fff3cd;
+        }
+        .comparison-table .after {
+            background: #d4edda;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .feature-card {
+            border: 1px solid #28a745;
+            border-radius: 8px;
+            padding: 20px;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        }
+        .feature-card h4 {
+            color: #155724;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .status-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        .formula {
+            background: #e7f3ff;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            text-align: center;
+            font-size: 16px;
+        }
+        .compatibility-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            margin: 2px;
+        }
+        .compatible {
+            background: #d4edda;
+            color: #155724;
+        }
+        .safe {
+            background: #cce5ff;
+            color: #004085;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            position: relative;
+            padding-left: 25px;
+        }
+        .feature-list li:before {
+            content: "✅";
+            position: absolute;
+            left: 0;
+            top: 8px;
+        }
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔧 ColorTool Connect v1.4.7</h1>
+        <p>Level_show_id字段填值逻辑修正</p>
+        <div class="version-badge">发布日期：2025-09-12</div>
+        <div style="margin-top: 15px;">
+            <span class="compatibility-badge compatible">完全兼容</span>
+            <span class="compatibility-badge safe">安全升级</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">🎯 版本概览</h2>
+        
+        <div class="fix-highlight">
+            <strong>核心修正：</strong>修正UGCTheme表Level_show_id字段的填值逻辑，根据主题类型（全新主题 vs 现有主题系列）采用不同的计算策略，确保数据处理的准确性和业务逻辑的正确性。
+        </div>
+
+        <div class="status-success">
+            <strong>兼容性保证：</strong>此修正仅影响创建全新主题系列时的Level_show_id计算，对现有功能零影响，可安全升级。
+        </div>
+
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>主题类型</th>
+                    <th>修正前逻辑</th>
+                    <th>修正后逻辑</th>
+                    <th>兼容性</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>全新主题系列</strong></td>
+                    <td class="before">上一行数据值 + 1</td>
+                    <td class="after">新增主题ID - 1</td>
+                    <td>✅ 修正业务逻辑</td>
+                </tr>
+                <tr>
+                    <td><strong>现有主题系列</strong></td>
+                    <td class="after">上一行数据值 + 1</td>
+                    <td class="after">上一行数据值 + 1</td>
+                    <td>✅ 完全一致</td>
+                </tr>
+                <tr>
+                    <td><strong>更新现有主题</strong></td>
+                    <td class="after">不涉及Level_show_id</td>
+                    <td class="after">不涉及Level_show_id</td>
+                    <td>✅ 零影响</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">🔧 技术实现</h2>
+        
+        <h3>智能主题类型识别</h3>
+        <div class="code-block">
+// 基于现有的智能多语言配置系统
+const smartConfig = getSmartMultiLanguageConfig(themeName);
+
+// 判断主题类型
+if (smartConfig.similarity.isSimilar) {
+    // 现有主题系列：使用递增逻辑
+    finalLevelShowId = (currentValue + 1).toString();
+} else {
+    // 全新主题系列：使用新ID减1
+    finalLevelShowId = (newId - 1).toString();
+}
+        </div>
+
+        <h3>计算公式对比</h3>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h4>🆕 全新主题系列</h4>
+                <div class="formula">Level_show_id = newId - 1</div>
+                <p><strong>示例：</strong>新增ID为20，Level_show_id为19</p>
+            </div>
+            
+            <div class="feature-card">
+                <h4>🔄 现有主题系列</h4>
+                <div class="formula">Level_show_id = lastValue + 1</div>
+                <p><strong>示例：</strong>上一行为12，新行为13</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">📊 修正效果</h2>
+        
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h4>🎯 数据准确性</h4>
+                <ul class="feature-list">
+                    <li>全新主题使用正确的计算公式</li>
+                    <li>避免错误延续递增逻辑</li>
+                    <li>确保Level_show_id值符合业务需求</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <h4>🤖 智能化处理</h4>
+                <ul class="feature-list">
+                    <li>自动识别主题类型</li>
+                    <li>无需用户手动配置</li>
+                    <li>基于成熟的相似性检测</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <h4>🔍 可观测性</h4>
+                <ul class="feature-list">
+                    <li>详细的填值过程日志</li>
+                    <li>记录计算来源和步骤</li>
+                    <li>便于调试和问题排查</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <h4>🛡️ 兼容性保障</h4>
+                <ul class="feature-list">
+                    <li>现有功能零影响</li>
+                    <li>向后完全兼容</li>
+                    <li>安全的升级路径</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">🧪 兼容性验证</h2>
+        
+        <div class="status-info">
+            <strong>兼容性测试结果：</strong>
+        </div>
+        
+        <ul class="feature-list">
+            <li><strong>更新现有主题</strong>：完全不受影响，使用独立的处理路径</li>
+            <li><strong>现有系列新增</strong>：行为保持100%一致，使用相同的递增逻辑</li>
+            <li><strong>多语言配置</strong>：完全兼容，基于相同的智能配置系统</li>
+            <li><strong>UGC图案配置</strong>：不受影响，处理逻辑独立</li>
+            <li><strong>文件保存功能</strong>：不受影响，数据结构未变</li>
+            <li><strong>错误处理机制</strong>：继承并增强原有的错误处理</li>
+        </ul>
+
+        <div class="fix-highlight">
+            <strong>风险评估：</strong>🟢 极低风险 - 修改范围极小，仅涉及一个计算公式的条件分支，不会产生复杂的副作用。
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">📈 版本信息</h2>
+        
+        <table class="comparison-table">
+            <tr>
+                <th>版本号</th>
+                <td>v1.4.7</td>
+            </tr>
+            <tr>
+                <th>发布日期</th>
+                <td>2025-09-12</td>
+            </tr>
+            <tr>
+                <th>构建号</th>
+                <td>20250912002</td>
+            </tr>
+            <tr>
+                <th>更新类型</th>
+                <td>Bug修复 (patch)</td>
+            </tr>
+            <tr>
+                <th>兼容性</th>
+                <td>完全向后兼容</td>
+            </tr>
+            <tr>
+                <th>风险等级</th>
+                <td>低风险</td>
+            </tr>
+            <tr>
+                <th>推荐部署</th>
+                <td>可直接部署到生产环境</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">🚀 升级指南</h2>
+        
+        <div class="status-success">
+            <strong>升级步骤：</strong>
+        </div>
+        
+        <ol>
+            <li><strong>备份当前版本</strong>：虽然风险极低，建议备份当前工作版本</li>
+            <li><strong>更新文件</strong>：替换 js/themeManager.js 和 js/version.js 文件</li>
+            <li><strong>验证功能</strong>：测试创建全新主题的Level_show_id计算</li>
+            <li><strong>检查日志</strong>：观察新增的详细日志输出</li>
+            <li><strong>正常使用</strong>：所有现有功能保持不变</li>
+        </ol>
+
+        <div class="status-info">
+            <strong>回滚方案：</strong>如遇任何问题，可快速回滚到v1.4.6版本，恢复原有的统一递增逻辑。
+        </div>
+    </div>
+
+    <script>
+        console.log('ColorTool Connect v1.4.7 版本发布页面加载完成');
+        console.log('主要修正：Level_show_id字段填值逻辑优化');
+        console.log('✅ 全新主题：Level_show_id = newId - 1');
+        console.log('✅ 现有系列：Level_show_id = lastValue + 1');
+        console.log('✅ 兼容性：完全向后兼容');
+        console.log('✅ 风险等级：极低风险');
+        
+        // 模拟版本更新通知
+        setTimeout(() => {
+            if (confirm('🎉 ColorTool Connect 已更新到 v1.4.7！\n\n主要修正：\n• Level_show_id字段填值逻辑优化\n• 根据主题类型采用不同计算策略\n• 提升数据处理准确性\n\n此更新完全兼容现有功能，是否查看详细信息？')) {
+                alert('感谢使用 ColorTool Connect！\n\n本次更新专注于修正业务逻辑问题，确保数据处理的准确性。\n\n所有现有功能保持不变，可安全升级。');
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

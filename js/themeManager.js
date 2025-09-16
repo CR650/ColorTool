@@ -4182,12 +4182,28 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                     console.warn(`在${sheetName}中找不到Level_show_bg_ID列`);
                 }
 
+                // 处理Level_show_id列的智能设置（根据主题类型决定填值策略）
                 targetColumnIndex = headerRow.findIndex(col => col === 'Level_show_id');
                 if (targetColumnIndex !== -1) {
-                    // 确保数值类型转换
-                    const currentValue = parseInt(lastRow[targetColumnIndex]) || 0;
-                    newRow[targetColumnIndex] = (currentValue + 1).toString(); // 上一行的数值加一
-                }else{
+                    let finalLevelShowId = null;
+                    let levelShowIdSource = 'unknown';
+
+                    if (smartConfig.similarity.isSimilar) {
+                        // 现有主题系列新增行，使用"上一行数据值+1"的逻辑
+                        const currentValue = parseInt(lastRow[targetColumnIndex]) || 0;
+                        finalLevelShowId = (currentValue + 1).toString();
+                        levelShowIdSource = 'existing_series_increment';
+                        console.log(`Sheet ${sheetName} 现有主题系列，Level_show_id递增: ${currentValue} + 1 = ${finalLevelShowId}`);
+                    } else {
+                        // 全新主题行，Level_show_id设置为"新增的主题ID - 1"
+                        finalLevelShowId = (newId - 1).toString();
+                        levelShowIdSource = 'new_theme_id_minus_one';
+                        console.log(`Sheet ${sheetName} 全新主题系列，Level_show_id设置为新ID减1: ${newId} - 1 = ${finalLevelShowId}`);
+                    }
+
+                    newRow[targetColumnIndex] = finalLevelShowId;
+                    console.log(`Sheet ${sheetName} 最终设置Level_show_id: ${finalLevelShowId} (来源: ${levelShowIdSource})`);
+                } else {
                     console.warn(`在${sheetName}中找不到Level_show_id列`);
                 }
 
