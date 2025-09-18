@@ -17,13 +17,21 @@ window.App.Version = (function() {
 
     // 当前版本信息
     const VERSION_INFO = {
-        current: '1.4.7',
-        releaseDate: '2025-09-16',
-        buildNumber: '20250916001'
+        current: '1.4.8',
+        releaseDate: '2025-09-18',
+        buildNumber: '20250918001'
     };
 
     // 版本历史记录
     const VERSION_HISTORY = [
+        {
+            version: '1.4.8',
+            date: '2025-09-18',
+            changes: [
+                '严格限制RSC_Theme工作表的修改范围，不要改到无关表',
+            ],
+            type: 'patch'
+        },
         {
             version: '1.4.7',
             date: '2025-09-16',

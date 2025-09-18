@@ -2823,6 +2823,8 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             const sheetNames = workbook.SheetNames;
             console.log('RSC_Theme包含的sheet:', sheetNames);
 
+            // 严格限制：仅处理这3个目标工作表（主工作表、Light、ColorInfo）
+            // 不影响RSC_Theme.xls文件中的其他工作表
             const targetSheets = ['ColorInfo', 'Light'];
             const processedSheets = [];
 
@@ -4584,12 +4586,14 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         workbook.Sheets[originalSheetName] = newWorksheet;
         console.log(`✅ 主工作表 "${originalSheetName}" 已更新`);
 
-        // 处理所有其他工作表（Light、ColorInfo等）
-        console.log('=== 开始处理其他工作表 ===');
+        // 处理目标工作表（严格限制：仅限Light、ColorInfo）
+        // 重要约束：不修改RSC_Theme.xls文件中的其他工作表，保持零影响原则
+        console.log('=== 开始处理目标工作表 ===');
+        const targetSheets = ['Light', 'ColorInfo'];
         if (rscAllSheetsData) {
-            Object.keys(rscAllSheetsData).forEach(sheetName => {
-                if (sheetName !== originalSheetName) {
-                    console.log(`处理工作表: ${sheetName}`);
+            targetSheets.forEach(sheetName => {
+                if (sheetName !== originalSheetName && rscAllSheetsData[sheetName]) {
+                    console.log(`处理目标工作表: ${sheetName}`);
 
                     const sheetData = rscAllSheetsData[sheetName];
                     if (sheetData && sheetData.length > 0) {
@@ -6305,8 +6309,10 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 console.log(`已更新rscAllSheetsData["${mainSheetName}"]`);
             }
 
-            // 同步其他工作表（如果有更新）
-            workbook.SheetNames.forEach(sheetName => {
+            // 同步目标工作表（严格限制：仅限Light、ColorInfo）
+            // 重要约束：不同步其他工作表，保持零影响原则
+            const targetSheets = ['Light', 'ColorInfo'];
+            targetSheets.forEach(sheetName => {
                 if (sheetName !== mainSheetName && workbook.Sheets[sheetName]) {
                     const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
                         header: 1,
@@ -6316,7 +6322,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
                     if (rscAllSheetsData) {
                         rscAllSheetsData[sheetName] = sheetData;
-                        console.log(`已同步工作表 "${sheetName}" 数据`);
+                        console.log(`已同步目标工作表 "${sheetName}" 数据`);
                     }
                 }
             });
