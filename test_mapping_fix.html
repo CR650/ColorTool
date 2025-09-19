@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>映射修复测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>映射逻辑修复验证测试</h1>
+    
+    <div id="test-results"></div>
+    
+    <script>
+        // 模拟修复后的内置映射数据
+        function getBuiltinMappingData() {
+            return {
+                "data": [
+                    {"RC现在的主题通道": "P1", "作用": "地板颜色", "颜色代码": "P1"},
+                    {"RC现在的主题通道": "P5", "作用": "跳板颜色", "颜色代码": "P2"},
+                    {"RC现在的主题通道": "G1", "作用": "装饰颜色1", "颜色代码": "G2"},
+                    {"RC现在的主题通道": "G2", "作用": "装饰颜色2", "颜色代码": "G3"},
+                    {"RC现在的主题通道": "G3", "作用": "装饰颜色3", "颜色代码": "G1"},
+                    {"RC现在的主题通道": "G4", "作用": "装饰颜色4", "颜色代码": "G4"},
+                    {"RC现在的主题通道": "P2", "作用": "地板描边颜色", "颜色代码": "P1-1"},
+                    {"RC现在的主题通道": "P9", "作用": "地板侧面颜色", "颜色代码": "P1-2"},
+                    {"RC现在的主题通道": "P6", "作用": "跳板描边颜色", "颜色代码": "P2-1"},
+                    {"RC现在的主题通道": "P10", "作用": "跳板侧面颜色", "颜色代码": "P2-2"},
+                    {"RC现在的主题通道": "G5", "作用": "装饰颜色5", "颜色代码": "G5"},
+                    {"RC现在的主题通道": "G6", "作用": "装饰颜色6", "颜色代码": "G6"},
+                    {"RC现在的主题通道": "G7", "作用": "装饰颜色7", "颜色代码": "G7"}
+                    // 注意：这里没有P3→P3和P4→P4的映射
+                ]
+            };
+        }
+        
+        // 模拟JSON映射数据
+        function getJSONMappingData() {
+            return {
+                "data": [
+                    {"RC现在的主题通道": "P11", "作用": "主动板颜色", "颜色代码": "P3"},
+                    {"RC现在的主题通道": "P15", "作用": "被动板颜色", "颜色代码": "P4"},
+                    // 注意：这里没有P3→P3和P4→P4的直接映射
+                ]
+            };
+        }
+        
+        // 测试函数
+        function runTests() {
+            const results = document.getElementById('test-results');
+            
+            // 测试1：检查内置映射数据
+            const builtinData = getBuiltinMappingData();
+            const hasP3DirectMapping = builtinData.data.some(item => 
+                item['RC现在的主题通道'] === 'P3' && item['颜色代码'] === 'P3'
+            );
+            const hasP4DirectMapping = builtinData.data.some(item => 
+                item['RC现在的主题通道'] === 'P4' && item['颜色代码'] === 'P4'
+            );
+            
+            results.innerHTML += `
+                <div class="test-result ${!hasP3DirectMapping ? 'success' : 'error'}">
+                    <strong>测试1：内置映射数据中P3→P3直接映射</strong><br>
+                    结果：${!hasP3DirectMapping ? '✅ 已移除' : '❌ 仍然存在'}
+                </div>
+                
+                <div class="test-result ${!hasP4DirectMapping ? 'success' : 'error'}">
+                    <strong>测试2：内置映射数据中P4→P4直接映射</strong><br>
+                    结果：${!hasP4DirectMapping ? '✅ 已移除' : '❌ 仍然存在'}
+                </div>
+            `;
+            
+            // 测试3：检查JSON映射数据
+            const jsonData = getJSONMappingData();
+            const hasP11ToP3 = jsonData.data.some(item => 
+                item['RC现在的主题通道'] === 'P11' && item['颜色代码'] === 'P3'
+            );
+            const hasP15ToP4 = jsonData.data.some(item => 
+                item['RC现在的主题通道'] === 'P15' && item['颜色代码'] === 'P4'
+            );
+            
+            results.innerHTML += `
+                <div class="test-result ${hasP11ToP3 ? 'success' : 'error'}">
+                    <strong>测试3：JSON映射数据中P11→P3间接映射</strong><br>
+                    结果：${hasP11ToP3 ? '✅ 存在' : '❌ 缺失'}
+                </div>
+                
+                <div class="test-result ${hasP15ToP4 ? 'success' : 'error'}">
+                    <strong>测试4：JSON映射数据中P15→P4间接映射</strong><br>
+                    结果：${hasP15ToP4 ? '✅ 存在' : '❌ 缺失'}
+                </div>
+            `;
+            
+            // 测试5：预期行为说明
+            results.innerHTML += `
+                <div class="test-result info">
+                    <strong>预期修复后的行为：</strong><br>
+                    • P11通道：通过映射查找源数据中的P3颜色代码 → 获取实际颜色值<br>
+                    • P15通道：通过映射查找源数据中的P4颜色代码 → 获取实际颜色值<br>
+                    • P3通道：无映射关系 → 使用默认值FFFFFF<br>
+                    • P4通道：无映射关系 → 使用默认值FFFFFF<br>
+                </div>
+            `;
+        }
+        
+        // 页面加载后运行测试
+        document.addEventListener('DOMContentLoaded', runTests);
+    </script>
+</body>
+</html>

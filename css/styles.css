@@ -42,6 +42,58 @@ body {
     color: white;
 }
 
+/* ========================================
+   映射模式指示器样式
+   ======================================== */
+
+/* 映射模式指示器容器 */
+#mappingModeIndicator {
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 直接映射模式样式 */
+#mappingModeIndicator.direct-mode {
+    background: linear-gradient(135deg, #e7f3ff 0%, #cce7ff 100%);
+    color: #0066cc;
+    border: 2px solid #b3d9ff;
+}
+
+/* JSON映射模式样式 */
+#mappingModeIndicator.json-mode {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    color: #856404;
+    border: 2px solid #ffeaa7;
+}
+
+/* 映射模式内容样式 */
+#mappingModeContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+/* 映射模式标题 */
+.mapping-mode-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 3px;
+}
+
+/* 映射模式描述 */
+.mapping-mode-description {
+    font-size: 12px;
+    opacity: 0.8;
+    font-weight: normal;
+}
+
+/* 映射模式图标 */
+.mapping-mode-icon {
+    font-size: 18px;
+    margin-right: 8px;
+}
+
 .header-top {
     display: flex;
     justify-content: space-between;

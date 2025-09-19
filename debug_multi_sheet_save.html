@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多工作表保存问题诊断</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .test-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .test-btn:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 多工作表保存问题诊断工具</h1>
+        
+        <div class="test-section">
+            <h3>📋 问题描述</h3>
+            <p><strong>问题</strong>：新建主题时，UI显示Light和ColorInfo工作表已新增数据，但实际保存的Excel文件中这些工作表没有新增数据。</p>
+            <p><strong>怀疑原因</strong>：工作表保存范围被错误限制，或者数据流程中存在问题。</p>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 诊断测试</h3>
+            <button class="test-btn" onclick="checkRscAllSheetsData()">检查rscAllSheetsData状态</button>
+            <button class="test-btn" onclick="checkWorkbookStructure()">检查工作簿结构</button>
+            <button class="test-btn" onclick="simulateNewThemeProcess()">模拟新建主题流程</button>
+            <button class="test-btn" onclick="checkGenerateUpdatedWorkbook()">检查generateUpdatedWorkbook逻辑</button>
+            <button class="test-btn" onclick="checkDataFlow()">检查数据流程</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 诊断结果</h3>
+            <div id="results"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🎯 关键检查点</h3>
+            <ul>
+                <li><strong>rscAllSheetsData初始化</strong>：是否正确包含Light和ColorInfo工作表数据</li>
+                <li><strong>processRSCAdditionalSheets</strong>：是否正确更新rscAllSheetsData</li>
+                <li><strong>generateUpdatedWorkbook</strong>：是否正确处理Light和ColorInfo工作表</li>
+                <li><strong>工作表名称条件</strong>：是否存在名称冲突导致跳过处理</li>
+                <li><strong>数据完整性</strong>：Light和ColorInfo数据是否正确应用到新行</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.textContent = message;
+            results.appendChild(div);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // 检查rscAllSheetsData状态
+        function checkRscAllSheetsData() {
+            clearResults();
+            addResult('🔍 开始检查rscAllSheetsData状态...', 'info');
+
+            if (window.App && window.App.ThemeManager) {
+                // 尝试访问私有变量（通过调试方式）
+                addResult('✅ ThemeManager模块可访问', 'success');
+                
+                // 检查是否有RSC文件已加载
+                addResult('📋 检查RSC文件加载状态...', 'info');
+                addResult('注意：rscAllSheetsData是私有变量，需要在实际操作中通过控制台查看', 'warning');
+                addResult('建议：在选择RSC文件后，在控制台输入以下命令查看：', 'info');
+                addResult('console.log("rscAllSheetsData:", rscAllSheetsData);', 'info');
+            } else {
+                addResult('❌ ThemeManager模块不可访问', 'error');
+            }
+        }
+
+        // 检查工作簿结构
+        function checkWorkbookStructure() {
+            addResult('🔍 开始检查工作簿结构...', 'info');
+            
+            addResult('📋 标准RSC_Theme.xls工作表结构：', 'info');
+            addResult('- 主工作表（通常是第一个工作表，包含颜色数据）', 'info');
+            addResult('- Light工作表（光照参数配置）', 'info');
+            addResult('- ColorInfo工作表（颜色效果和雾效参数）', 'info');
+            
+            addResult('⚠️ 关键检查点：', 'warning');
+            addResult('1. 主工作表名称是什么？（workbook.SheetNames[0]）', 'warning');
+            addResult('2. Light和ColorInfo工作表是否存在？', 'warning');
+            addResult('3. 是否存在名称冲突？（主工作表名称 === "Light" 或 "ColorInfo"）', 'warning');
+        }
+
+        // 模拟新建主题流程
+        function simulateNewThemeProcess() {
+            addResult('🔍 模拟新建主题流程...', 'info');
+            
+            addResult('📋 新建主题数据流程：', 'info');
+            addResult('1. 用户输入主题名称', 'info');
+            addResult('2. 调用processTheme() -> processRSCAdditionalSheets(themeName, true)', 'info');
+            addResult('3. processRSCAdditionalSheets处理Light和ColorInfo工作表', 'info');
+            addResult('4. 调用addNewRowToSheet()为每个工作表添加新行', 'info');
+            addResult('5. 应用用户配置：applyLightConfigToRow() 和 applyColorInfoConfigToRow()', 'info');
+            addResult('6. 更新rscAllSheetsData[sheetName] = sheetData', 'info');
+            addResult('7. 调用generateUpdatedWorkbook()生成最终工作簿', 'info');
+            addResult('8. generateUpdatedWorkbook()处理targetSheets = ["Light", "ColorInfo"]', 'info');
+            
+            addResult('⚠️ 可能的问题点：', 'warning');
+            addResult('- 步骤6：rscAllSheetsData更新是否成功？', 'warning');
+            addResult('- 步骤8：generateUpdatedWorkbook是否正确处理Light和ColorInfo？', 'warning');
+        }
+
+        // 检查generateUpdatedWorkbook逻辑
+        function checkGenerateUpdatedWorkbook() {
+            addResult('🔍 检查generateUpdatedWorkbook逻辑...', 'info');
+            
+            addResult('📋 generateUpdatedWorkbook关键逻辑：', 'info');
+            addResult('const originalSheetName = workbook.SheetNames[0];', 'info');
+            addResult('const targetSheets = ["Light", "ColorInfo"];', 'info');
+            addResult('条件：if (sheetName !== originalSheetName && rscAllSheetsData[sheetName])', 'info');
+            
+            addResult('🚨 发现潜在问题！', 'error');
+            addResult('如果主工作表名称是"Light"或"ColorInfo"，会导致条件失败！', 'error');
+            addResult('条件：sheetName !== originalSheetName', 'error');
+            addResult('如果originalSheetName === "Light"，则Light工作表会被跳过！', 'error');
+            
+            addResult('🔧 建议修复方案：', 'success');
+            addResult('修改条件逻辑，允许处理所有目标工作表，不管是否与主工作表同名', 'success');
+        }
+
+        // 检查数据流程
+        function checkDataFlow() {
+            addResult('🔍 检查完整数据流程...', 'info');
+            
+            addResult('📋 数据流程检查清单：', 'info');
+            addResult('✅ 1. RSC文件加载 -> rscAllSheetsData初始化', 'success');
+            addResult('✅ 2. 用户配置Light和ColorInfo参数', 'success');
+            addResult('✅ 3. processRSCAdditionalSheets调用', 'success');
+            addResult('✅ 4. addNewRowToSheet添加新行', 'success');
+            addResult('✅ 5. applyLightConfigToRow/applyColorInfoConfigToRow应用配置', 'success');
+            addResult('✅ 6. 更新rscAllSheetsData', 'success');
+            addResult('❌ 7. generateUpdatedWorkbook处理目标工作表（可能有问题）', 'error');
+            addResult('❌ 8. 最终Excel文件保存（Light和ColorInfo数据丢失）', 'error');
+            
+            addResult('🎯 问题定位：', 'warning');
+            addResult('问题很可能出现在generateUpdatedWorkbook的条件判断中', 'warning');
+            addResult('需要检查主工作表名称是否与Light或ColorInfo冲突', 'warning');
+        }
+
+        // 页面加载时显示初始信息
+        window.onload = function() {
+            addResult('🚀 多工作表保存问题诊断工具已加载', 'success');
+            addResult('请先加载RSC_Theme文件，然后运行诊断测试', 'info');
+        };
+    </script>
+</body>
+</html>

@@ -313,6 +313,7 @@ window.App.FileHandler = (function() {
                     data: data,
                     fileName: file.name,
                     fileSize: file.size, // 添加文件大小信息
+                    workbook: workbook, // 添加workbook对象，用于映射模式检测
                     validation: {
                         hasColorCode,
                         hasColorValue,

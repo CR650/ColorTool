@@ -17,13 +17,61 @@ window.App.Version = (function() {
 
     // 当前版本信息
     const VERSION_INFO = {
-        current: '1.4.8',
+        current: '1.5.2',
         releaseDate: '2025-09-18',
-        buildNumber: '20250918001'
+        buildNumber: '20250918004'
     };
 
     // 版本历史记录
     const VERSION_HISTORY = [
+        {
+            version: '1.5.2',
+            date: '2025-09-18',
+            changes: [
+                '🔧 修复关键问题：RSC_Theme多工作表保存逻辑错误',
+                '解决新建主题时Light和ColorInfo工作表数据丢失的问题',
+                '修复generateUpdatedWorkbook函数中的条件判断错误',
+                '移除工作表名称冲突检查，确保Light和ColorInfo工作表始终被处理',
+                '增强工作表处理的调试日志，便于问题诊断',
+                '添加Light和ColorInfo配置数据的验证输出',
+                '创建多工作表保存问题诊断工具：debug_multi_sheet_save.html',
+                '确保UI显示的缓存状态与实际保存的文件内容一致',
+                '完善错误处理和数据完整性检查'
+            ],
+            type: 'patch'
+        },
+        {
+            version: '1.5.1',
+            date: '2025-09-18',
+            changes: [
+                '优化映射模式检测逻辑：调整检测优先级，优先检查"完整配色表"工作表',
+                '修复直接映射模式检测问题：解决sourceData对象缺少workbook属性的问题',
+                '改进CORS错误处理：增强file://协议访问限制的用户提示和解决方案',
+                '完善启动脚本：start_server.bat现在会自动打开浏览器并提供更好的用户体验',
+                '新增CORS问题解决方案文档：提供详细的本地访问问题解决指南',
+                '优化映射模式检测优先级：完整配色表工作表 > Color工作表 > 默认JSON模式',
+                '简化直接映射字段匹配：移除字段数量限制，只要有Color工作表就启用直接映射',
+                '增强错误提示：在控制台和UI中提供更清晰的CORS问题解决方案',
+                '完善文档：更新README文档，添加CORS问题说明和映射模式详细介绍'
+            ],
+            type: 'patch'
+        },
+        {
+            version: '1.5.0',
+            date: '2025-09-18',
+            changes: [
+                '新增直接映射模式：支持源数据文件包含Color工作表时的直接字段映射',
+                '实现自动映射模式检测：根据源数据文件结构自动选择JSON映射或直接映射模式',
+                '添加映射模式指示器：在UI中清晰显示当前使用的映射模式（JSON映射模式/直接映射模式）',
+                '扩展颜色通道支持：直接映射模式支持G1-G7和P1-P49的完整范围',
+                '简化数据验证：直接映射模式只需检查字段存在性和非空性，无需6位十六进制验证',
+                '优化用户体验：源数据文件选择结果中显示检测到的映射模式信息',
+                '保持向后兼容：现有JSON映射模式功能完全不受影响，双模式并存',
+                '新增核心函数：detectMappingMode()、updateThemeColorsDirect()、findColorValueDirect()',
+                '完善文档说明：更新README添加直接映射模式的详细使用指南'
+            ],
+            type: 'major'
+        },
         {
             version: '1.4.8',
             date: '2025-09-18',

@@ -21,10 +21,10 @@ window.App.Main = (function() {
     const maxInitAttempts = 3;
 
     /**
-     * 应用程序初始化
+     * 应用程序初始化（异步）
      * 按顺序初始化所有模块并设置全局事件监听器
      */
-    function init() {
+    async function init() {
         if (isInitialized) {
             console.warn('应用程序已经初始化');
             return;
@@ -39,8 +39,8 @@ window.App.Main = (function() {
                 return;
             }
 
-            // 按依赖顺序初始化模块
-            initializeModules();
+            // 按依赖顺序异步初始化模块
+            await initializeModules();
 
             // 设置全局事件监听器
             setupGlobalEventListeners();
@@ -50,7 +50,7 @@ window.App.Main = (function() {
 
             isInitialized = true;
             console.log('应用程序初始化完成');
-            
+
             // 显示欢迎消息
             if (App.Utils) {
                 App.Utils.showStatus('颜色主题管理工具已加载完成，请选择源数据文件和Unity项目', 'info');
@@ -58,10 +58,10 @@ window.App.Main = (function() {
 
         } catch (error) {
             console.error('应用程序初始化失败:', error);
-            
+
             if (initializationAttempts < maxInitAttempts) {
                 console.log(`将在2秒后重试初始化...`);
-                setTimeout(init, 2000);
+                setTimeout(() => init(), 2000);
             } else {
                 console.error('应用程序初始化失败，已达到最大重试次数');
                 showFatalError('应用程序初始化失败，请刷新页面重试');
@@ -101,10 +101,10 @@ window.App.Main = (function() {
     }
 
     /**
-     * 按顺序初始化所有模块
+     * 按顺序初始化所有模块（支持异步）
      */
-    function initializeModules() {
-        const modules = [
+    async function initializeModules() {
+        const syncModules = [
             { name: 'Version', module: App.Version },
             { name: 'Utils', module: App.Utils },
             { name: 'FileHandler', module: App.FileHandler },
@@ -112,11 +112,11 @@ window.App.Main = (function() {
             { name: 'TableRenderer', module: App.TableRenderer },
             { name: 'ExportUtils', module: App.ExportUtils },
             { name: 'UGCPatternSelector', module: App.UGCPatternSelector },
-            { name: 'ColorPicker', module: App.ColorPicker },
-            { name: 'ThemeManager', module: App.ThemeManager }
+            { name: 'ColorPicker', module: App.ColorPicker }
         ];
 
-        modules.forEach(({ name, module }) => {
+        // 先初始化同步模块
+        syncModules.forEach(({ name, module }) => {
             if (module && typeof module.init === 'function') {
                 try {
                     module.init();
@@ -130,6 +130,21 @@ window.App.Main = (function() {
                 throw new Error(`${name}模块未找到`);
             }
         });
+
+        // 异步初始化ThemeManager模块
+        if (App.ThemeManager && typeof App.ThemeManager.init === 'function') {
+            try {
+                console.log('开始异步初始化ThemeManager模块...');
+                await App.ThemeManager.init();
+                console.log('ThemeManager模块初始化成功');
+            } catch (error) {
+                console.error('ThemeManager模块初始化失败:', error);
+                throw new Error('ThemeManager模块初始化失败');
+            }
+        } else {
+            console.error('ThemeManager模块未找到或缺少init方法');
+            throw new Error('ThemeManager模块未找到');
+        }
 
         // 显示版本更新通知
         setTimeout(() => {
@@ -323,9 +338,9 @@ window.App.Main = (function() {
 })();
 
 // 页面加载完成后自动初始化应用程序
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     console.log('DOM加载完成，开始初始化应用程序');
-    App.Main.init();
+    await App.Main.init();
 });
 
 // 模块加载完成日志

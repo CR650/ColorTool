@@ -27,6 +27,7 @@ window.App.ThemeManager = (function() {
     let rscAllSheetsData = null;     // RSC_Theme文件的所有Sheet数据
     let ugcAllSheetsData = null;     // UGCTheme文件的所有Sheet数据
     let multiLangConfig = null;      // 多语言配置数据
+    let currentMappingMode = 'json'; // 当前映射模式：'json' 或 'direct'
 
     // 文件夹选择相关状态
     let folderManager = null;        // Unity项目文件夹管理器实例
@@ -65,13 +66,15 @@ window.App.ThemeManager = (function() {
     let rscSheetTableBody = null;
 
     /**
-     * 初始化主题管理模块
+     * 初始化主题管理模块（异步）
      */
-    function init() {
+    async function init() {
         if (isInitialized) {
             console.warn('ThemeManager模块已经初始化');
             return;
         }
+
+        console.log('开始初始化ThemeManager模块...');
 
         // 获取DOM元素
         themeNameInput = document.getElementById('themeNameInput');
@@ -111,14 +114,33 @@ window.App.ThemeManager = (function() {
         // 初始化文件夹选择功能
         initializeFolderSelection();
 
-        // 加载对比映射数据
-        loadMappingData();
+        // 异步加载对比映射数据
+        console.log('开始加载映射数据...');
+        await loadMappingData();
+        console.log('映射数据加载完成');
 
         // 显示浏览器兼容性信息
         displayBrowserCompatibility();
 
         isInitialized = true;
         console.log('ThemeManager模块初始化完成');
+
+        // 输出映射数据加载结果摘要
+        if (mappingData) {
+            const totalMappings = mappingData.data ? mappingData.data.length : 0;
+            const validMappings = mappingData.data ? mappingData.data.filter(item =>
+                item['RC现在的主题通道'] &&
+                item['RC现在的主题通道'] !== '' &&
+                item['颜色代码'] &&
+                item['颜色代码'] !== ''
+            ).length : 0;
+
+            console.log(`📊 映射数据加载摘要: 总计${totalMappings}项映射，其中${validMappings}项有效`);
+
+            if (validMappings > 17) {
+                console.log(`✨ 检测到扩展映射数据！支持${validMappings}个颜色通道（超过默认的17个）`);
+            }
+        }
     }
 
     /**
@@ -1609,11 +1631,161 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
     }
 
     /**
-     * 加载对比映射数据（内置数据）
+     * 从JSON文件异步读取映射数据
+     * @returns {Promise<Object|null>} 映射数据对象或null（如果读取失败）
      */
-    function loadMappingData() {
-        // 内置对比映射数据，避免网络请求依赖
-        mappingData = {
+    async function fetchMappingDataFromJSON() {
+        // 方法1：尝试使用fetch API（适用于HTTP服务器环境）
+        try {
+            console.log('尝试从XLS/对比.json文件读取映射数据（方法1：fetch API）...');
+
+            const response = await fetch('XLS/对比.json');
+            if (!response.ok) {
+                throw new Error(`HTTP错误: ${response.status} ${response.statusText}`);
+            }
+
+            const jsonData = await response.json();
+            console.log('JSON文件读取成功，开始验证数据格式...');
+
+            // 验证JSON数据格式
+            if (!validateMappingData(jsonData)) {
+                throw new Error('JSON文件格式验证失败');
+            }
+
+            console.log('✅ JSON映射数据验证通过，包含', jsonData.data.length, '个映射项');
+            return jsonData;
+
+        } catch (fetchError) {
+            console.warn('⚠️ fetch方法失败:', fetchError.message);
+
+            // 方法2：尝试使用XMLHttpRequest（可能在某些环境下工作）
+            try {
+                console.log('尝试备用方法（XMLHttpRequest）...');
+                return await fetchMappingDataWithXHR();
+            } catch (xhrError) {
+                console.warn('⚠️ XMLHttpRequest方法也失败:', xhrError.message);
+
+                // 方法3：检查是否在file://协议下运行，给出明确提示
+                if (window.location.protocol === 'file:') {
+                    console.warn('🚨 检测到file://协议，无法读取JSON映射文件');
+                    console.warn('💡 解决方案：');
+                    console.warn('   方案1: 双击项目根目录的 start_server.bat 文件');
+                    console.warn('   方案2: 手动运行 python -m http.server 8000');
+                    console.warn('   方案3: 使用 Live Server 等开发工具');
+                    console.warn('   然后访问: http://localhost:8000');
+
+                    // 显示用户友好的提示
+                    if (App.Utils) {
+                        App.Utils.showStatus(
+                            '⚠️ 检测到本地文件访问限制。请使用HTTP服务器访问项目以获得完整功能。',
+                            'warning',
+                            8000
+                        );
+                    }
+                }
+
+                return null;
+            }
+        }
+    }
+
+    /**
+     * 使用XMLHttpRequest读取映射数据（备用方法）
+     * @returns {Promise<Object>} 映射数据对象
+     */
+    function fetchMappingDataWithXHR() {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', 'XLS/对比.json', true);
+            xhr.responseType = 'json';
+
+            xhr.onload = function() {
+                if (xhr.status === 200 || xhr.status === 0) { // status 0 for file:// protocol
+                    try {
+                        let jsonData = xhr.response;
+
+                        // 如果响应不是对象，尝试解析
+                        if (typeof jsonData === 'string') {
+                            jsonData = JSON.parse(jsonData);
+                        }
+
+                        if (!validateMappingData(jsonData)) {
+                            reject(new Error('JSON文件格式验证失败'));
+                            return;
+                        }
+
+                        console.log('✅ XMLHttpRequest方法成功，JSON映射数据验证通过');
+                        resolve(jsonData);
+                    } catch (parseError) {
+                        reject(new Error('JSON解析失败: ' + parseError.message));
+                    }
+                } else {
+                    reject(new Error(`XMLHttpRequest失败: ${xhr.status} ${xhr.statusText}`));
+                }
+            };
+
+            xhr.onerror = function() {
+                reject(new Error('XMLHttpRequest网络错误'));
+            };
+
+            xhr.send();
+        });
+    }
+
+    /**
+     * 验证映射数据格式
+     * @param {Object} jsonData - 待验证的JSON数据
+     * @returns {boolean} 验证是否通过
+     */
+    function validateMappingData(jsonData) {
+        try {
+            // 检查基本结构
+            if (!jsonData || typeof jsonData !== 'object') {
+                console.error('JSON数据不是有效对象');
+                return false;
+            }
+
+            if (!Array.isArray(jsonData.data)) {
+                console.error('JSON数据缺少data数组');
+                return false;
+            }
+
+            // 检查必要字段
+            const requiredFields = ['RC现在的主题通道', '颜色代码'];
+            let validItemCount = 0;
+
+            for (const item of jsonData.data) {
+                if (!item || typeof item !== 'object') continue;
+
+                const hasRequiredFields = requiredFields.every(field =>
+                    item.hasOwnProperty(field)
+                );
+
+                if (hasRequiredFields) {
+                    validItemCount++;
+                }
+            }
+
+            if (validItemCount === 0) {
+                console.error('JSON数据中没有包含必要字段的有效映射项');
+                return false;
+            }
+
+            console.log(`JSON数据验证通过: 总计${jsonData.data.length}项，有效映射${validItemCount}项`);
+            return true;
+
+        } catch (error) {
+            console.error('JSON数据验证过程中出错:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 获取内置映射数据（向后兼容）
+     * @returns {Object} 内置映射数据对象
+     */
+    function getBuiltinMappingData() {
+        return {
             "sheetName": "Sheet1",
             "exportTime": "2025-09-04T03:13:30.662Z",
             "totalRows": 33,
@@ -1692,32 +1864,199 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                     "RC现在的主题通道": "G7",
                     "作用": "装饰颜色7",
                     "颜色代码": "G7"
-                },
-                {
-                    "RC现在的主题通道": "P3",
-                    "作用": "预留颜色通道3",
-                    "颜色代码": "P3"
-                },
-                {
-                    "RC现在的主题通道": "P4",
-                    "作用": "预留颜色通道4",
-                    "颜色代码": "P4"
-                },
-                {
-                    "RC现在的主题通道": "P7",
-                    "作用": "预留颜色通道7",
-                    "颜色代码": "P7"
-                },
-                {
-                    "RC现在的主题通道": "P8",
-                    "作用": "预留颜色通道8",
-                    "颜色代码": "P8"
                 }
+                // 注意：移除了P3→P3, P4→P4, P7→P7, P8→P8等直接映射
+                // 这些通道应该只通过JSON文件中的明确映射关系来处理
+                // 例如：P11→P3, P15→P4等间接映射是正确的
+                // 但P3→P3, P4→P4等直接映射会导致不必要的颜色查找
             ]
         };
+    }
 
-        updateFileStatus('mappingStatus', '已加载', 'success');
-        console.log('对比映射数据加载成功（内置数据）');
+    /**
+     * 加载对比映射数据（支持动态JSON文件读取）
+     */
+    async function loadMappingData() {
+        try {
+            console.log('=== 开始加载映射数据 ===');
+
+            // 首先尝试从JSON文件读取
+            const jsonMappingData = await fetchMappingDataFromJSON();
+
+            if (jsonMappingData) {
+                // JSON文件读取成功
+                mappingData = jsonMappingData;
+                updateFileStatus('mappingStatus', '已加载 (JSON文件)', 'success');
+                console.log('✅ 对比映射数据加载成功（来源：XLS/对比.json文件）');
+                console.log('映射数据统计:', {
+                    总项目数: mappingData.data.length,
+                    有效通道数: mappingData.data.filter(item =>
+                        item['RC现在的主题通道'] &&
+                        item['RC现在的主题通道'] !== '' &&
+                        item['颜色代码'] &&
+                        item['颜色代码'] !== ''
+                    ).length
+                });
+            } else {
+                // JSON文件读取失败，使用内置数据
+                console.log('🔄 回退到内置映射数据...');
+                mappingData = getBuiltinMappingData();
+                updateFileStatus('mappingStatus', '已加载 (内置数据)', 'warning');
+                console.log('⚠️ 对比映射数据加载成功（来源：内置数据，功能受限）');
+            }
+
+        } catch (error) {
+            console.error('❌ 映射数据加载过程中出现错误:', error);
+
+            // 出现异常时使用内置数据
+            mappingData = getBuiltinMappingData();
+            updateFileStatus('mappingStatus', '已加载 (内置数据)', 'error');
+            console.log('🔄 因错误回退到内置映射数据');
+        }
+
+        console.log('=== 映射数据加载完成 ===');
+    }
+
+    /**
+     * 检测映射模式
+     * @param {Object} sourceData - 源数据对象
+     * @returns {string} 映射模式：'direct' 或 'json'
+     */
+    function detectMappingMode(sourceData) {
+        console.log('=== 开始检测映射模式 ===');
+
+        if (!sourceData || !sourceData.workbook) {
+            console.log('源数据无效，使用JSON映射模式');
+            return 'json';
+        }
+
+        const sheetNames = sourceData.workbook.SheetNames;
+        console.log('源数据工作表列表:', sheetNames);
+
+        // 第一优先级：检查是否包含"完整配色表"工作表
+        const hasCompleteColorSheet = sheetNames.includes('完整配色表');
+        if (hasCompleteColorSheet) {
+            console.log('✅ 找到"完整配色表"工作表，使用JSON间接映射模式');
+            return 'json';
+        }
+
+        // 第二优先级：检查是否包含"Color"工作表
+        const hasColorSheet = sheetNames.includes('Color');
+        if (hasColorSheet) {
+            console.log('✅ 找到"Color"工作表，使用直接映射模式');
+
+            // 验证Color工作表是否有有效数据
+            try {
+                const colorSheet = sourceData.workbook.Sheets['Color'];
+                const colorData = XLSX.utils.sheet_to_json(colorSheet, {
+                    header: 1,
+                    defval: '',
+                    raw: false
+                });
+
+                if (!colorData || colorData.length < 2) {
+                    console.log('⚠️ Color工作表数据不足，回退到JSON映射模式');
+                    return 'json';
+                }
+
+                const headers = colorData[0];
+                console.log('Color工作表表头:', headers);
+
+                // 简化检测：只要有表头和数据就启用直接映射
+                if (headers && headers.length > 0) {
+                    console.log(`✅ 检测到直接映射模式：Color工作表包含${headers.length}个字段`);
+                    return 'direct';
+                } else {
+                    console.log('⚠️ Color工作表表头为空，回退到JSON映射模式');
+                    return 'json';
+                }
+
+            } catch (error) {
+                console.error('读取Color工作表时出错:', error);
+                console.log('⚠️ Color工作表读取失败，回退到JSON映射模式');
+                return 'json';
+            }
+        }
+
+        // 默认情况：没有找到特定工作表，使用JSON映射模式
+        console.log('未找到"完整配色表"或"Color"工作表，使用JSON映射模式');
+        return 'json';
+    }
+
+    /**
+     * 更新映射模式指示器
+     * @param {string} mode - 映射模式
+     * @param {Object} additionalInfo - 附加信息
+     */
+    function updateMappingModeIndicator(mode, additionalInfo = {}) {
+        currentMappingMode = mode;
+
+        // 更新源数据文件选择结果中的映射模式信息
+        const sourceFileResult = document.getElementById('sourceFileSelectionResult');
+        if (sourceFileResult && sourceFileResult.style.display !== 'none') {
+            let mappingModeInfo = sourceFileResult.querySelector('.mapping-mode-info');
+
+            if (!mappingModeInfo) {
+                mappingModeInfo = document.createElement('div');
+                mappingModeInfo.className = 'mapping-mode-info';
+                mappingModeInfo.style.cssText = 'margin-top: 10px; padding: 8px; border-radius: 3px; font-size: 13px; font-weight: bold;';
+                sourceFileResult.appendChild(mappingModeInfo);
+            }
+
+            if (mode === 'direct') {
+                mappingModeInfo.style.backgroundColor = '#e7f3ff';
+                mappingModeInfo.style.color = '#0066cc';
+                mappingModeInfo.style.border = '1px solid #b3d9ff';
+                mappingModeInfo.innerHTML = `
+                    🎯 <strong>直接映射模式</strong><br>
+                    <small>检测到Color工作表，将使用直接字段映射（${additionalInfo.fieldCount || 0}个字段）</small>
+                `;
+            } else {
+                mappingModeInfo.style.backgroundColor = '#fff3cd';
+                mappingModeInfo.style.color = '#856404';
+                mappingModeInfo.style.border = '1px solid #ffeaa7';
+                mappingModeInfo.innerHTML = `
+                    📋 <strong>JSON映射模式</strong><br>
+                    <small>使用XLS/对比.json文件进行映射关系处理</small>
+                `;
+            }
+        }
+
+        // 更新独立的映射模式指示器
+        const mappingModeIndicator = document.getElementById('mappingModeIndicator');
+        const mappingModeContent = document.getElementById('mappingModeContent');
+
+        if (mappingModeIndicator && mappingModeContent) {
+            // 显示指示器
+            mappingModeIndicator.style.display = 'block';
+
+            // 移除之前的模式类
+            mappingModeIndicator.classList.remove('direct-mode', 'json-mode');
+
+            if (mode === 'direct') {
+                mappingModeIndicator.classList.add('direct-mode');
+                mappingModeContent.innerHTML = `
+                    <div class="mapping-mode-title">
+                        <span class="mapping-mode-icon">🎯</span>直接映射模式
+                    </div>
+                    <div class="mapping-mode-description">
+                        检测到Color工作表，支持${additionalInfo.fieldCount || 0}个直接字段映射
+                    </div>
+                `;
+            } else {
+                mappingModeIndicator.classList.add('json-mode');
+                mappingModeContent.innerHTML = `
+                    <div class="mapping-mode-title">
+                        <span class="mapping-mode-icon">📋</span>JSON映射模式
+                    </div>
+                    <div class="mapping-mode-description">
+                        使用XLS/对比.json文件进行映射关系处理
+                    </div>
+                `;
+            }
+        }
+
+        console.log(`映射模式已设置为: ${mode}`);
     }
 
     /**
@@ -1726,6 +2065,28 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
      */
     function setSourceData(data) {
         sourceData = data;
+
+        // 检测映射模式
+        const detectedMode = detectMappingMode(data);
+
+        // 获取附加信息用于显示
+        let additionalInfo = {};
+        if (detectedMode === 'direct' && data.workbook && data.workbook.Sheets['Color']) {
+            try {
+                const colorData = XLSX.utils.sheet_to_json(data.workbook.Sheets['Color'], { header: 1 });
+                const headers = colorData[0] || [];
+                const directFields = [];
+                for (let i = 1; i <= 7; i++) directFields.push(`G${i}`);
+                for (let i = 1; i <= 49; i++) directFields.push(`P${i}`);
+                const foundFields = headers.filter(h => directFields.includes(h?.toString().trim().toUpperCase()));
+                additionalInfo.fieldCount = foundFields.length;
+            } catch (error) {
+                console.warn('获取直接映射字段数量时出错:', error);
+            }
+        }
+
+        // 更新映射模式指示器
+        updateMappingModeIndicator(detectedMode, additionalInfo);
 
         // 使用新的文件选择状态更新函数，保持与其他文件选择的一致性
         const fileInfo = `文件名: ${data.fileName} | 大小: ${formatFileSize(data.fileSize || 0)} | 选择时间: ${getCurrentTimeString()}`;
@@ -1736,7 +2097,8 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             fileName: data.fileName,
             headers: data.headers,
             dataCount: data.data.length,
-            sampleData: data.data.slice(0, 3)
+            sampleData: data.data.slice(0, 3),
+            mappingMode: detectedMode
         });
 
         checkReadyState();
@@ -2327,7 +2689,17 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
             // 2. 根据映射关系更新颜色数据
             console.log('步骤2: 更新颜色数据...');
-            const updateResult = updateThemeColors(themeRowIndex, themeName);
+            console.log(`当前映射模式: ${currentMappingMode}`);
+
+            let updateResult;
+            if (currentMappingMode === 'direct') {
+                console.log('使用直接映射模式处理颜色数据...');
+                updateResult = updateThemeColorsDirect(themeRowIndex, themeName);
+            } else {
+                console.log('使用JSON映射模式处理颜色数据...');
+                updateResult = updateThemeColors(themeRowIndex, themeName);
+            }
+
             console.log('颜色更新结果:', updateResult);
 
             // 3. 验证颜色通道处理完整性
@@ -2486,7 +2858,187 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
     }
 
     /**
-     * 更新主题颜色数据
+     * 直接映射模式：在源数据中查找颜色值
+     * @param {string} colorChannel - 颜色通道名称（如P1, G1等）
+     * @returns {string|null} 颜色值或null
+     */
+    function findColorValueDirect(colorChannel) {
+        if (!sourceData || !sourceData.workbook) {
+            console.warn('源数据不可用');
+            return null;
+        }
+
+        try {
+            // 读取Color工作表
+            const colorSheet = sourceData.workbook.Sheets['Color'];
+            if (!colorSheet) {
+                console.warn('Color工作表不存在');
+                return null;
+            }
+
+            const colorData = XLSX.utils.sheet_to_json(colorSheet, {
+                header: 1,
+                defval: '',
+                raw: false
+            });
+
+            if (!colorData || colorData.length < 2) {
+                console.warn('Color工作表数据不足');
+                return null;
+            }
+
+            const headers = colorData[0];
+            const dataRow = colorData[1]; // 第二行是数据行
+
+            // 查找对应的列索引 - 灵活匹配
+            const targetChannel = colorChannel.toUpperCase();
+            const columnIndex = headers.findIndex(header => {
+                if (!header) return false;
+                const headerStr = header.toString().trim().toUpperCase();
+                return headerStr === targetChannel;
+            });
+
+            if (columnIndex === -1) {
+                console.log(`直接映射：未找到字段 ${colorChannel}，可用字段: ${headers.join(', ')}`);
+                return null;
+            }
+
+            const colorValue = dataRow[columnIndex];
+
+            // 简化验证：只检查非空
+            if (!colorValue || colorValue === '' || colorValue === null || colorValue === undefined) {
+                console.log(`直接映射：字段 ${colorChannel} 的值为空，原始值: "${colorValue}"`);
+                return null;
+            }
+
+            // 清理颜色值（移除#号，转换为大写）
+            let cleanValue = colorValue.toString().trim().toUpperCase();
+            if (cleanValue.startsWith('#')) {
+                cleanValue = cleanValue.substring(1);
+            }
+
+            console.log(`直接映射：找到 ${colorChannel} = ${cleanValue} (列索引: ${columnIndex})`);
+            return cleanValue;
+
+        } catch (error) {
+            console.error(`直接映射查找 ${colorChannel} 时出错:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * 直接映射模式：更新主题颜色数据
+     * @param {number} rowIndex - 主题行索引
+     * @param {string} themeName - 主题名称
+     * @returns {Object} 更新结果
+     */
+    function updateThemeColorsDirect(rowIndex, themeName) {
+        console.log('=== 开始直接映射模式更新主题颜色数据 ===');
+        console.log(`目标行索引: ${rowIndex}, 主题名称: ${themeName}`);
+
+        const data = rscThemeData.data;
+        const headerRow = data[0];
+        const themeRow = data[rowIndex];
+
+        if (!themeRow) {
+            throw new Error(`无法找到行索引 ${rowIndex} 对应的主题行数据`);
+        }
+
+        const updatedColors = [];
+        const summary = {
+            total: 0,
+            updated: 0,
+            notFound: 0,
+            errors: []
+        };
+
+        console.log('RSC_Theme表头:', headerRow);
+
+        // 识别所有颜色通道列（P开头和G开头的列）
+        const colorChannels = headerRow.filter((col) => {
+            if (!col || typeof col !== 'string') return false;
+            const colName = col.toString().trim().toUpperCase();
+            return colName.startsWith('P') || colName.startsWith('G');
+        });
+
+        console.log('发现的颜色通道:', colorChannels);
+
+        // 直接映射处理每个颜色通道
+        colorChannels.forEach((channel, index) => {
+            const columnIndex = headerRow.findIndex(col => col === channel);
+
+            console.log(`\n处理直接映射 ${index + 1}/${colorChannels.length}: ${channel}`);
+
+            summary.total++;
+
+            try {
+                // 直接查找对应的颜色值
+                const colorValue = findColorValueDirect(channel);
+
+                let finalColorValue = null;
+                let isDefault = false;
+
+                if (colorValue && colorValue !== null && colorValue !== undefined && colorValue !== '') {
+                    finalColorValue = colorValue;
+                    console.log(`✅ 直接映射找到颜色值: ${channel} = ${finalColorValue}`);
+                } else {
+                    // 使用默认值FFFFFF
+                    finalColorValue = 'FFFFFF';
+                    isDefault = true;
+                    console.log(`⚠️ 直接映射未找到颜色值，使用默认值: ${channel} = ${finalColorValue}`);
+                }
+
+                // 更新数据
+                if (columnIndex !== -1 && themeRow && columnIndex >= 0 && columnIndex < themeRow.length) {
+                    themeRow[columnIndex] = finalColorValue;
+                    console.log(`📝 直接映射更新: 行${rowIndex}, 列${columnIndex}(${channel}) = ${finalColorValue}`);
+
+                    // 记录更新结果
+                    updatedColors.push({
+                        channel: channel,
+                        colorCode: channel, // 直接映射模式下，颜色代码就是通道名
+                        value: finalColorValue,
+                        isDefault: isDefault,
+                        rowIndex: rowIndex,
+                        columnIndex: columnIndex
+                    });
+
+                    if (isDefault) {
+                        summary.notFound++;
+                    } else {
+                        summary.updated++;
+                    }
+                } else {
+                    console.error(`❌ 数据更新失败: 无效的列索引 - 通道:${channel}, 列:${columnIndex}`);
+                    summary.errors.push(`无效的列索引: ${channel}`);
+                }
+
+            } catch (error) {
+                console.error(`处理通道 ${channel} 时出错:`, error);
+                summary.errors.push(`处理 ${channel} 时出错: ${error.message}`);
+            }
+        });
+
+        console.log('\n=== 直接映射模式颜色处理完成 ===');
+        console.log('处理统计:', summary);
+        console.log('成功更新数量:', summary.updated);
+        console.log('使用默认值数量:', summary.notFound);
+        console.log('错误数量:', summary.errors.length);
+
+        // 验证数据更新结果
+        console.log('=== 数据更新验证 ===');
+        console.log(`主题行数据 (行${rowIndex}):`, themeRow);
+
+        return {
+            success: true,
+            updatedColors: updatedColors,
+            summary: summary,
+            mode: 'direct'
+        };
+    }
+
+    /**
+     * 更新主题颜色数据（JSON映射模式）
      * @param {number} rowIndex - 主题行索引
      * @param {string} themeName - 主题名称
      * @returns {Object} 更新结果
@@ -4589,11 +5141,22 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         // 处理目标工作表（严格限制：仅限Light、ColorInfo）
         // 重要约束：不修改RSC_Theme.xls文件中的其他工作表，保持零影响原则
         console.log('=== 开始处理目标工作表 ===');
+        console.log(`主工作表名称: ${originalSheetName}`);
+
         const targetSheets = ['Light', 'ColorInfo'];
         if (rscAllSheetsData) {
+            console.log('rscAllSheetsData可用工作表:', Object.keys(rscAllSheetsData));
+
             targetSheets.forEach(sheetName => {
-                if (sheetName !== originalSheetName && rscAllSheetsData[sheetName]) {
-                    console.log(`处理目标工作表: ${sheetName}`);
+                console.log(`检查目标工作表: ${sheetName}`);
+                console.log(`- 是否与主工作表同名: ${sheetName === originalSheetName}`);
+                console.log(`- rscAllSheetsData中是否存在: ${!!rscAllSheetsData[sheetName]}`);
+
+                // 修复：移除与主工作表名称的冲突检查，允许处理所有目标工作表
+                // 原条件：sheetName !== originalSheetName && rscAllSheetsData[sheetName]
+                // 新条件：只检查数据是否存在
+                if (rscAllSheetsData[sheetName]) {
+                    console.log(`开始处理目标工作表: ${sheetName}`);
 
                     const sheetData = rscAllSheetsData[sheetName];
                     if (sheetData && sheetData.length > 0) {
@@ -4624,11 +5187,24 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                                 const lastDataRow = sheetData[sheetData.length - 1];
                                 console.log(`  表头: ${JSON.stringify(headerRow)}`);
                                 console.log(`  最后一行数据: ${JSON.stringify(lastDataRow)}`);
+
+                                // 额外验证：检查新增行是否包含用户配置的数据
+                                if (sheetName === 'Light') {
+                                    const maxIndex = headerRow.findIndex(col => col === 'Max');
+                                    const specularColorIndex = headerRow.findIndex(col => col === 'SpecularColor');
+                                    console.log(`  Light配置验证 - Max值: ${lastDataRow[maxIndex]}, SpecularColor: ${lastDataRow[specularColorIndex]}`);
+                                } else if (sheetName === 'ColorInfo') {
+                                    const pickupDiffRIndex = headerRow.findIndex(col => col === 'PickupDiffR');
+                                    const fogStartIndex = headerRow.findIndex(col => col === 'FogStart');
+                                    console.log(`  ColorInfo配置验证 - PickupDiffR: ${lastDataRow[pickupDiffRIndex]}, FogStart: ${lastDataRow[fogStartIndex]}`);
+                                }
                             }
                         }
                     } else {
                         console.warn(`工作表 "${sheetName}" 数据为空，跳过更新`);
                     }
+                } else {
+                    console.warn(`工作表 "${sheetName}" 在rscAllSheetsData中不存在，跳过处理`);
                 }
             });
         } else {

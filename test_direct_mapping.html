@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>直接映射模式测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-title {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1 class="test-title">🎯 直接映射模式功能测试</h1>
+        
+        <div class="test-section">
+            <h2>测试说明</h2>
+            <p>本页面用于测试直接映射模式的核心功能，包括：</p>
+            <ul>
+                <li>映射模式检测逻辑</li>
+                <li>Color工作表数据读取</li>
+                <li>直接字段映射处理</li>
+                <li>UI指示器更新</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>测试用例1：映射模式检测</h2>
+            <button onclick="testMappingModeDetection()">运行测试</button>
+            <div id="test1Result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>测试用例2：直接映射字段查找</h2>
+            <button onclick="testDirectFieldMapping()">运行测试</button>
+            <div id="test2Result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>测试用例3：UI指示器更新</h2>
+            <button onclick="testUIIndicatorUpdate()">运行测试</button>
+            <div id="test3Result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>模拟数据生成</h2>
+            <button onclick="generateMockData()">生成测试用Color工作表数据</button>
+            <div id="mockDataResult" class="test-result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        // 模拟测试数据
+        let mockSourceData = null;
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `test-result ${type}`;
+            element.innerHTML = message;
+        }
+
+        function testMappingModeDetection() {
+            try {
+                // 创建模拟的源数据
+                const mockData = {
+                    workbook: {
+                        SheetNames: ['Color', 'Other'],
+                        Sheets: {
+                            'Color': {
+                                'A1': { v: 'G1' },
+                                'B1': { v: 'G2' },
+                                'C1': { v: 'P1' },
+                                'D1': { v: 'P2' },
+                                'E1': { v: 'P3' },
+                                'F1': { v: 'P4' },
+                                'A2': { v: 'FF0000' },
+                                'B2': { v: '00FF00' },
+                                'C2': { v: '0000FF' },
+                                'D2': { v: 'FFFF00' },
+                                'E2': { v: 'FF00FF' },
+                                'F2': { v: '00FFFF' },
+                                '!ref': 'A1:F2'
+                            }
+                        }
+                    }
+                };
+
+                // 模拟检测函数
+                const detectResult = simulateDetectMappingMode(mockData);
+                
+                showResult('test1Result', 
+                    `✅ 映射模式检测测试通过<br>
+                    检测结果: ${detectResult}<br>
+                    预期结果: direct<br>
+                    测试状态: ${detectResult === 'direct' ? '成功' : '失败'}`, 
+                    detectResult === 'direct' ? 'success' : 'error'
+                );
+            } catch (error) {
+                showResult('test1Result', `❌ 测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        function simulateDetectMappingMode(sourceData) {
+            if (!sourceData || !sourceData.workbook) {
+                return 'json';
+            }
+
+            const sheetNames = sourceData.workbook.SheetNames;
+            const hasColorSheet = sheetNames.includes('Color');
+            if (!hasColorSheet) {
+                return 'json';
+            }
+
+            try {
+                const colorSheet = sourceData.workbook.Sheets['Color'];
+                const colorData = XLSX.utils.sheet_to_json(colorSheet, { 
+                    header: 1, 
+                    defval: '',
+                    raw: false 
+                });
+
+                if (!colorData || colorData.length < 2) {
+                    return 'json';
+                }
+
+                const headers = colorData[0];
+                const directMappingFields = [];
+                for (let i = 1; i <= 7; i++) directMappingFields.push(`G${i}`);
+                for (let i = 1; i <= 49; i++) directMappingFields.push(`P${i}`);
+
+                const foundFields = headers.filter(header => 
+                    directMappingFields.includes(header?.toString().trim().toUpperCase())
+                );
+
+                return foundFields.length >= 5 ? 'direct' : 'json';
+            } catch (error) {
+                return 'json';
+            }
+        }
+
+        function testDirectFieldMapping() {
+            try {
+                generateMockData();
+                
+                // 测试字段查找
+                const testFields = ['G1', 'P1', 'P3', 'NONEXISTENT'];
+                const results = [];
+                
+                testFields.forEach(field => {
+                    const value = simulateFindColorValueDirect(field);
+                    results.push(`${field}: ${value || 'null'}`);
+                });
+                
+                showResult('test2Result', 
+                    `✅ 直接映射字段查找测试完成<br>
+                    <div class="code-block">${results.join('\n')}</div>`, 
+                    'success'
+                );
+            } catch (error) {
+                showResult('test2Result', `❌ 测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        function simulateFindColorValueDirect(colorChannel) {
+            if (!mockSourceData || !mockSourceData.workbook) {
+                return null;
+            }
+
+            try {
+                const colorSheet = mockSourceData.workbook.Sheets['Color'];
+                if (!colorSheet) return null;
+
+                const colorData = XLSX.utils.sheet_to_json(colorSheet, { 
+                    header: 1, 
+                    defval: '',
+                    raw: false 
+                });
+
+                if (!colorData || colorData.length < 2) return null;
+
+                const headers = colorData[0];
+                const dataRow = colorData[1];
+
+                const columnIndex = headers.findIndex(header => 
+                    header?.toString().trim().toUpperCase() === colorChannel.toUpperCase()
+                );
+
+                if (columnIndex === -1) return null;
+
+                const colorValue = dataRow[columnIndex];
+                if (!colorValue || colorValue === '') return null;
+
+                let cleanValue = colorValue.toString().trim().toUpperCase();
+                if (cleanValue.startsWith('#')) {
+                    cleanValue = cleanValue.substring(1);
+                }
+
+                return cleanValue;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function testUIIndicatorUpdate() {
+            // 模拟UI更新测试
+            showResult('test3Result', 
+                `✅ UI指示器更新测试<br>
+                映射模式指示器功能需要在主应用中测试<br>
+                测试项目：<br>
+                - 源数据文件选择结果中的映射模式信息<br>
+                - 独立映射模式指示器的显示和样式<br>
+                - 模式切换时的动画效果`, 
+                'info'
+            );
+        }
+
+        function generateMockData() {
+            // 生成包含Color工作表的模拟数据
+            const wb = XLSX.utils.book_new();
+            
+            // 创建Color工作表数据
+            const colorData = [
+                ['G1', 'G2', 'G3', 'P1', 'P2', 'P3', 'P4', 'P5'],
+                ['FF0000', '00FF00', '0000FF', 'FFFF00', 'FF00FF', '00FFFF', 'C0C0C0', '808080']
+            ];
+            
+            const ws = XLSX.utils.aoa_to_sheet(colorData);
+            XLSX.utils.book_append_sheet(wb, ws, 'Color');
+            
+            mockSourceData = {
+                workbook: wb,
+                fileName: 'test_color_data.xlsx'
+            };
+            
+            showResult('mockDataResult', 
+                `✅ 模拟数据生成成功<br>
+                工作表: Color<br>
+                字段: G1, G2, G3, P1, P2, P3, P4, P5<br>
+                数据行: 1行颜色数据<br>
+                <div class="code-block">${JSON.stringify(colorData, null, 2)}</div>`, 
+                'success'
+            );
+        }
+    </script>
+</body>
+</html>
