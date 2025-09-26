@@ -25,6 +25,7 @@ window.App.UnityProjectFolderManager = (function() {
             this.ugcThemeHandle = null;
             this.rscLanguageHandle = null;
             this.levelsHandle = null;
+            this.allObstacleHandle = null;
             this.selectedFolderPath = null; // 存储选择的文件夹路径信息
             this.isSupported = 'showDirectoryPicker' in window;
             this.cache = new Map();
@@ -79,6 +80,7 @@ window.App.UnityProjectFolderManager = (function() {
                     ugcThemeFound: !!locatedFiles.ugcTheme,
                     rscLanguageFound: !!locatedFiles.rscLanguage,
                     levelsFound: !!locatedFiles.levels,
+                    allObstacleFound: !!locatedFiles.allObstacle,
                     files: locatedFiles
                 };
 
@@ -99,7 +101,7 @@ window.App.UnityProjectFolderManager = (function() {
                 console.log('验证文件夹:', this.directoryHandle.name);
 
                 // 检查是否包含预期的文件
-                const expectedFiles = ['RSC_Theme.xls', 'UGCTheme.xls', 'RSC_Language.xls'];
+                const expectedFiles = ['RSC_Theme.xls', 'UGCTheme.xls', 'RSC_Language.xls', 'AllObstacle.xls'];
                 let foundCount = 0;
                 const foundFiles = [];
 
@@ -127,7 +129,8 @@ window.App.UnityProjectFolderManager = (function() {
                 rscTheme: null,
                 ugcTheme: null,
                 rscLanguage: null,
-                levels: null
+                levels: null,
+                allObstacle: null
             };
 
             try {
@@ -211,6 +214,25 @@ window.App.UnityProjectFolderManager = (function() {
                                     hasPermission: false
                                 };
                             }
+                        } else if (name === 'AllObstacle.xls') {
+                            console.log('找到AllObstacle.xls，请求权限...');
+                            const permission = await handle.requestPermission({ mode: 'readwrite' });
+                            if (permission === 'granted') {
+                                this.allObstacleHandle = handle;
+                                result.allObstacle = {
+                                    handle: handle,
+                                    name: name,
+                                    hasPermission: true
+                                };
+                                console.log('AllObstacle.xls权限获取成功');
+                            } else {
+                                console.warn('AllObstacle.xls权限获取失败');
+                                result.allObstacle = {
+                                    handle: handle,
+                                    name: name,
+                                    hasPermission: false
+                                };
+                            }
                         }
                     }
                 }
@@ -228,10 +250,19 @@ window.App.UnityProjectFolderManager = (function() {
          * 读取主题文件数据
          */
         async loadThemeFileData(fileType) {
-            const handle = fileType === 'rsc' ? this.rscThemeHandle : this.ugcThemeHandle;
-            
+            let handle;
+            if (fileType === 'rsc') {
+                handle = this.rscThemeHandle;
+            } else if (fileType === 'ugc') {
+                handle = this.ugcThemeHandle;
+            } else if (fileType === 'allObstacle') {
+                handle = this.allObstacleHandle;
+            } else {
+                throw new Error(`不支持的文件类型: ${fileType}`);
+            }
+
             if (!handle) {
-                throw new Error(`${fileType.toUpperCase()}主题文件未找到`);
+                throw new Error(`${fileType.toUpperCase()}文件未找到`);
             }
 
             try {
@@ -277,7 +308,8 @@ window.App.UnityProjectFolderManager = (function() {
                 name: this.directoryHandle.name,
                 kind: this.directoryHandle.kind,
                 hasRSCTheme: !!this.rscThemeHandle,
-                hasUGCTheme: !!this.ugcThemeHandle
+                hasUGCTheme: !!this.ugcThemeHandle,
+                hasAllObstacle: !!this.allObstacleHandle
             };
         }
 
@@ -288,6 +320,9 @@ window.App.UnityProjectFolderManager = (function() {
             this.directoryHandle = null;
             this.rscThemeHandle = null;
             this.ugcThemeHandle = null;
+            this.rscLanguageHandle = null;
+            this.levelsHandle = null;
+            this.allObstacleHandle = null;
             this.cache.clear();
         }
     }

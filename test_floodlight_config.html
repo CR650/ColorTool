@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FloodLight配置功能测试</title>
+    
+    <!-- 引入SheetJS库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- 引入样式文件 -->
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <style>
+        .test-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+        
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        
+        .test-button:hover {
+            background: #0056b3;
+        }
+        
+        .test-results {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .status.warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🌊 FloodLight配置功能测试</h1>
+        <p>测试新增的FloodLight配置面板功能，包括UI显示、数据验证、配置保存等。</p>
+        
+        <div id="status" class="status info">准备开始测试...</div>
+        
+        <!-- 测试控制面板 -->
+        <div class="test-section">
+            <h3>🎮 测试控制面板</h3>
+            <button class="test-button" onclick="showFloodLightPanel()">显示FloodLight面板</button>
+            <button class="test-button" onclick="hideFloodLightPanel()">隐藏FloodLight面板</button>
+            <button class="test-button" onclick="testValidation()">测试验证功能</button>
+            <button class="test-button" onclick="testDataCollection()">测试数据收集</button>
+            <button class="test-button" onclick="testDefaultValues()">测试默认值</button>
+            <button class="test-button" onclick="testColorPreview()">测试颜色预览</button>
+            <button class="test-button" onclick="clearResults()">清空结果</button>
+        </div>
+        
+        <!-- FloodLight配置面板 -->
+        <div class="floodlight-config-section" id="floodlightConfigSection" style="display: none;">
+            <h4>🌊 RSC_Theme FloodLight 泛光参数设置</h4>
+            <div class="floodlight-config-content">
+                <div class="floodlight-config-grid">
+                    <!-- 泛光颜色和参数配置 -->
+                    <div class="floodlight-config-group">
+                        <h5>🎨 泛光颜色设置</h5>
+                        <div class="floodlight-field-row">
+                            <label for="floodlightColor">泛光颜色 (Color):</label>
+                            <div class="color-selector-container">
+                                <input type="text" id="floodlightColor" value="FFFFFF" placeholder="16进制颜色值" maxlength="6" pattern="[0-9A-Fa-f]{6}">
+                                <div class="color-preview" id="floodlightColorPreview" style="background-color: #FFFFFF;"></div>
+                                <button type="button" class="color-picker-btn" data-target="floodlightColor">选择颜色</button>
+                            </div>
+                            <span class="field-hint">16进制格式的泛光颜色值</span>
+                        </div>
+                    </div>
+
+                    <!-- 泛光参数配置 -->
+                    <div class="floodlight-config-group">
+                        <h5>⚙️ 泛光参数设置</h5>
+                        <div class="floodlight-field-row">
+                            <label for="floodlightTippingPoint">临界点 (TippingPoint):</label>
+                            <input type="number" id="floodlightTippingPoint" min="0" max="5" step="0.1" value="2.5" placeholder="范围: 0 到 5">
+                            <span class="field-hint">泛光效果的临界点值，支持一位小数</span>
+                        </div>
+                        <div class="floodlight-field-row">
+                            <label for="floodlightStrength">强度 (Strength):</label>
+                            <input type="number" id="floodlightStrength" min="0" max="10" step="0.1" value="7.8" placeholder="范围: 0 到 10">
+                            <span class="field-hint">泛光效果的强度值，支持一位小数</span>
+                        </div>
+                    </div>
+
+                    <!-- 泛光开关配置 -->
+                    <div class="floodlight-config-group">
+                        <h5>🔘 泛光开关设置</h5>
+                        <div class="floodlight-field-row">
+                            <label for="floodlightIsOn">泛光是否默认开启 (IsOn):</label>
+                            <div class="toggle-switch-container">
+                                <input type="checkbox" id="floodlightIsOn" class="toggle-switch-input">
+                                <label for="floodlightIsOn" class="toggle-switch-label">
+                                    <span class="toggle-switch-slider"></span>
+                                    <span class="toggle-switch-text">开启</span>
+                                </label>
+                            </div>
+                            <span class="field-hint">控制泛光效果是否默认开启</span>
+                        </div>
+                        <div class="floodlight-field-row">
+                            <label for="floodlightJumpActiveIsLightOn">跳板踩踏态发光是否开启 (JumpActiveIsLightOn):</label>
+                            <div class="toggle-switch-container">
+                                <input type="checkbox" id="floodlightJumpActiveIsLightOn" class="toggle-switch-input">
+                                <label for="floodlightJumpActiveIsLightOn" class="toggle-switch-label">
+                                    <span class="toggle-switch-slider"></span>
+                                    <span class="toggle-switch-text">开启</span>
+                                </label>
+                            </div>
+                            <span class="field-hint">控制跳板踩踏时的发光效果</span>
+                        </div>
+                    </div>
+                </div>
+                <small class="help-text">
+                    🌊 这些配置将应用到RSC_Theme表的FloodLight字段中。创建新主题时使用默认值，更新现有主题时显示当前值。
+                </small>
+            </div>
+        </div>
+        
+        <!-- 测试结果显示 -->
+        <div class="test-section">
+            <h3>📊 测试结果</h3>
+            <div id="testResults" class="test-results">
+                等待测试开始...
+            </div>
+        </div>
+    </div>
+    
+    <!-- 引入JavaScript模块 -->
+    <script src="js/version.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/colorPicker.js"></script>
+    <script src="js/themeManager.js"></script>
+    
+    <script>
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            showStatus('正在初始化测试环境...', 'info');
+            
+            // 初始化颜色选择器
+            if (window.App && window.App.ColorPicker) {
+                try {
+                    window.App.ColorPicker.init();
+                    showStatus('测试环境初始化完成！', 'success');
+                } catch (error) {
+                    showStatus(`初始化失败: ${error.message}`, 'error');
+                }
+            } else {
+                showStatus('颜色选择器模块未找到', 'error');
+            }
+        });
+
+        // 显示状态
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        // 添加测试结果
+        function addTestResult(message) {
+            const resultsDiv = document.getElementById('testResults');
+            const timestamp = new Date().toLocaleTimeString();
+            resultsDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        // 清空测试结果
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '测试结果已清空...\n';
+        }
+
+        // 显示FloodLight面板
+        function showFloodLightPanel() {
+            const panel = document.getElementById('floodlightConfigSection');
+            panel.style.display = 'block';
+            addTestResult('✅ FloodLight配置面板已显示');
+            showStatus('FloodLight配置面板已显示', 'success');
+        }
+
+        // 隐藏FloodLight面板
+        function hideFloodLightPanel() {
+            const panel = document.getElementById('floodlightConfigSection');
+            panel.style.display = 'none';
+            addTestResult('ℹ️ FloodLight配置面板已隐藏');
+            showStatus('FloodLight配置面板已隐藏', 'info');
+        }
+
+        // 测试验证功能
+        function testValidation() {
+            addTestResult('🔍 开始测试FloodLight验证功能...');
+            
+            // 测试TippingPoint验证
+            const tippingPointTests = [
+                { value: 6.0, expected: '5.0' },
+                { value: -1.0, expected: '0.0' },
+                { value: 'abc', expected: '2.5' }
+            ];
+            
+            tippingPointTests.forEach(test => {
+                const input = document.getElementById('floodlightTippingPoint');
+                input.value = test.value;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                setTimeout(() => {
+                    const result = input.value;
+                    addTestResult(`  TippingPoint: ${test.value} → ${result} (期望: ${test.expected}) ${result === test.expected ? '✅' : '❌'}`);
+                }, 100);
+            });
+            
+            // 测试Strength验证
+            const strengthTests = [
+                { value: 11.0, expected: '10.0' },
+                { value: -1.0, expected: '0.0' },
+                { value: 'xyz', expected: '7.8' }
+            ];
+            
+            strengthTests.forEach(test => {
+                const input = document.getElementById('floodlightStrength');
+                input.value = test.value;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                setTimeout(() => {
+                    const result = input.value;
+                    addTestResult(`  Strength: ${test.value} → ${result} (期望: ${test.expected}) ${result === test.expected ? '✅' : '❌'}`);
+                }, 200);
+            });
+            
+            showStatus('验证功能测试完成', 'success');
+        }
+
+        // 测试数据收集
+        function testDataCollection() {
+            addTestResult('📊 开始测试FloodLight数据收集...');
+            
+            // 设置测试值
+            document.getElementById('floodlightColor').value = 'FF0000';
+            document.getElementById('floodlightTippingPoint').value = '3.5';
+            document.getElementById('floodlightStrength').value = '8.2';
+            document.getElementById('floodlightIsOn').checked = true;
+            document.getElementById('floodlightJumpActiveIsLightOn').checked = false;
+            
+            if (window.App && window.App.ThemeManager && typeof window.App.ThemeManager.getFloodLightConfigData === 'function') {
+                try {
+                    const floodLightData = window.App.ThemeManager.getFloodLightConfigData();
+                    addTestResult('✅ getFloodLightConfigData函数调用成功');
+                    addTestResult(`  收集的数据: ${JSON.stringify(floodLightData, null, 2)}`);
+                    
+                    // 验证数据转换
+                    const expectedTippingPoint = 35; // 3.5 * 10
+                    const expectedStrength = 82; // 8.2 * 10
+                    
+                    if (floodLightData.TippingPoint === expectedTippingPoint) {
+                        addTestResult('✅ TippingPoint数据转换正确');
+                    } else {
+                        addTestResult(`❌ TippingPoint数据转换错误: 期望${expectedTippingPoint}, 实际${floodLightData.TippingPoint}`);
+                    }
+                    
+                    if (floodLightData.Strength === expectedStrength) {
+                        addTestResult('✅ Strength数据转换正确');
+                    } else {
+                        addTestResult(`❌ Strength数据转换错误: 期望${expectedStrength}, 实际${floodLightData.Strength}`);
+                    }
+                    
+                } catch (error) {
+                    addTestResult(`❌ getFloodLightConfigData函数错误: ${error.message}`);
+                }
+            } else {
+                addTestResult('⚠️ getFloodLightConfigData函数不可访问');
+            }
+            
+            showStatus('数据收集测试完成', 'success');
+        }
+
+        // 测试默认值
+        function testDefaultValues() {
+            addTestResult('🔄 开始测试FloodLight默认值...');
+            
+            if (window.App && window.App.ThemeManager && typeof window.App.ThemeManager.resetFloodLightConfigToDefaults === 'function') {
+                try {
+                    window.App.ThemeManager.resetFloodLightConfigToDefaults();
+                    addTestResult('✅ resetFloodLightConfigToDefaults函数调用成功');
+                    
+                    // 检查字段值
+                    const colorValue = document.getElementById('floodlightColor')?.value;
+                    const tippingPointValue = document.getElementById('floodlightTippingPoint')?.value;
+                    const strengthValue = document.getElementById('floodlightStrength')?.value;
+                    const isOnValue = document.getElementById('floodlightIsOn')?.checked;
+                    const jumpActiveValue = document.getElementById('floodlightJumpActiveIsLightOn')?.checked;
+                    
+                    addTestResult(`  当前值: Color=${colorValue}, TippingPoint=${tippingPointValue}, Strength=${strengthValue}`);
+                    addTestResult(`  开关状态: IsOn=${isOnValue}, JumpActive=${jumpActiveValue}`);
+                } catch (error) {
+                    addTestResult(`❌ resetFloodLightConfigToDefaults函数错误: ${error.message}`);
+                }
+            } else {
+                addTestResult('⚠️ resetFloodLightConfigToDefaults函数不可访问');
+            }
+            
+            showStatus('默认值测试完成', 'success');
+        }
+
+        // 测试颜色预览
+        function testColorPreview() {
+            addTestResult('🎨 开始测试FloodLight颜色预览...');
+            
+            const testColors = ['FF0000', '00FF00', '0000FF', 'FFFF00'];
+            
+            testColors.forEach((color, index) => {
+                setTimeout(() => {
+                    const input = document.getElementById('floodlightColor');
+                    input.value = color;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    
+                    const preview = document.getElementById('floodlightColorPreview');
+                    const expectedColor = `rgb(${parseInt(color.substr(0,2), 16)}, ${parseInt(color.substr(2,2), 16)}, ${parseInt(color.substr(4,2), 16)})`;
+                    
+                    setTimeout(() => {
+                        const actualColor = preview.style.backgroundColor;
+                        addTestResult(`  颜色 ${color}: 预览颜色 ${actualColor} ${actualColor.includes(expectedColor.replace(/rgb\(|\)/g, '').replace(/\s/g, '')) ? '✅' : '❌'}`);
+                    }, 100);
+                }, index * 500);
+            });
+            
+            showStatus('颜色预览测试完成', 'success');
+        }
+    </script>
+</body>
+</html>

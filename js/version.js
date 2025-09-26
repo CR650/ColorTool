@@ -17,13 +17,83 @@ window.App.Version = (function() {
 
     // 当前版本信息
     const VERSION_INFO = {
-        current: '1.5.2',
-        releaseDate: '2025-09-18',
-        buildNumber: '20250918004'
+        current: '1.6.3',
+        releaseDate: '2025-09-25',
+        buildNumber: '20250925004'
     };
 
     // 版本历史记录
     const VERSION_HISTORY = [
+        {
+            version: '1.6.3',
+            date: '2025-09-25',
+            changes: [
+                '🆕 新增VolumetricFog配置功能：为RSC_Theme.xls新增VolumetricFog工作表的数据配置界面',
+                '🎨 体积雾颜色设置：支持16进制颜色选择器，与FloodLight配置保持一致的交互体验',
+                '📐 体积雾尺寸配置：X、Y、Z（宽度、长度、高度）支持0-100范围的整数输入',
+                '⚙️ 体积雾效果设置：Density（浓淡）支持0.1精度的小数输入，Rotate（旋转角度）支持-90到90度',
+                '🔘 智能开关设计：IsOn使用醒目的toggle switch样式，与FloodLight开关保持一致',
+                '🌫️ 橙色主题设计：VolumetricFog配置面板使用独特的橙色渐变主题，与其他配置面板形成视觉区分',
+                '🔄 数据转换机制：Density字段输入值自动×10存储，读取时自动÷10显示，确保数据格式正确',
+                '📊 完整数据流程：包含getVolumetricFogConfigData、applyVolumetricFogConfigToRow等完整处理函数',
+                '🎯 智能验证系统：X/Y/Z（0-100）、Density（0-20）、Rotate（-90到90）范围验证和自动修正',
+                '📋 工作表处理集成：将VolumetricFog添加到所有相关函数的targetSheets列表中',
+                '🧪 专门测试页面：创建test_volumetricfog_config.html，包含完整的功能验证测试',
+                '🔗 工作流程集成：完全集成到现有的主题处理工作流程中，支持新建和更新主题'
+            ],
+            type: 'minor'
+        },
+        {
+            version: '1.6.2',
+            date: '2025-09-25',
+            changes: [
+                '🔧 关键修复：FloodLight工作表处理集成',
+                '📋 修复targetSheets列表：将FloodLight添加到所有相关函数的处理列表中',
+                '⚙️ processRSCAdditionalSheets：新建主题时正确处理FloodLight工作表',
+                '🔄 updateExistingThemeAdditionalSheets：更新主题时正确处理FloodLight工作表',
+                '📁 generateUpdatedWorkbook：生成Excel文件时正确同步FloodLight工作表数据',
+                '🧪 专门测试页面：创建test_floodlight_processing.html验证工作表处理集成',
+                '📝 更新注释和日志：所有相关函数的注释都包含FloodLight工作表说明',
+                '✅ 完整数据流程：确保FloodLight配置在新建和更新主题时都能正确保存到Excel文件'
+            ],
+            type: 'patch'
+        },
+        {
+            version: '1.6.1',
+            date: '2025-09-25',
+            changes: [
+                '🆕 新增FloodLight配置功能：为RSC_Theme.xls新增FloodLight工作表的数据配置界面',
+                '🎨 泛光颜色设置：支持16进制颜色选择器，与Light配置保持一致的交互体验',
+                '⚙️ 泛光参数配置：TippingPoint（临界点）和Strength（强度）支持0.1精度的小数输入',
+                '🔘 智能开关设计：IsOn和JumpActiveIsLightOn使用醒目的toggle switch样式',
+                '🔄 数据转换机制：输入值自动×10存储，读取时自动÷10显示，确保数据格式正确',
+                '📊 完整数据流程：包含getFloodLightConfigData、applyFloodLightConfigToRow等完整处理函数',
+                '🎯 智能默认值：新建主题时使用表中最后一个主题的FloodLight配置作为默认值',
+                '✅ 实时验证系统：TippingPoint（0-5）、Strength（0-10）范围验证和自动修正',
+                '🌊 青色主题设计：FloodLight配置面板使用独特的青色渐变主题，与其他配置面板形成视觉区分',
+                '🧪 专门测试页面：创建test_floodlight_config.html，包含完整的功能验证测试',
+                '🔗 工作流程集成：完全集成到现有的主题处理工作流程中，支持新建和更新主题'
+            ],
+            type: 'minor'
+        },
+        {
+            version: '1.6.0',
+            date: '2025-09-25',
+            changes: [
+                '🆕 新增AllObstacle.xls文件处理功能：支持全新系列主题的AllObstacle数据自动管理',
+                '✨ 智能触发条件：仅在创建全新系列主题时自动处理AllObstacle文件，避免不必要的操作',
+                '📊 自动数据填充：在Info工作表中自动添加新记录，包含ID、基础名称、多语言ID、Sort和isFilter字段',
+                '🔍 智能字段计算：自动计算新的ID和Sort值（现有最大值+1），提取主题基础名称',
+                '🛡️ 完善错误处理：文件不存在、权限失败、重复ID等情况都有适当处理，不影响主流程',
+                '💾 格式兼容性：优先保存为XLS格式确保与Java工具兼容，避免Office 2007+ XML格式错误',
+                '🔧 多格式保存：支持多种Excel格式尝试和工作簿重建机制，解决XLSX库兼容性问题',
+                '📝 详细日志：提供丰富的调试日志输出，便于问题追踪和功能验证',
+                '🧪 测试页面：创建专门的AllObstacle功能测试页面，包含完整测试用例和验证清单',
+                '📚 文档更新：更新相关文档和JSDoc注释，说明AllObstacle处理的触发条件和字段规则',
+                '🔄 向后兼容：完全不影响现有的RSC_Theme和UGCTheme处理逻辑，保持系统稳定性'
+            ],
+            type: 'major'
+        },
         {
             version: '1.5.2',
             date: '2025-09-18',

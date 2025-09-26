@@ -13,9 +13,15 @@
   - **JSON间接映射**：通过配置文件定义复杂的映射关系（如P11→P3）
   - **直接映射**：源数据包含Color工作表时，直接进行字段对字段的映射
 - **颜色数据处理**：解析Excel源数据文件中的完整配色表，提供详细的文件选择结果显示
-- **主题文件管理**：支持RSC_Theme.xls和UGCTheme.xls文件的读取和更新
+- **主题文件管理**：支持RSC_Theme.xls、UGCTheme.xls和AllObstacle.xls文件的读取和更新
+- **🆕 AllObstacle.xls自动处理**：全新系列主题创建时自动管理AllObstacle文件
+  - **智能触发**：仅在创建全新系列主题时自动处理，避免不必要的操作
+  - **自动数据填充**：在Info工作表中自动添加新记录，包含ID、基础名称、多语言ID、Sort和isFilter字段
+  - **格式兼容**：优先保存为XLS格式确保与Java工具兼容
 - **Light配置管理**：RSC_Theme Light sheet的光照参数可视化配置，支持明度偏移、高光等级、光泽度和高光颜色设置
 - **ColorInfo配置管理**：RSC_Theme ColorInfo sheet的颜色和雾效参数配置，支持钻石颜色、反光颜色、高光颜色、远景雾颜色和雾效距离设置
+- **🆕 FloodLight配置管理**：RSC_Theme FloodLight sheet的泛光参数可视化配置，支持泛光颜色、临界点、强度和开关设置
+- **🆕 VolumetricFog配置管理**：RSC_Theme VolumetricFog sheet的体积雾参数可视化配置，支持体积雾颜色、尺寸、效果和开关设置
 - **UGC图案配置**：UGCTheme图案和边框的可视化选择器，支持地板、易碎块、跳板的图案和边框选择
 - **数据映射**：智能匹配和映射颜色数据到目标主题文件
 - **文件保存**：支持直接覆盖原文件或下载更新后的文件，确保所有配置数据正确保存
@@ -82,8 +88,10 @@ npx serve .
 
 ### 基本使用流程
 1. **选择源数据文件**：上传包含完整配色表或Color工作表的Excel文件，系统将自动检测映射模式
-2. **选择主题文件**：选择Unity项目中的RSC_Theme.xls和UGCTheme.xls文件
+2. **选择Unity项目文件夹**：选择包含RSC_Theme.xls、UGCTheme.xls和AllObstacle.xls文件的Unity项目文件夹
 3. **输入主题名称**：指定要创建或更新的主题名称
+   - **全新系列主题**：如"测试主题1"（现有主题中没有"测试主题"系列），将自动处理AllObstacle.xls
+   - **同系列主题**：如"赛博3"（已有"赛博1"、"赛博2"），不会处理AllObstacle.xls
 4. **配置主题参数**：
    - **UGC图案配置**：选择地板、玻璃、跳板的图案和边框，支持可视化图案选择器
    - **Light光照配置**：设置明度偏移、高光等级、光泽度和高光颜色
@@ -125,6 +133,44 @@ npx serve .
   - FogEnd (雾结束距离)：范围 0-90
   - 控制雾效的渐变范围和可见距离
 
+### FloodLight配置详细说明
+- **泛光颜色设置**：
+  - Color (泛光颜色)：16进制颜色选择器，支持专业调色板
+  - 与Light配置中的SpecularColor使用相同的处理方式
+  - 实时颜色预览，显示选择的颜色效果
+- **泛光参数配置**：
+  - TippingPoint (临界点)：范围 0 到 5，支持一位小数（如：2.5）
+  - Strength (强度)：范围 0 到 10，支持一位小数（如：7.8）
+  - 数据转换：输入值 × 10 后存储到表中（因为表中数据格式为int）
+  - 实时验证：自动验证范围并提供错误提示
+- **泛光开关设置**：
+  - IsOn (泛光是否默认开启)：醒目的toggle switch样式
+  - JumpActiveIsLightOn (跳板踩踏态发光是否开启)：醒目的toggle switch样式
+  - 数据格式：0（关闭）/ 1（开启）
+- **自动字段处理**：
+  - LightStrength (光照强度)：系统自动填充，固定值180
+  - 用户无需配置，由系统自动处理
+
+### VolumetricFog配置详细说明
+- **体积雾颜色设置**：
+  - Color (体积雾颜色)：16进制颜色选择器，支持专业调色板
+  - 与FloodLight配置中的Color使用相同的处理方式
+  - 实时颜色预览，显示选择的颜色效果
+- **体积雾尺寸配置**：
+  - X (宽度)：范围 0 到 100，整数输入（如：75）
+  - Y (长度)：范围 0 到 100，整数输入（如：80）
+  - Z (高度)：范围 0 到 100，整数输入（如：60）
+  - 实时验证：自动验证范围并提供错误提示
+- **体积雾效果配置**：
+  - Density (浓淡)：范围 0 到 20，支持一位小数（如：15.5）
+  - 数据转换：输入值 × 10 后存储到表中（因为表中数据格式为int）
+  - Rotate (旋转角度)：范围 -90 到 90，整数输入（如：45）
+  - 实时验证：自动验证范围和小数位数，超出范围时自动修正
+- **体积雾开关设置**：
+  - IsOn (体积雾是否默认开启)：醒目的toggle switch样式
+  - 数据格式：0（关闭）/ 1（开启）
+  - 与FloodLight开关保持一致的交互体验
+
 ### UGC图案配置详细说明
 - **跳板边框图案选择**：
   - 支持可视化边框图案选择器，与地板边框保持一致的交互体验
@@ -134,9 +180,24 @@ npx serve .
   - 新建主题时默认透明度为50，提供更合理的初始值
   - 支持0-100范围的精确调整
 
+### AllObstacle.xls处理详细说明
+- **触发条件**：仅在创建全新系列主题时自动处理
+  - 系统通过智能检测判断主题是否为全新系列
+  - 利用现有的`getSmartMultiLanguageConfig()`函数进行主题类型检测
+- **数据处理规则**：在Info工作表中自动添加新记录
+  - **id列**：现有数据中id列的最大值+1
+  - **notes列**：主题的基础名称（使用`extractThemeBaseName()`函数去除末尾数字）
+  - **nameID列**：用户在多语言配置面板中输入的多语言ID
+  - **Sort列**：现有数据中Sort列的最大值+1
+  - **isFilter列**：固定填入数值1
+- **数据行位置**：Info工作表的表头在第1行，数据从第6行开始
+- **格式兼容性**：优先保存为XLS格式以确保与Java工具兼容
+- **错误处理**：文件不存在、权限失败等情况不影响主流程
+
 ### 文件格式要求
 - **源数据文件**：Excel格式(.xlsx, .xls)，包含"完整配色表"工作表
-- **主题文件**：Unity项目中的RSC_Theme.xls和UGCTheme.xls文件
+- **主题文件**：Unity项目中的RSC_Theme.xls、UGCTheme.xls和AllObstacle.xls文件
+- **AllObstacle.xls结构**：必须包含Info工作表，且具有id、notes、nameID、Sort、isFilter列
 - **输出格式**：统一使用.xls格式以确保与Unity工具兼容
 
 ### 浏览器兼容性
@@ -562,6 +623,104 @@ open http://localhost:8000
 ---
 
 ## 📋 版本历史
+
+### v1.6.3 (2025-09-25)
+**新增功能：VolumetricFog配置管理**
+
+#### 🆕 新增功能
+- **VolumetricFog配置系统**：为RSC_Theme.xls新增VolumetricFog工作表的完整数据配置界面
+  - 体积雾颜色设置：16进制颜色选择器，与FloodLight配置保持一致的交互体验
+  - 体积雾尺寸配置：X、Y、Z（宽度、长度、高度）支持0-100范围的整数输入
+  - 体积雾效果设置：Density（浓淡）支持0.1精度的小数输入，Rotate（旋转角度）支持-90到90度
+  - 智能开关设计：IsOn使用醒目的toggle switch样式，与FloodLight开关保持一致
+
+#### 🔧 技术实现
+- **数据转换机制**：Density字段输入值自动×10存储，读取时自动÷10显示，确保数据格式正确
+- **完整数据流程**：包含getVolumetricFogConfigData、applyVolumetricFogConfigToRow等完整处理函数
+- **智能验证系统**：X/Y/Z（0-100）、Density（0-20）、Rotate（-90到90）范围验证和自动修正
+- **工作表处理集成**：将VolumetricFog添加到所有相关函数的targetSheets列表中
+
+#### 🎨 界面设计
+- **橙色主题设计**：VolumetricFog配置面板使用独特的橙色渐变主题，与其他配置面板形成视觉区分
+- **Toggle Switch样式**：为开关字段设计了醒目的切换开关，与FloodLight保持一致
+- **响应式布局**：配置面板采用网格布局，适配不同屏幕尺寸
+
+#### 🧪 测试和验证
+- **专门测试页面**：创建test_volumetricfog_config.html，包含完整的功能验证测试
+- **工作流程集成**：完全集成到现有的主题处理工作流程中，支持新建和更新主题
+- **向后兼容**：不影响现有Light、ColorInfo、FloodLight配置功能的稳定性
+
+### v1.6.2 (2025-09-25)
+**关键修复：FloodLight工作表处理集成**
+
+#### 🔧 重要修复
+- **FloodLight工作表处理集成**：修复FloodLight工作表未被添加到处理列表的关键问题
+  - 将FloodLight添加到processRSCAdditionalSheets函数的targetSheets列表
+  - 将FloodLight添加到updateExistingThemeAdditionalSheets函数的targetSheets列表
+  - 将FloodLight添加到generateUpdatedWorkbook函数的targetSheets列表
+  - 确保新建和更新主题时FloodLight配置都能正确保存到Excel文件
+
+#### 📝 文档和测试
+- **更新函数注释**：所有相关函数的注释都包含FloodLight工作表说明
+- **专门测试页面**：创建test_floodlight_processing.html验证工作表处理集成
+- **完整数据流程验证**：确保FloodLight配置在整个主题处理流程中正确传递
+
+#### 🎯 影响范围
+- 修复前：FloodLight配置界面正常，但数据不会保存到Excel文件
+- 修复后：FloodLight配置完全集成到主题处理工作流程，数据正确保存
+
+### v1.6.1 (2025-09-25)
+**新增功能：FloodLight配置管理**
+
+#### 🆕 新增功能
+- **FloodLight配置系统**：为RSC_Theme.xls新增FloodLight工作表的完整数据配置界面
+  - 泛光颜色设置：16进制颜色选择器，与Light配置保持一致的交互体验
+  - 泛光参数配置：TippingPoint（临界点）和Strength（强度）支持0.1精度的小数输入
+  - 智能开关设计：IsOn和JumpActiveIsLightOn使用醒目的toggle switch样式
+  - 自动字段处理：LightStrength字段系统自动填充固定值180
+
+#### 🔧 技术实现
+- **数据转换机制**：输入值自动×10存储，读取时自动÷10显示，确保数据格式正确
+- **完整数据流程**：包含getFloodLightConfigData、applyFloodLightConfigToRow等完整处理函数
+- **智能默认值**：新建主题时使用表中最后一个主题的FloodLight配置作为默认值
+- **实时验证系统**：TippingPoint（0-5）、Strength（0-10）范围验证和自动修正
+
+#### 🎨 界面设计
+- **青色主题设计**：FloodLight配置面板使用独特的青色渐变主题，与其他配置面板形成视觉区分
+- **Toggle Switch样式**：为开关字段设计了醒目的切换开关，提升用户体验
+- **响应式布局**：配置面板采用网格布局，适配不同屏幕尺寸
+
+#### 🧪 测试和验证
+- **专门测试页面**：创建test_floodlight_config.html，包含完整的功能验证测试
+- **工作流程集成**：完全集成到现有的主题处理工作流程中，支持新建和更新主题
+- **向后兼容**：不影响现有Light和ColorInfo配置功能的稳定性
+
+### v1.6.0 (2025-09-25)
+**重大更新：AllObstacle.xls文件处理功能**
+
+#### 🆕 新增功能
+- **AllObstacle.xls自动处理**：支持全新系列主题的AllObstacle数据自动管理
+  - 智能触发条件：仅在创建全新系列主题时自动处理AllObstacle文件
+  - 自动数据填充：在Info工作表中自动添加新记录，包含ID、基础名称、多语言ID、Sort和isFilter字段
+  - 智能字段计算：自动计算新的ID和Sort值（现有最大值+1），提取主题基础名称
+  - 完善错误处理：文件不存在、权限失败、重复ID等情况都有适当处理，不影响主流程
+
+#### 🔧 技术改进
+- **格式兼容性优化**：优先保存为XLS格式确保与Java工具兼容，避免Office 2007+ XML格式错误
+- **多格式保存支持**：支持多种Excel格式尝试和工作簿重建机制，解决XLSX库兼容性问题
+- **详细日志输出**：提供丰富的调试日志输出，便于问题追踪和功能验证
+- **向后兼容保障**：完全不影响现有的RSC_Theme和UGCTheme处理逻辑，保持系统稳定性
+
+#### 🧪 测试和文档
+- **专门测试页面**：创建AllObstacle功能测试页面，包含完整测试用例和验证清单
+- **文档完善**：更新相关文档和JSDoc注释，说明AllObstacle处理的触发条件和字段规则
+- **使用指南更新**：在README中添加AllObstacle.xls处理的详细说明
+
+#### 🎯 功能特点
+- **智能检测**：利用现有的`getSmartMultiLanguageConfig()`函数进行主题类型检测
+- **数据行处理**：正确处理Info工作表的数据结构（表头第1行，数据从第6行开始）
+- **字段填充规则**：按照业务逻辑正确填充所有必要字段
+- **兼容性保证**：确保生成的文件与现有Java工具完全兼容
 
 ### v1.5.2 (2025-09-18)
 **关键修复：多工作表保存问题解决**

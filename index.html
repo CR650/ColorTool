@@ -463,6 +463,149 @@
                     </div>
                 </div>
 
+                <!-- RSC_Theme FloodLight配置区域 -->
+                <div class="floodlight-config-section" id="floodlightConfigSection" style="display: none;">
+                    <h4>🌊 RSC_Theme FloodLight 泛光参数设置</h4>
+                    <div class="floodlight-config-content">
+                        <div class="floodlight-config-grid">
+                            <!-- 泛光颜色和参数配置 -->
+                            <div class="floodlight-config-group">
+                                <h5>🎨 泛光颜色设置</h5>
+                                <div class="floodlight-field-row">
+                                    <label for="floodlightColor">泛光颜色 (Color):</label>
+                                    <div class="color-selector-container">
+                                        <input type="text" id="floodlightColor" value="FFFFFF" placeholder="16进制颜色值" maxlength="6" pattern="[0-9A-Fa-f]{6}">
+                                        <div class="color-preview" id="floodlightColorPreview" style="background-color: #FFFFFF;"></div>
+                                        <button type="button" class="color-picker-btn" data-target="floodlightColor">选择颜色</button>
+                                    </div>
+                                    <span class="field-hint">16进制格式的泛光颜色值</span>
+                                </div>
+                            </div>
+
+                            <!-- 泛光参数配置 -->
+                            <div class="floodlight-config-group">
+                                <h5>⚙️ 泛光参数设置</h5>
+                                <div class="floodlight-field-row">
+                                    <label for="floodlightTippingPoint">临界点 (TippingPoint):</label>
+                                    <input type="number" id="floodlightTippingPoint" min="0" max="5" step="0.1" value="2.5" placeholder="范围: 0 到 5">
+                                    <span class="field-hint">泛光效果的临界点值，支持一位小数</span>
+                                </div>
+                                <div class="floodlight-field-row">
+                                    <label for="floodlightStrength">强度 (Strength):</label>
+                                    <input type="number" id="floodlightStrength" min="0" max="10" step="0.1" value="7.8" placeholder="范围: 0 到 10">
+                                    <span class="field-hint">泛光效果的强度值，支持一位小数</span>
+                                </div>
+                            </div>
+
+                            <!-- 泛光开关配置 -->
+                            <div class="floodlight-config-group">
+                                <h5>🔘 泛光开关设置</h5>
+                                <div class="floodlight-field-row">
+                                    <label for="floodlightIsOn">泛光是否默认开启 (IsOn):</label>
+                                    <div class="toggle-switch-container">
+                                        <input type="checkbox" id="floodlightIsOn" class="toggle-switch-input">
+                                        <label for="floodlightIsOn" class="toggle-switch-label">
+                                            <span class="toggle-switch-slider"></span>
+                                            <span class="toggle-switch-text">开启</span>
+                                        </label>
+                                    </div>
+                                    <span class="field-hint">控制泛光效果是否默认开启</span>
+                                </div>
+                                <div class="floodlight-field-row">
+                                    <label for="floodlightJumpActiveIsLightOn">跳板踩踏态发光是否开启 (JumpActiveIsLightOn):</label>
+                                    <div class="toggle-switch-container">
+                                        <input type="checkbox" id="floodlightJumpActiveIsLightOn" class="toggle-switch-input">
+                                        <label for="floodlightJumpActiveIsLightOn" class="toggle-switch-label">
+                                            <span class="toggle-switch-slider"></span>
+                                            <span class="toggle-switch-text">开启</span>
+                                        </label>
+                                    </div>
+                                    <span class="field-hint">控制跳板踩踏时的发光效果</span>
+                                </div>
+                            </div>
+                        </div>
+                        <small class="help-text">
+                            🌊 这些配置将应用到RSC_Theme表的FloodLight字段中。创建新主题时使用默认值，更新现有主题时显示当前值。
+                        </small>
+                    </div>
+                </div>
+
+                <!-- VolumetricFog配置面板 -->
+                <div class="volumetricfog-config-section" id="volumetricfogConfigSection" style="display: none;">
+                    <h4>🌫️ RSC_Theme VolumetricFog 体积雾参数设置</h4>
+                    <div class="volumetricfog-config-content">
+                        <div class="volumetricfog-config-grid">
+                            <!-- 体积雾颜色配置 -->
+                            <div class="volumetricfog-config-group">
+                                <h5>🎨 体积雾颜色设置</h5>
+                                <div class="volumetricfog-field-row">
+                                    <label for="volumetricfogColor">体积雾颜色 (Color):</label>
+                                    <div class="color-selector-container">
+                                        <input type="text" id="volumetricfogColor" value="FFFFFF" placeholder="16进制颜色值" maxlength="6" pattern="[0-9A-Fa-f]{6}">
+                                        <div class="color-preview" id="volumetricfogColorPreview" style="background-color: #FFFFFF;"></div>
+                                        <button type="button" class="color-picker-btn" data-target="volumetricfogColor">选择颜色</button>
+                                    </div>
+                                    <span class="field-hint">16进制格式的体积雾颜色值</span>
+                                </div>
+                            </div>
+
+                            <!-- 体积雾尺寸配置 -->
+                            <div class="volumetricfog-config-group">
+                                <h5>📐 体积雾尺寸设置</h5>
+                                <div class="volumetricfog-field-row">
+                                    <label for="volumetricfogX">宽度 (X):</label>
+                                    <input type="number" id="volumetricfogX" min="0" max="100" step="1" value="50" placeholder="范围: 0 到 100">
+                                    <span class="field-hint">体积雾的宽度值，整数范围 0-100</span>
+                                </div>
+                                <div class="volumetricfog-field-row">
+                                    <label for="volumetricfogY">长度 (Y):</label>
+                                    <input type="number" id="volumetricfogY" min="0" max="100" step="1" value="50" placeholder="范围: 0 到 100">
+                                    <span class="field-hint">体积雾的长度值，整数范围 0-100</span>
+                                </div>
+                                <div class="volumetricfog-field-row">
+                                    <label for="volumetricfogZ">高度 (Z):</label>
+                                    <input type="number" id="volumetricfogZ" min="0" max="100" step="1" value="50" placeholder="范围: 0 到 100">
+                                    <span class="field-hint">体积雾的高度值，整数范围 0-100</span>
+                                </div>
+                            </div>
+
+                            <!-- 体积雾效果配置 -->
+                            <div class="volumetricfog-config-group">
+                                <h5>⚙️ 体积雾效果设置</h5>
+                                <div class="volumetricfog-field-row">
+                                    <label for="volumetricfogDensity">浓淡 (Density):</label>
+                                    <input type="number" id="volumetricfogDensity" min="0" max="20" step="0.1" value="10.0" placeholder="范围: 0 到 20">
+                                    <span class="field-hint">体积雾的浓淡值，支持一位小数，范围 0-20</span>
+                                </div>
+                                <div class="volumetricfog-field-row">
+                                    <label for="volumetricfogRotate">旋转角度 (Rotate):</label>
+                                    <input type="number" id="volumetricfogRotate" min="-90" max="90" step="1" value="0" placeholder="范围: -90 到 90">
+                                    <span class="field-hint">体积雾的旋转角度，整数范围 -90 到 90</span>
+                                </div>
+                            </div>
+
+                            <!-- 体积雾开关配置 -->
+                            <div class="volumetricfog-config-group">
+                                <h5>🔘 体积雾开关设置</h5>
+                                <div class="volumetricfog-field-row">
+                                    <label for="volumetricfogIsOn">体积雾是否默认开启 (IsOn):</label>
+                                    <div class="toggle-switch-container">
+                                        <input type="checkbox" id="volumetricfogIsOn" class="toggle-switch-input">
+                                        <label for="volumetricfogIsOn" class="toggle-switch-label">
+                                            <span class="toggle-switch-slider"></span>
+                                            <span class="toggle-switch-text">开启</span>
+                                        </label>
+                                    </div>
+                                    <span class="field-hint">控制体积雾效果是否默认开启</span>
+                                </div>
+                            </div>
+                        </div>
+                        <small class="help-text">
+                            🌫️ 这些配置将应用到RSC_Theme表的VolumetricFog字段中。创建新主题时使用默认值，更新现有主题时显示当前值。
+                        </small>
+                    </div>
+                </div>
+
                 <!-- RSC_Theme ColorInfo配置区域 -->
                 <div class="colorinfo-config-section" id="colorinfoConfigSection" style="display: none;">
                     <h4>🎨 RSC_Theme ColorInfo 颜色配置</h4>

@@ -26,6 +26,7 @@ window.App.ThemeManager = (function() {
     let processedResult = null;      // 处理结果
     let rscAllSheetsData = null;     // RSC_Theme文件的所有Sheet数据
     let ugcAllSheetsData = null;     // UGCTheme文件的所有Sheet数据
+    let allObstacleData = null;      // AllObstacle.xls文件数据
     let multiLangConfig = null;      // 多语言配置数据
     let currentMappingMode = 'json'; // 当前映射模式：'json' 或 'direct'
 
@@ -196,6 +197,12 @@ window.App.ThemeManager = (function() {
 
         // 初始化ColorInfo配置验证
         initColorInfoValidation();
+
+        // 初始化FloodLight配置验证
+        initFloodLightValidation();
+
+        // 初始化VolumetricFog配置验证
+        initVolumetricFogValidation();
     }
 
     /**
@@ -293,6 +300,109 @@ window.App.ThemeManager = (function() {
         }
 
         console.log('Light配置验证已初始化');
+    }
+
+    /**
+     * 初始化FloodLight配置验证
+     */
+    function initFloodLightValidation() {
+        // TippingPoint字段验证 (0 到 5，支持一位小数)
+        const tippingPointInput = document.getElementById('floodlightTippingPoint');
+        if (tippingPointInput) {
+            tippingPointInput.addEventListener('input', function() {
+                validateFloodLightDecimalInput(this, 0, 5, 'TippingPoint');
+            });
+            tippingPointInput.addEventListener('blur', function() {
+                validateFloodLightDecimalInput(this, 0, 5, 'TippingPoint');
+            });
+        }
+
+        // Strength字段验证 (0 到 10，支持一位小数)
+        const strengthInput = document.getElementById('floodlightStrength');
+        if (strengthInput) {
+            strengthInput.addEventListener('input', function() {
+                validateFloodLightDecimalInput(this, 0, 10, 'Strength');
+            });
+            strengthInput.addEventListener('blur', function() {
+                validateFloodLightDecimalInput(this, 0, 10, 'Strength');
+            });
+        }
+
+        // 颜色字段验证
+        const colorInput = document.getElementById('floodlightColor');
+        if (colorInput) {
+            colorInput.addEventListener('input', function() {
+                validateColorInput(this);
+                updateFloodLightColorPreview();
+            });
+            colorInput.addEventListener('blur', function() {
+                validateColorInput(this);
+                updateFloodLightColorPreview();
+            });
+        }
+
+        // 初始化颜色预览
+        updateFloodLightColorPreview();
+
+        console.log('FloodLight配置验证已初始化');
+    }
+
+    /**
+     * 初始化VolumetricFog配置验证
+     */
+    function initVolumetricFogValidation() {
+        // Density字段验证 (0 到 20，支持一位小数)
+        const densityInput = document.getElementById('volumetricfogDensity');
+        if (densityInput) {
+            densityInput.addEventListener('input', function() {
+                validateVolumetricFogDecimalInput(this, 0, 20, 'Density');
+            });
+        }
+
+        // X字段验证 (0 到 100，整数)
+        const xInput = document.getElementById('volumetricfogX');
+        if (xInput) {
+            xInput.addEventListener('input', function() {
+                validateVolumetricFogIntegerInput(this, 0, 100, 'X');
+            });
+        }
+
+        // Y字段验证 (0 到 100，整数)
+        const yInput = document.getElementById('volumetricfogY');
+        if (yInput) {
+            yInput.addEventListener('input', function() {
+                validateVolumetricFogIntegerInput(this, 0, 100, 'Y');
+            });
+        }
+
+        // Z字段验证 (0 到 100，整数)
+        const zInput = document.getElementById('volumetricfogZ');
+        if (zInput) {
+            zInput.addEventListener('input', function() {
+                validateVolumetricFogIntegerInput(this, 0, 100, 'Z');
+            });
+        }
+
+        // Rotate字段验证 (-90 到 90，整数)
+        const rotateInput = document.getElementById('volumetricfogRotate');
+        if (rotateInput) {
+            rotateInput.addEventListener('input', function() {
+                validateVolumetricFogIntegerInput(this, -90, 90, 'Rotate');
+            });
+        }
+
+        // 颜色字段验证
+        const colorInput = document.getElementById('volumetricfogColor');
+        if (colorInput) {
+            colorInput.addEventListener('input', function() {
+                updateVolumetricFogColorPreview();
+            });
+        }
+
+        // 初始化颜色预览
+        updateVolumetricFogColorPreview();
+
+        console.log('VolumetricFog配置验证已初始化');
     }
 
     /**
@@ -628,6 +738,130 @@ window.App.ThemeManager = (function() {
     }
 
     /**
+     * 验证FloodLight小数输入框 (支持一位小数)
+     */
+    function validateFloodLightDecimalInput(input, min, max, fieldName) {
+        const value = parseFloat(input.value);
+
+        // 移除之前的错误样式
+        input.classList.remove('validation-error');
+
+        // 移除之前的错误提示
+        const existingError = input.parentElement.querySelector('.validation-message');
+        if (existingError) {
+            existingError.remove();
+        }
+
+        if (isNaN(value) || value < min || value > max) {
+            // 添加错误样式
+            input.classList.add('validation-error');
+
+            // 创建错误提示
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'validation-message error';
+            errorMsg.textContent = `${fieldName}范围: ${min}-${max}，支持一位小数`;
+            input.parentElement.appendChild(errorMsg);
+
+            // 自动修正值
+            const correctedValue = Math.max(min, Math.min(max, isNaN(value) ? (min + max) / 2 : value));
+            input.value = correctedValue.toFixed(1);
+
+            console.warn(`${fieldName} 值无效: ${input.value}，已自动修正为: ${correctedValue.toFixed(1)}`);
+        } else {
+            // 确保值保持一位小数格式
+            input.value = value.toFixed(1);
+            console.log(`${fieldName} 值有效: ${value.toFixed(1)}`);
+        }
+    }
+
+    /**
+     * 更新FloodLight颜色预览
+     */
+    function updateFloodLightColorPreview() {
+        const colorInput = document.getElementById('floodlightColor');
+        const preview = document.getElementById('floodlightColorPreview');
+
+        if (colorInput && preview) {
+            const color = colorInput.value || 'FFFFFF';
+            const cleanColor = color.replace('#', '');
+            preview.style.backgroundColor = `#${cleanColor}`;
+        }
+    }
+
+    /**
+     * VolumetricFog小数输入验证
+     * @param {HTMLInputElement} input - 输入元素
+     * @param {number} min - 最小值
+     * @param {number} max - 最大值
+     * @param {string} fieldName - 字段名称
+     */
+    function validateVolumetricFogDecimalInput(input, min, max, fieldName) {
+        let value = parseFloat(input.value);
+
+        if (isNaN(value)) {
+            console.warn(`VolumetricFog ${fieldName}字段输入无效，重置为默认值`);
+            input.value = min === 0 ? '10.0' : '0.0';
+            return;
+        }
+
+        // 限制小数位数为1位
+        value = Math.round(value * 10) / 10;
+
+        // 范围验证
+        if (value < min) {
+            console.warn(`VolumetricFog ${fieldName}字段值 ${value} 小于最小值 ${min}，自动修正`);
+            value = min;
+        } else if (value > max) {
+            console.warn(`VolumetricFog ${fieldName}字段值 ${value} 大于最大值 ${max}，自动修正`);
+            value = max;
+        }
+
+        input.value = value.toFixed(1);
+    }
+
+    /**
+     * VolumetricFog整数输入验证
+     * @param {HTMLInputElement} input - 输入元素
+     * @param {number} min - 最小值
+     * @param {number} max - 最大值
+     * @param {string} fieldName - 字段名称
+     */
+    function validateVolumetricFogIntegerInput(input, min, max, fieldName) {
+        let value = parseInt(input.value);
+
+        if (isNaN(value)) {
+            console.warn(`VolumetricFog ${fieldName}字段输入无效，重置为默认值`);
+            input.value = min >= 0 ? min : 0;
+            return;
+        }
+
+        // 范围验证
+        if (value < min) {
+            console.warn(`VolumetricFog ${fieldName}字段值 ${value} 小于最小值 ${min}，自动修正`);
+            value = min;
+        } else if (value > max) {
+            console.warn(`VolumetricFog ${fieldName}字段值 ${value} 大于最大值 ${max}，自动修正`);
+            value = max;
+        }
+
+        input.value = value;
+    }
+
+    /**
+     * 更新VolumetricFog颜色预览
+     */
+    function updateVolumetricFogColorPreview() {
+        const colorInput = document.getElementById('volumetricfogColor');
+        const preview = document.getElementById('volumetricfogColorPreview');
+
+        if (colorInput && preview) {
+            const color = colorInput.value || 'FFFFFF';
+            const cleanColor = color.replace('#', '');
+            preview.style.backgroundColor = `#${cleanColor}`;
+        }
+    }
+
+    /**
      * 验证雾结束距离输入框 (0 到 90)
      */
     function validateFogEndInput(input) {
@@ -866,6 +1100,28 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
     }
 
     /**
+     * 显示/隐藏FloodLight配置面板
+     */
+    function toggleFloodLightConfigPanel(show) {
+        const panel = document.getElementById('floodlightConfigSection');
+        if (panel) {
+            panel.style.display = show ? 'block' : 'none';
+            console.log('FloodLight配置面板', show ? '已显示' : '已隐藏');
+        }
+    }
+
+    /**
+     * 显示/隐藏VolumetricFog配置面板
+     */
+    function toggleVolumetricFogConfigPanel(show) {
+        const panel = document.getElementById('volumetricfogConfigSection');
+        if (panel) {
+            panel.style.display = show ? 'block' : 'none';
+            console.log('VolumetricFog配置面板', show ? '已显示' : '已隐藏');
+        }
+    }
+
+    /**
      * 重置UGC配置为默认值
      */
     function resetUGCConfigToDefaults() {
@@ -983,6 +1239,165 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
     }
 
     /**
+     * 获取表中最后一个主题的FloodLight配置数据
+     */
+    function getLastThemeFloodLightConfig() {
+        if (!rscAllSheetsData || !rscAllSheetsData['FloodLight']) {
+            console.log('RSC_Theme FloodLight数据未加载，使用硬编码默认值');
+            return {
+                floodlightColor: 'FFFFFF',
+                floodlightTippingPoint: '2.5',
+                floodlightStrength: '7.8',
+                floodlightIsOn: false,
+                floodlightJumpActiveIsLightOn: false
+            };
+        }
+
+        const floodLightData = rscAllSheetsData['FloodLight'];
+        const floodLightHeaderRow = floodLightData[0];
+        const floodLightNotesColumnIndex = floodLightHeaderRow.findIndex(col => col === 'notes');
+
+        if (floodLightNotesColumnIndex === -1 || floodLightData.length <= 1) {
+            console.log('RSC_Theme FloodLight sheet没有notes列或没有数据，使用硬编码默认值');
+            return {
+                floodlightColor: 'FFFFFF',
+                floodlightTippingPoint: '2.5',
+                floodlightStrength: '7.8',
+                floodlightIsOn: false,
+                floodlightJumpActiveIsLightOn: false
+            };
+        }
+
+        // FloodLight字段映射
+        const floodLightFieldMapping = {
+            'Color': 'floodlightColor',
+            'TippingPoint': 'floodlightTippingPoint',
+            'Strength': 'floodlightStrength',
+            'IsOn': 'floodlightIsOn',
+            'JumpActiveIsLightOn': 'floodlightJumpActiveIsLightOn'
+        };
+
+        // 获取最后一行数据（最后一个主题）
+        const lastRow = floodLightData[floodLightData.length - 1];
+
+        const lastThemeConfig = {};
+        Object.entries(floodLightFieldMapping).forEach(([columnName, fieldId]) => {
+            const columnIndex = floodLightHeaderRow.findIndex(col => col === columnName);
+            if (columnIndex !== -1) {
+                const value = lastRow[columnIndex];
+                if (fieldId === 'floodlightTippingPoint' || fieldId === 'floodlightStrength') {
+                    // 将存储的整数值转换为小数显示（除以10）
+                    const numValue = parseInt(value) || 0;
+                    lastThemeConfig[fieldId] = (numValue / 10).toFixed(1);
+                } else if (fieldId === 'floodlightIsOn' || fieldId === 'floodlightJumpActiveIsLightOn') {
+                    // 转换为布尔值
+                    lastThemeConfig[fieldId] = value === 1 || value === '1' || value === true;
+                } else {
+                    // 颜色值
+                    lastThemeConfig[fieldId] = (value !== undefined && value !== null && value !== '') ? value.toString() : 'FFFFFF';
+                }
+            } else {
+                // 如果找不到列，使用默认值
+                const defaults = {
+                    'floodlightColor': 'FFFFFF',
+                    'floodlightTippingPoint': '2.5',
+                    'floodlightStrength': '7.8',
+                    'floodlightIsOn': false,
+                    'floodlightJumpActiveIsLightOn': false
+                };
+                lastThemeConfig[fieldId] = defaults[fieldId];
+            }
+        });
+
+        console.log('最后一个主题的FloodLight配置:', lastThemeConfig);
+        return lastThemeConfig;
+    }
+
+    /**
+     * 获取表中最后一个主题的VolumetricFog配置数据
+     */
+    function getLastThemeVolumetricFogConfig() {
+        if (!rscAllSheetsData || !rscAllSheetsData['VolumetricFog']) {
+            console.log('RSC_Theme VolumetricFog数据未加载，使用硬编码默认值');
+            return {
+                volumetricfogColor: 'FFFFFF',
+                volumetricfogX: '50',
+                volumetricfogY: '50',
+                volumetricfogZ: '50',
+                volumetricfogDensity: '10.0',
+                volumetricfogRotate: '0',
+                volumetricfogIsOn: false
+            };
+        }
+
+        const volumetricFogData = rscAllSheetsData['VolumetricFog'];
+        if (volumetricFogData.length <= 1) {
+            console.log('VolumetricFog表没有数据行，使用硬编码默认值');
+            return {
+                volumetricfogColor: 'FFFFFF',
+                volumetricfogX: '50',
+                volumetricfogY: '50',
+                volumetricfogZ: '50',
+                volumetricfogDensity: '10.0',
+                volumetricfogRotate: '0',
+                volumetricfogIsOn: false
+            };
+        }
+
+        const headerRow = volumetricFogData[0];
+        const lastRowIndex = volumetricFogData.length - 1;
+        const lastRow = volumetricFogData[lastRowIndex];
+
+        console.log('VolumetricFog表最后一行数据:', lastRow);
+
+        const lastThemeConfig = {};
+
+        // VolumetricFog字段映射
+        const volumetricFogFieldMapping = {
+            'Color': 'volumetricfogColor',
+            'X': 'volumetricfogX',
+            'Y': 'volumetricfogY',
+            'Z': 'volumetricfogZ',
+            'Density': 'volumetricfogDensity',
+            'Rotate': 'volumetricfogRotate',
+            'IsOn': 'volumetricfogIsOn'
+        };
+
+        Object.entries(volumetricFogFieldMapping).forEach(([columnName, fieldId]) => {
+            const columnIndex = headerRow.findIndex(col => col === columnName);
+            if (columnIndex !== -1 && lastRow[columnIndex] !== undefined && lastRow[columnIndex] !== '') {
+                let value = lastRow[columnIndex];
+
+                // 特殊处理：Density字段需要÷10显示
+                if (columnName === 'Density') {
+                    value = (parseFloat(value) / 10).toFixed(1);
+                } else if (columnName === 'IsOn') {
+                    // 布尔值处理
+                    value = value === 1 || value === '1' || value === true;
+                }
+
+                lastThemeConfig[fieldId] = value;
+                console.log(`VolumetricFog ${columnName} -> ${fieldId}: ${value}`);
+            } else {
+                // 如果找不到列，使用默认值
+                const defaults = {
+                    'volumetricfogColor': 'FFFFFF',
+                    'volumetricfogX': '50',
+                    'volumetricfogY': '50',
+                    'volumetricfogZ': '50',
+                    'volumetricfogDensity': '10.0',
+                    'volumetricfogRotate': '0',
+                    'volumetricfogIsOn': false
+                };
+                lastThemeConfig[fieldId] = defaults[fieldId];
+            }
+        });
+
+        console.log('最后一个主题的VolumetricFog配置:', lastThemeConfig);
+        return lastThemeConfig;
+    }
+
+    /**
      * 获取表中最后一个主题的ColorInfo配置数据
      */
     function getLastThemeColorInfoConfig() {
@@ -1081,6 +1496,65 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
         console.log('最后一个主题的ColorInfo配置:', lastThemeConfig);
         return lastThemeConfig;
+    }
+
+    /**
+     * 重置FloodLight配置为默认值（新建主题时使用表中最后一个主题的数据）
+     */
+    function resetFloodLightConfigToDefaults() {
+        const floodLightDefaults = getLastThemeFloodLightConfig();
+
+        Object.entries(floodLightDefaults).forEach(([fieldId, defaultValue]) => {
+            const input = document.getElementById(fieldId);
+            if (input) {
+                if (fieldId === 'floodlightIsOn' || fieldId === 'floodlightJumpActiveIsLightOn') {
+                    // 处理checkbox
+                    input.checked = defaultValue;
+                } else {
+                    // 处理普通输入框
+                    input.value = defaultValue;
+
+                    // 更新颜色预览
+                    if (fieldId === 'floodlightColor') {
+                        updateFloodLightColorPreview();
+                    }
+                }
+            }
+        });
+
+        console.log('FloodLight配置已重置为最后一个主题的配置');
+    }
+
+    /**
+     * 重置VolumetricFog配置为默认值（新建主题时使用表中最后一个主题的数据）
+     */
+    function resetVolumetricFogConfigToDefaults() {
+        const volumetricFogDefaults = getLastThemeVolumetricFogConfig();
+
+        Object.entries(volumetricFogDefaults).forEach(([fieldId, defaultValue]) => {
+            const input = document.getElementById(fieldId);
+            if (input) {
+                if (input.type === 'checkbox') {
+                    input.checked = defaultValue === 1 || defaultValue === true;
+                } else {
+                    input.value = defaultValue;
+                }
+                input.classList.remove('validation-error');
+
+                // 移除错误提示
+                const errorMsg = input.parentElement.querySelector('.validation-message');
+                if (errorMsg) {
+                    errorMsg.remove();
+                }
+
+                // 更新颜色预览
+                if (fieldId === 'volumetricfogColor') {
+                    updateVolumetricFogColorPreview();
+                }
+            }
+        });
+
+        console.log('VolumetricFog配置已重置为最后一个主题的配置');
     }
 
     /**
@@ -1208,6 +1682,39 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
     }
 
     /**
+     * 验证FloodLight小数值（支持一位小数）
+     */
+    function validateFloodLightDecimal(value, defaultValue, min, max) {
+        const numValue = parseFloat(value);
+        if (isNaN(numValue) || numValue < min || numValue > max) {
+            return defaultValue;
+        }
+        return Math.round(numValue * 10) / 10; // 保持一位小数
+    }
+
+    /**
+     * 验证VolumetricFog整数值
+     */
+    function validateVolumetricFogInteger(value, defaultValue, min, max) {
+        const numValue = parseInt(value);
+        if (isNaN(numValue) || numValue < min || numValue > max) {
+            return defaultValue;
+        }
+        return numValue;
+    }
+
+    /**
+     * 验证VolumetricFog小数值（支持一位小数）
+     */
+    function validateVolumetricFogDecimal(value, defaultValue, min, max) {
+        const numValue = parseFloat(value);
+        if (isNaN(numValue) || numValue < min || numValue > max) {
+            return defaultValue;
+        }
+        return Math.round(numValue * 10) / 10; // 保持一位小数
+    }
+
+    /**
      * 验证雾结束距离（0-90范围）
      */
     function validateFogEnd(value, defaultValue = 50) {
@@ -1251,6 +1758,35 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             SpecularLevel: validateSpecularValue(document.getElementById('lightSpecularLevel')?.value, 100),
             Gloss: validateGlossValue(document.getElementById('lightGloss')?.value, 100),
             SpecularColor: validateHexColor(document.getElementById('lightSpecularColor')?.value, 'FFFFFF')
+        };
+    }
+
+    /**
+     * 获取FloodLight配置数据
+     */
+    function getFloodLightConfigData() {
+        return {
+            Color: validateHexColor(document.getElementById('floodlightColor')?.value, 'FFFFFF'),
+            TippingPoint: Math.round(validateFloodLightDecimal(document.getElementById('floodlightTippingPoint')?.value, 2.5, 0, 5) * 10),
+            Strength: Math.round(validateFloodLightDecimal(document.getElementById('floodlightStrength')?.value, 7.8, 0, 10) * 10),
+            IsOn: document.getElementById('floodlightIsOn')?.checked ? 1 : 0,
+            JumpActiveIsLightOn: document.getElementById('floodlightJumpActiveIsLightOn')?.checked ? 1 : 0,
+            LightStrength: 180  // 固定值
+        };
+    }
+
+    /**
+     * 获取VolumetricFog配置数据
+     */
+    function getVolumetricFogConfigData() {
+        return {
+            Color: validateHexColor(document.getElementById('volumetricfogColor')?.value, 'FFFFFF'),
+            X: validateVolumetricFogInteger(document.getElementById('volumetricfogX')?.value, 50, 0, 100),
+            Y: validateVolumetricFogInteger(document.getElementById('volumetricfogY')?.value, 50, 0, 100),
+            Z: validateVolumetricFogInteger(document.getElementById('volumetricfogZ')?.value, 50, 0, 100),
+            Density: Math.round(validateVolumetricFogDecimal(document.getElementById('volumetricfogDensity')?.value, 10.0, 0, 20) * 10),
+            Rotate: validateVolumetricFogInteger(document.getElementById('volumetricfogRotate')?.value, 0, -90, 90),
+            IsOn: document.getElementById('volumetricfogIsOn')?.checked ? 1 : 0
         };
     }
 
@@ -2349,6 +2885,14 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             toggleColorInfoConfigPanel(true);
             loadExistingColorInfoConfig(selectedTheme);
 
+            // 显示FloodLight配置面板并加载现有值
+            toggleFloodLightConfigPanel(true);
+            loadExistingFloodLightConfig(selectedTheme);
+
+            // 显示VolumetricFog配置面板并加载现有值
+            toggleVolumetricFogConfigPanel(true);
+            loadExistingVolumetricFogConfig(selectedTheme);
+
             // 启用处理按钮
             if (processThemeBtn) {
                 processThemeBtn.disabled = false;
@@ -2407,6 +2951,16 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             // 新建主题时使用最后一个主题的ColorInfo配置作为默认值
             resetColorInfoConfigToDefaults();
 
+            // 显示FloodLight配置面板（新建主题时总是显示）
+            toggleFloodLightConfigPanel(true);
+            // 新建主题时使用最后一个主题的FloodLight配置作为默认值
+            resetFloodLightConfigToDefaults();
+
+            // 显示VolumetricFog配置面板（新建主题时总是显示）
+            toggleVolumetricFogConfigPanel(true);
+            // 新建主题时使用最后一个主题的VolumetricFog配置作为默认值
+            resetVolumetricFogConfigToDefaults();
+
             // 更新多语言配置状态提示
             updateThemeTypeIndicator(smartConfig);
 
@@ -2427,6 +2981,12 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
             // 隐藏ColorInfo配置面板
             toggleColorInfoConfigPanel(false);
+
+            // 隐藏FloodLight配置面板
+            toggleFloodLightConfigPanel(false);
+
+            // 隐藏VolumetricFog配置面板
+            toggleVolumetricFogConfigPanel(false);
 
             // 清除主题类型提示
             clearThemeTypeIndicator();
@@ -2652,8 +3212,62 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 // 处理UGCTheme文件（如果是新增主题）
                 const ugcResult = await processUGCTheme(themeName, result.isNewTheme);
 
+                // 处理AllObstacle文件（仅全新系列主题时）
+                let allObstacleResult = null;
+                if (result.isNewTheme) {
+                    console.log('=== AllObstacle处理检查 ===');
+                    console.log('检查是否需要处理AllObstacle文件...');
+                    console.log('主题名称:', themeName);
+                    console.log('是否为新增主题:', result.isNewTheme);
+
+                    const smartConfig = getSmartMultiLanguageConfig(themeName);
+                    console.log('智能配置检测结果:', {
+                        isNewSeries: smartConfig.isNewSeries,
+                        hasMultiLangConfig: !!smartConfig.multiLangConfig,
+                        isMultiLangValid: smartConfig.multiLangConfig ? smartConfig.multiLangConfig.isValid : false,
+                        multiLangId: smartConfig.multiLangConfig ? smartConfig.multiLangConfig.id : null
+                    });
+
+                    if (smartConfig.isNewSeries && smartConfig.multiLangConfig && smartConfig.multiLangConfig.isValid) {
+                        console.log('✅ 满足AllObstacle处理条件，开始处理...');
+                        console.log('多语言ID:', smartConfig.multiLangConfig.id);
+
+                        allObstacleResult = await processAllObstacle(themeName, smartConfig.multiLangConfig.id);
+
+                        if (allObstacleResult.success) {
+                            console.log('✅ AllObstacle文件处理成功');
+                            if (allObstacleResult.updated) {
+                                console.log('📝 AllObstacle文件已更新:', allObstacleResult.message);
+                            } else {
+                                console.log('ℹ️ AllObstacle文件无需更新:', allObstacleResult.message);
+                            }
+                        } else if (allObstacleResult.skipped) {
+                            console.log('⚠️ AllObstacle文件处理被跳过:', allObstacleResult.reason);
+                        } else {
+                            console.error('❌ AllObstacle文件处理失败:', allObstacleResult.error);
+                            App.Utils.showStatus('AllObstacle文件处理失败: ' + allObstacleResult.error, 'warning', 5000);
+                        }
+                    } else {
+                        console.log('❌ 不满足AllObstacle处理条件:');
+                        if (!smartConfig.isNewSeries) {
+                            console.log('  - 非全新系列主题');
+                        }
+                        if (!smartConfig.multiLangConfig) {
+                            console.log('  - 多语言配置缺失');
+                        }
+                        if (smartConfig.multiLangConfig && !smartConfig.multiLangConfig.isValid) {
+                            console.log('  - 多语言配置无效');
+                        }
+                        console.log('跳过AllObstacle处理');
+                    }
+                } else {
+                    console.log('=== AllObstacle处理检查 ===');
+                    console.log('非新增主题，跳过AllObstacle处理');
+                }
+                console.log('=== AllObstacle处理检查完成 ===');
+
                 // 直接保存文件
-                await handleFileSave(result.workbook, result.themeName, ugcResult);
+                await handleFileSave(result.workbook, result.themeName, ugcResult, allObstacleResult);
             } else {
                 App.Utils.showStatus('主题数据处理失败: ' + result.error, 'error');
             }
@@ -3350,18 +3964,18 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
     }
 
     /**
-     * 处理RSC_Theme文件中的ColorInfo和Light sheet（新增主题时添加新行）
+     * 处理RSC_Theme文件中的ColorInfo、Light和FloodLight sheet（新增主题时添加新行）
      * @param {string} themeName - 主题名称
      * @param {boolean} isNewTheme - 是否为新增主题
      * @returns {Object} 处理结果
      */
     function processRSCAdditionalSheets(themeName, isNewTheme) {
-        console.log('=== 开始处理RSC_Theme的ColorInfo和Light sheet ===');
+        console.log('=== 开始处理RSC_Theme的ColorInfo、Light和FloodLight sheet ===');
         console.log('主题名称:', themeName);
         console.log('是否新增主题:', isNewTheme);
 
         if (!isNewTheme) {
-            console.log('更新现有主题，开始处理ColorInfo和Light sheet配置');
+            console.log('更新现有主题，开始处理ColorInfo、Light和FloodLight sheet配置');
             return updateExistingThemeAdditionalSheets(themeName);
         }
 
@@ -3375,9 +3989,9 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             const sheetNames = workbook.SheetNames;
             console.log('RSC_Theme包含的sheet:', sheetNames);
 
-            // 严格限制：仅处理这3个目标工作表（主工作表、Light、ColorInfo）
+            // 严格限制：仅处理这5个目标工作表（主工作表、Light、ColorInfo、FloodLight、VolumetricFog）
             // 不影响RSC_Theme.xls文件中的其他工作表
-            const targetSheets = ['ColorInfo', 'Light'];
+            const targetSheets = ['ColorInfo', 'Light', 'FloodLight', 'VolumetricFog'];
             const processedSheets = [];
 
             targetSheets.forEach(sheetName => {
@@ -3458,7 +4072,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             const sheetNames = workbook.SheetNames;
             console.log('RSC_Theme包含的sheet:', sheetNames);
 
-            const targetSheets = ['ColorInfo', 'Light'];
+            const targetSheets = ['ColorInfo', 'Light', 'FloodLight', 'VolumetricFog'];
             const updatedSheets = [];
 
             targetSheets.forEach(sheetName => {
@@ -3568,6 +4182,10 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             applyLightConfigToRow(headerRow, existingRow);
         } else if (sheetName === 'ColorInfo') {
             applyColorInfoConfigToRow(headerRow, existingRow);
+        } else if (sheetName === 'FloodLight') {
+            applyFloodLightConfigToRow(headerRow, existingRow);
+        } else if (sheetName === 'VolumetricFog') {
+            applyVolumetricFogConfigToRow(headerRow, existingRow);
         }
 
         console.log(`✅ ${sheetName}中主题"${themeName}"的配置已更新`);
@@ -3636,6 +4254,10 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             applyLightConfigToRow(headerRow, newRow);
         } else if (sheetName === 'ColorInfo') {
             applyColorInfoConfigToRow(headerRow, newRow);
+        } else if (sheetName === 'FloodLight') {
+            applyFloodLightConfigToRow(headerRow, newRow);
+        } else if (sheetName === 'VolumetricFog') {
+            applyVolumetricFogConfigToRow(headerRow, newRow);
         }
 
         // 添加新行到数据数组
@@ -3690,6 +4312,89 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             console.log('✅ Light配置数据应用完成');
         } catch (error) {
             console.error('应用Light配置数据失败:', error);
+        }
+    }
+
+    /**
+     * 应用FloodLight配置数据到新行
+     * @param {Array} headerRow - 表头行
+     * @param {Array} newRow - 新行数据
+     */
+    function applyFloodLightConfigToRow(headerRow, newRow) {
+        console.log('=== 开始应用FloodLight配置数据到新行 ===');
+
+        try {
+            // 获取用户配置的FloodLight数据
+            const floodLightConfig = getFloodLightConfigData();
+            console.log('用户配置的FloodLight数据:', floodLightConfig);
+
+            // FloodLight字段映射
+            const floodLightFieldMapping = {
+                'Color': 'Color',
+                'TippingPoint': 'TippingPoint',
+                'Strength': 'Strength',
+                'IsOn': 'IsOn',
+                'JumpActiveIsLightOn': 'JumpActiveIsLightOn',
+                'LightStrength': 'LightStrength'
+            };
+
+            // 应用FloodLight配置到新行
+            Object.entries(floodLightFieldMapping).forEach(([columnName, configKey]) => {
+                const columnIndex = headerRow.findIndex(col => col === columnName);
+                if (columnIndex !== -1) {
+                    const value = floodLightConfig[configKey];
+                    newRow[columnIndex] = value.toString();
+                    console.log(`FloodLight配置: ${columnName} = ${value} (列索引: ${columnIndex})`);
+                } else {
+                    console.warn(`FloodLight sheet中找不到列: ${columnName}`);
+                }
+            });
+
+            console.log('✅ FloodLight配置数据应用完成');
+        } catch (error) {
+            console.error('❌ 应用FloodLight配置数据时出错:', error);
+        }
+    }
+
+    /**
+     * 应用VolumetricFog配置数据到新行
+     * @param {Array} headerRow - 表头行
+     * @param {Array} newRow - 新行数据
+     */
+    function applyVolumetricFogConfigToRow(headerRow, newRow) {
+        console.log('=== 开始应用VolumetricFog配置数据到新行 ===');
+
+        try {
+            // 获取用户配置的VolumetricFog数据
+            const volumetricFogConfig = getVolumetricFogConfigData();
+            console.log('用户配置的VolumetricFog数据:', volumetricFogConfig);
+
+            // VolumetricFog字段映射
+            const volumetricFogFieldMapping = {
+                'Color': 'Color',
+                'X': 'X',
+                'Y': 'Y',
+                'Z': 'Z',
+                'Density': 'Density',
+                'Rotate': 'Rotate',
+                'IsOn': 'IsOn'
+            };
+
+            // 应用VolumetricFog配置到新行
+            Object.entries(volumetricFogFieldMapping).forEach(([columnName, configKey]) => {
+                const columnIndex = headerRow.findIndex(col => col === columnName);
+                if (columnIndex !== -1) {
+                    const configValue = volumetricFogConfig[configKey];
+                    newRow[columnIndex] = configValue;
+                    console.log(`  设置 ${columnName} (索引${columnIndex}) = ${configValue}`);
+                } else {
+                    console.warn(`  VolumetricFog表中找不到列: ${columnName}`);
+                }
+            });
+
+            console.log('✅ VolumetricFog配置数据应用完成');
+        } catch (error) {
+            console.error('❌ 应用VolumetricFog配置数据时出错:', error);
         }
     }
 
@@ -5143,7 +5848,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         console.log('=== 开始处理目标工作表 ===');
         console.log(`主工作表名称: ${originalSheetName}`);
 
-        const targetSheets = ['Light', 'ColorInfo'];
+        const targetSheets = ['Light', 'ColorInfo', 'FloodLight', 'VolumetricFog'];
         if (rscAllSheetsData) {
             console.log('rscAllSheetsData可用工作表:', Object.keys(rscAllSheetsData));
 
@@ -5495,8 +6200,9 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
      * @param {Object} workbook - 更新后的RSC工作簿
      * @param {string} themeName - 主题名称
      * @param {Object} ugcResult - UGC处理结果
+     * @param {Object} allObstacleResult - AllObstacle处理结果
      */
-    async function handleFileSave(workbook, themeName, ugcResult) {
+    async function handleFileSave(workbook, themeName, ugcResult, allObstacleResult) {
         try {
             // 检查是否支持直接保存
             if (rscThemeData && rscThemeData.fileHandle) {
@@ -5521,7 +6227,18 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                         // 处理多语言文件（如果需要）
                         await handleMultiLanguageProcessing(themeName);
 
-                        const message = ugcMessage ? `RSC_Theme文件保存成功，${ugcMessage}` : 'RSC_Theme文件已成功保存到原位置';
+                        // 构建保存状态消息
+                        let statusMessages = ['RSC_Theme文件保存成功'];
+                        if (ugcMessage) {
+                            statusMessages.push(ugcMessage);
+                        }
+                        if (allObstacleResult && allObstacleResult.success) {
+                            statusMessages.push('AllObstacle文件处理成功');
+                        } else if (allObstacleResult && allObstacleResult.skipped) {
+                            statusMessages.push('AllObstacle文件已跳过');
+                        }
+
+                        const message = statusMessages.join('，');
                         App.Utils.showStatus(message, 'success');
 
                         // 显示最终操作指引弹框
@@ -5568,6 +6285,417 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         } catch (error) {
             console.error('文件保存失败:', error);
             App.Utils.showStatus('文件保存失败: ' + error.message, 'error');
+        }
+    }
+
+    /**
+     * 处理AllObstacle.xls文件（仅全新系列主题时）
+     *
+     * 功能说明：
+     * - 仅在创建全新系列主题时触发
+     * - 在AllObstacle.xls的Info工作表中新增一行数据
+     * - 自动计算新的ID和Sort值
+     * - 填充主题基础名称和多语言ID
+     *
+     * 字段填充规则：
+     * - id列：现有最大值+1
+     * - notes列：主题基础名称（去除数字后缀）
+     * - nameID列：用户输入的多语言ID
+     * - Sort列：现有最大值+1
+     * - isFilter列：固定值1
+     *
+     * @param {string} themeName - 主题名称
+     * @param {number} multiLangId - 多语言ID
+     * @returns {Object} 处理结果
+     * @returns {boolean} returns.success - 是否成功
+     * @returns {boolean} returns.updated - 是否更新了文件
+     * @returns {boolean} returns.skipped - 是否跳过处理
+     * @returns {string} returns.message - 处理消息
+     * @returns {string} returns.reason - 跳过原因（如果跳过）
+     * @returns {string} returns.error - 错误信息（如果失败）
+     */
+    async function processAllObstacle(themeName, multiLangId) {
+        console.log('=== 开始处理AllObstacle.xls文件 ===');
+        console.log('主题名称:', themeName);
+        console.log('多语言ID:', multiLangId);
+
+        try {
+            // 检查是否有AllObstacle文件句柄
+            if (!folderManager || !folderManager.allObstacleHandle) {
+                console.log('AllObstacle.xls文件未找到，跳过处理');
+                App.Utils.showStatus('AllObstacle.xls文件未找到，跳过AllObstacle处理', 'info', 3000);
+                return {
+                    success: false,
+                    skipped: true,
+                    reason: 'AllObstacle.xls文件未找到，请确保该文件位于Unity项目文件夹中'
+                };
+            }
+
+            // 检查多语言ID
+            if (!multiLangId || isNaN(multiLangId) || multiLangId <= 0) {
+                console.log('多语言ID无效，跳过AllObstacle处理');
+                return {
+                    success: false,
+                    skipped: true,
+                    reason: '多语言ID无效或未提供'
+                };
+            }
+
+            // 读取AllObstacle文件
+            console.log('读取AllObstacle.xls文件...');
+            const allObstacleFileData = await folderManager.loadThemeFileData('allObstacle');
+
+            if (!allObstacleFileData || !allObstacleFileData.workbook) {
+                throw new Error('AllObstacle.xls文件读取失败');
+            }
+
+            const workbook = allObstacleFileData.workbook;
+            const sheetNames = workbook.SheetNames;
+            console.log('AllObstacle文件包含的工作表:', sheetNames);
+
+            // 查找Info工作表
+            const infoSheetName = sheetNames.find(name =>
+                name === 'Info' ||
+                name.toLowerCase() === 'info' ||
+                name.toLowerCase().includes('info')
+            );
+
+            if (!infoSheetName) {
+                throw new Error('AllObstacle.xls文件中未找到Info工作表');
+            }
+
+            console.log('找到Info工作表:', infoSheetName);
+            const infoSheet = workbook.Sheets[infoSheetName];
+            const infoData = XLSX.utils.sheet_to_json(infoSheet, { header: 1 });
+
+            if (infoData.length === 0) {
+                throw new Error('Info工作表为空');
+            }
+
+            // 处理Info工作表数据
+            const result = await updateAllObstacleInfoData(infoData, themeName, multiLangId);
+
+            if (result.updated) {
+                // 保存更新后的文件
+                const updatedSheet = XLSX.utils.aoa_to_sheet(result.data);
+                workbook.Sheets[infoSheetName] = updatedSheet;
+
+                // 保存文件
+                await saveAllObstacleFileDirectly(workbook);
+
+                console.log('✅ AllObstacle.xls文件处理成功');
+                return {
+                    success: true,
+                    updated: true,
+                    message: result.message,
+                    workbook: workbook
+                };
+            } else {
+                console.log('AllObstacle.xls文件无需更新');
+                return {
+                    success: true,
+                    updated: false,
+                    message: result.message
+                };
+            }
+
+        } catch (error) {
+            console.error('AllObstacle.xls文件处理失败:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * 更新AllObstacle Info工作表数据
+     * @param {Array} infoData - Info工作表数据数组
+     * @param {string} themeName - 主题名称
+     * @param {number} multiLangId - 多语言ID
+     */
+    async function updateAllObstacleInfoData(infoData, themeName, multiLangId) {
+        console.log('=== 开始更新AllObstacle Info数据 ===');
+
+        if (infoData.length < 6) {
+            throw new Error('Info工作表数据不足，至少需要6行（表头在第1行，数据从第6行开始）');
+        }
+
+        // AllObstacle.xls的Info工作表结构：表头在第1行，数据从第6行开始
+        const headerRow = infoData[0];
+        console.log('Info工作表表头:', headerRow);
+        console.log('Info工作表总行数:', infoData.length);
+        console.log('数据行范围: 第6行到第', infoData.length, '行');
+
+        // 查找必要的列
+        const idColumnIndex = headerRow.findIndex(col => col === 'id');
+        const notesColumnIndex = headerRow.findIndex(col => col === 'notes');
+        const nameIDColumnIndex = headerRow.findIndex(col => col === 'nameID');
+        const sortColumnIndex = headerRow.findIndex(col => col === 'Sort');
+        const isFilterColumnIndex = headerRow.findIndex(col => col === 'isFilter');
+
+        if (idColumnIndex === -1 || notesColumnIndex === -1 || nameIDColumnIndex === -1 ||
+            sortColumnIndex === -1 || isFilterColumnIndex === -1) {
+            throw new Error('Info工作表中缺少必要的列：id、notes、nameID、Sort、isFilter');
+        }
+
+        // 检查是否已存在该多语言ID（数据从第6行开始，索引为5）
+        let existingRowIndex = -1;
+        const dataStartRow = 5; // 第6行的索引是5
+
+        console.log(`开始检查多语言ID ${multiLangId} 是否已存在（从第${dataStartRow + 1}行开始检查）...`);
+
+        for (let i = dataStartRow; i < infoData.length; i++) {
+            const row = infoData[i];
+            if (row && row[nameIDColumnIndex] && parseInt(row[nameIDColumnIndex]) === multiLangId) {
+                existingRowIndex = i;
+                break;
+            }
+        }
+
+        if (existingRowIndex !== -1) {
+            console.log(`多语言ID ${multiLangId} 已存在于第 ${existingRowIndex + 1} 行，跳过处理`);
+            return {
+                updated: false,
+                message: `多语言ID ${multiLangId} 已存在，无需添加`
+            };
+        }
+
+        // 获取最大ID和Sort值（从第6行开始扫描）
+        const existingIds = [];
+        const existingSorts = [];
+
+        console.log(`开始扫描现有ID和Sort值（从第${dataStartRow + 1}行到第${infoData.length}行）...`);
+
+        for (let i = dataStartRow; i < infoData.length; i++) {
+            const row = infoData[i];
+            if (row && row[idColumnIndex]) {
+                const id = parseInt(row[idColumnIndex]);
+                if (!isNaN(id)) {
+                    existingIds.push(id);
+                    console.log(`第${i + 1}行 ID: ${id}`);
+                }
+            }
+            if (row && row[sortColumnIndex]) {
+                const sort = parseInt(row[sortColumnIndex]);
+                if (!isNaN(sort)) {
+                    existingSorts.push(sort);
+                    console.log(`第${i + 1}行 Sort: ${sort}`);
+                }
+            }
+        }
+
+        console.log('现有ID列表:', existingIds);
+        console.log('现有Sort列表:', existingSorts);
+
+        const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
+        const maxSort = existingSorts.length > 0 ? Math.max(...existingSorts) : 0;
+        const newId = maxId + 1;
+        const newSort = maxSort + 1;
+
+        console.log(`计算结果: 最大ID=${maxId}, 新ID=${newId}, 最大Sort=${maxSort}, 新Sort=${newSort}`);
+
+        // 提取主题基础名称
+        const baseName = extractThemeBaseName(themeName);
+        console.log('提取的基础主题名称:', baseName);
+
+        // 创建新行
+        const newRow = new Array(headerRow.length).fill('');
+        newRow[idColumnIndex] = newId.toString();
+        newRow[notesColumnIndex] = baseName;
+        newRow[nameIDColumnIndex] = multiLangId.toString();
+        newRow[sortColumnIndex] = newSort.toString();
+        newRow[isFilterColumnIndex] = '1';
+
+        console.log('准备添加的新行数据:', newRow);
+        console.log('新行将添加到第', infoData.length + 1, '行');
+
+        infoData.push(newRow);
+
+        console.log(`✅ 已添加新的AllObstacle记录: ID=${newId}, 基础名称=${baseName}, 多语言ID=${multiLangId}, Sort=${newSort}`);
+
+        return {
+            updated: true,
+            data: infoData,
+            message: `已添加AllObstacle记录: ID=${newId}, 主题=${baseName}, 多语言ID=${multiLangId}`
+        };
+    }
+
+    /**
+     * 保存AllObstacle文件
+     * @param {Object} workbook - 更新后的工作簿
+     */
+    async function saveAllObstacleFileDirectly(workbook) {
+        console.log('开始保存AllObstacle文件到原位置...');
+
+        try {
+            // 检查文件句柄权限
+            const fileHandle = folderManager.allObstacleHandle;
+            const permission = await fileHandle.queryPermission({ mode: 'readwrite' });
+            console.log('AllObstacle文件当前权限:', permission);
+
+            if (permission !== 'granted') {
+                console.log('尝试重新请求AllObstacle文件权限...');
+                const newPermission = await fileHandle.requestPermission({ mode: 'readwrite' });
+                if (newPermission !== 'granted') {
+                    throw new Error('无法获取AllObstacle文件写入权限');
+                }
+            }
+
+            // 尝试保存为XLS格式（Java工具需要OLE2格式）
+            let excelBuffer;
+            let saveSuccess = false;
+
+            // 优先尝试保存为XLS格式，因为Java工具需要OLE2格式
+            const saveAttempts = [
+                { bookType: 'xls', type: 'array', cellDates: false, description: 'XLS格式（无日期处理）' },
+                { bookType: 'xls', type: 'array', cellDates: true, description: 'XLS格式（含日期处理）' }
+            ];
+
+            for (const attempt of saveAttempts) {
+                try {
+                    console.log(`尝试使用${attempt.description}保存...`);
+                    excelBuffer = XLSX.write(workbook, attempt);
+                    saveSuccess = true;
+                    console.log(`✅ ${attempt.description}生成成功`);
+                    break;
+                } catch (writeError) {
+                    console.warn(`❌ ${attempt.description}生成失败:`, writeError.message);
+                    continue;
+                }
+            }
+
+            if (!saveSuccess) {
+                console.log('XLS格式保存失败，尝试重新构建工作簿...');
+                try {
+                    const cleanWorkbook = rebuildAllObstacleWorkbook(workbook);
+                    // 重新构建后仍然尝试保存为XLS格式
+                    excelBuffer = XLSX.write(cleanWorkbook, {
+                        bookType: 'xls',
+                        type: 'array',
+                        cellDates: false
+                    });
+                    saveSuccess = true;
+                    console.log('✅ 重新构建工作簿并保存为XLS格式成功');
+                } catch (rebuildError) {
+                    console.error('重新构建工作簿失败:', rebuildError);
+                    // 最后尝试XLSX格式，但会警告用户
+                    try {
+                        excelBuffer = XLSX.write(workbook, {
+                            bookType: 'xlsx',
+                            type: 'array'
+                        });
+                        saveSuccess = true;
+                        console.warn('⚠️ 已保存为XLSX格式，可能与Java工具不兼容');
+                        App.Utils.showStatus('警告：AllObstacle文件已保存为XLSX格式，可能需要手动转换为XLS格式', 'warning', 8000);
+                    } catch (xlsxError) {
+                        throw new Error('所有保存格式都失败，文件包含不兼容的数据类型');
+                    }
+                }
+            }
+
+            // 创建可写流并写入数据
+            const writable = await fileHandle.createWritable();
+            await writable.write(excelBuffer);
+            await writable.close();
+
+            console.log('AllObstacle文件已成功保存');
+            return true;
+
+        } catch (error) {
+            console.error('AllObstacle文件保存失败:', error);
+
+            // 如果是XLSX库的类型错误，提供更友好的错误信息
+            if (error.message.includes('TypedPropertyValue') || error.message.includes('unrecognized type')) {
+                const friendlyError = new Error('AllObstacle.xls文件包含不兼容的数据格式，建议使用较新版本的Excel重新保存该文件');
+                friendlyError.originalError = error;
+                throw friendlyError;
+            }
+
+            throw error;
+        }
+    }
+
+    /**
+     * 重新构建AllObstacle工作簿以解决兼容性问题
+     * @param {Object} originalWorkbook - 原始工作簿
+     * @returns {Object} 重新构建的工作簿
+     */
+    function rebuildAllObstacleWorkbook(originalWorkbook) {
+        console.log('开始重新构建AllObstacle工作簿...');
+
+        try {
+            const newWorkbook = XLSX.utils.book_new();
+
+            // 遍历所有工作表
+            for (const sheetName of originalWorkbook.SheetNames) {
+                console.log(`重新构建工作表: ${sheetName}`);
+
+                const originalSheet = originalWorkbook.Sheets[sheetName];
+
+                // 将工作表转换为纯数据数组
+                const sheetData = XLSX.utils.sheet_to_json(originalSheet, {
+                    header: 1,
+                    defval: '',
+                    raw: true // 保持原始数据类型
+                });
+
+                // 清理数据，智能处理数据类型
+                const cleanData = sheetData.map((row, rowIndex) => {
+                    if (!Array.isArray(row)) return [];
+                    return row.map((cell, colIndex) => {
+                        if (cell === null || cell === undefined) return '';
+
+                        // 如果是复杂对象，转换为字符串
+                        if (typeof cell === 'object' && cell.constructor !== Date) {
+                            return String(cell);
+                        }
+
+                        // 如果是日期对象，转换为字符串
+                        if (cell instanceof Date) {
+                            return cell.toISOString().split('T')[0]; // YYYY-MM-DD格式
+                        }
+
+                        // 对于数字，保持数字类型但确保是有效数字
+                        if (typeof cell === 'number') {
+                            if (isNaN(cell) || !isFinite(cell)) {
+                                return '';
+                            }
+                            return cell;
+                        }
+
+                        // 对于字符串，检查是否是数字字符串
+                        if (typeof cell === 'string') {
+                            const trimmed = cell.trim();
+                            if (trimmed === '') return '';
+
+                            // 尝试转换为数字（仅对纯数字字符串）
+                            const num = Number(trimmed);
+                            if (!isNaN(num) && isFinite(num) && /^\d+\.?\d*$/.test(trimmed)) {
+                                return num;
+                            }
+                            return trimmed;
+                        }
+
+                        return cell;
+                    });
+                });
+
+                // 创建新的工作表
+                const newSheet = XLSX.utils.aoa_to_sheet(cleanData);
+
+                // 添加到新工作簿
+                XLSX.utils.book_append_sheet(newWorkbook, newSheet, sheetName);
+
+                console.log(`✅ 工作表 ${sheetName} 重新构建完成`);
+            }
+
+            console.log('AllObstacle工作簿重新构建完成');
+            return newWorkbook;
+
+        } catch (error) {
+            console.error('重新构建AllObstacle工作簿失败:', error);
+            throw error;
         }
     }
 
@@ -6885,9 +8013,9 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 console.log(`已更新rscAllSheetsData["${mainSheetName}"]`);
             }
 
-            // 同步目标工作表（严格限制：仅限Light、ColorInfo）
+            // 同步目标工作表（严格限制：仅限Light、ColorInfo、FloodLight、VolumetricFog）
             // 重要约束：不同步其他工作表，保持零影响原则
-            const targetSheets = ['Light', 'ColorInfo'];
+            const targetSheets = ['Light', 'ColorInfo', 'FloodLight', 'VolumetricFog'];
             targetSheets.forEach(sheetName => {
                 if (sheetName !== mainSheetName && workbook.Sheets[sheetName]) {
                     const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
@@ -7241,6 +8369,23 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 console.log('未找到RSC_Language.xls文件，多语言功能将不可用');
             }
 
+            // 设置AllObstacle文件信息
+            if (result.allObstacleFound && result.files.allObstacle.hasPermission) {
+                try {
+                    const allObstacleFileData = await folderManager.loadThemeFileData('allObstacle');
+                    await setAllObstacleDataFromFolder(allObstacleFileData);
+                    console.log('AllObstacle文件加载成功');
+                } catch (error) {
+                    console.error('AllObstacle文件加载失败:', error);
+                    App.Utils.showStatus('AllObstacle文件加载失败，AllObstacle功能将不可用', 'warning', 5000);
+                }
+            } else if (result.allObstacleFound) {
+                console.warn('AllObstacle.xls文件找到但权限获取失败');
+                App.Utils.showStatus('AllObstacle文件权限获取失败，AllObstacle功能将不可用', 'warning', 5000);
+            } else {
+                console.log('未找到AllObstacle.xls文件，AllObstacle功能将不可用');
+            }
+
             // 设置Levels文件信息（用于Level_id处理）
             if (result.levelsFound && result.files.levels.hasPermission) {
                 // 创建unityProjectFiles对象（如果不存在）
@@ -7482,6 +8627,35 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
     }
 
     /**
+     * 从文件夹模式设置AllObstacle数据
+     */
+    async function setAllObstacleDataFromFolder(allObstacleFileData) {
+        try {
+            console.log('设置AllObstacle数据...');
+
+            allObstacleData = {
+                workbook: allObstacleFileData.workbook,
+                fileHandle: allObstacleFileData.fileHandle,
+                fileName: allObstacleFileData.fileName,
+                fileSize: allObstacleFileData.fileSize,
+                lastModified: allObstacleFileData.lastModified
+            };
+
+            console.log('AllObstacle数据设置成功:', {
+                fileName: allObstacleData.fileName,
+                fileSize: allObstacleData.fileSize,
+                sheetCount: allObstacleData.workbook.SheetNames.length
+            });
+
+            App.Utils.showStatus('AllObstacle.xls文件已加载，支持全新系列主题的AllObstacle处理', 'info', 3000);
+
+        } catch (error) {
+            console.error('AllObstacle数据设置失败:', error);
+            throw error;
+        }
+    }
+
+    /**
      * 从文件夹设置UGC主题数据
      */
     async function setUGCThemeDataFromFolder(fileData) {
@@ -7593,6 +8767,169 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 }
             }
         });
+    }
+
+    /**
+     * 加载现有主题的FloodLight配置
+     */
+    function loadExistingFloodLightConfig(themeName) {
+        console.log('加载现有主题的FloodLight配置:', themeName);
+
+        if (!rscAllSheetsData || !rscAllSheetsData['FloodLight']) {
+            console.log('RSC_Theme FloodLight数据未加载，使用默认值');
+            resetFloodLightConfigToDefaults();
+            return;
+        }
+
+        // 在RSC_Theme的FloodLight sheet中查找主题
+        const floodLightData = rscAllSheetsData['FloodLight'];
+        const floodLightHeaderRow = floodLightData[0];
+        const floodLightNotesColumnIndex = floodLightHeaderRow.findIndex(col => col === 'notes');
+
+        if (floodLightNotesColumnIndex === -1) {
+            console.log('RSC_Theme FloodLight sheet没有notes列，使用默认值');
+            resetFloodLightConfigToDefaults();
+            return;
+        }
+
+        // 查找主题在FloodLight中的行号
+        const floodLightThemeRowIndex = floodLightData.findIndex((row, index) =>
+            index > 0 && row[floodLightNotesColumnIndex] === themeName
+        );
+
+        if (floodLightThemeRowIndex === -1) {
+            console.log(`在RSC_Theme FloodLight sheet中未找到主题 "${themeName}"，使用默认值`);
+            resetFloodLightConfigToDefaults();
+            return;
+        }
+
+        console.log(`在RSC_Theme FloodLight sheet中找到主题 "${themeName}"，行索引: ${floodLightThemeRowIndex}`);
+
+        // 加载FloodLight配置值
+        const floodLightRow = floodLightData[floodLightThemeRowIndex];
+        const floodLightFieldMapping = {
+            'Color': 'floodlightColor',
+            'TippingPoint': 'floodlightTippingPoint',
+            'Strength': 'floodlightStrength',
+            'IsOn': 'floodlightIsOn',
+            'JumpActiveIsLightOn': 'floodlightJumpActiveIsLightOn'
+        };
+
+        Object.entries(floodLightFieldMapping).forEach(([columnName, fieldId]) => {
+            const columnIndex = floodLightHeaderRow.findIndex(col => col === columnName);
+            if (columnIndex !== -1) {
+                const value = floodLightRow[columnIndex];
+                const input = document.getElementById(fieldId);
+
+                if (input) {
+                    if (fieldId === 'floodlightTippingPoint' || fieldId === 'floodlightStrength') {
+                        // 将存储的整数值转换为小数显示（除以10）
+                        const numValue = parseInt(value) || 0;
+                        input.value = (numValue / 10).toFixed(1);
+                    } else if (fieldId === 'floodlightIsOn' || fieldId === 'floodlightJumpActiveIsLightOn') {
+                        // 处理checkbox
+                        input.checked = value === 1 || value === '1' || value === true;
+                    } else {
+                        // 颜色值
+                        input.value = (value !== undefined && value !== null && value !== '') ? value.toString() : 'FFFFFF';
+
+                        // 更新颜色预览
+                        if (fieldId === 'floodlightColor') {
+                            updateFloodLightColorPreview();
+                        }
+                    }
+                }
+            } else {
+                console.warn(`FloodLight sheet中找不到列: ${columnName}`);
+            }
+        });
+
+        console.log('FloodLight配置加载完成');
+    }
+
+    /**
+     * 加载现有主题的VolumetricFog配置
+     */
+    function loadExistingVolumetricFogConfig(themeName) {
+        console.log('加载现有主题的VolumetricFog配置:', themeName);
+
+        if (!rscAllSheetsData || !rscAllSheetsData['VolumetricFog']) {
+            console.log('RSC_Theme VolumetricFog数据未加载，使用默认值');
+            resetVolumetricFogConfigToDefaults();
+            return;
+        }
+
+        // 在RSC_Theme的VolumetricFog sheet中查找主题
+        const volumetricFogData = rscAllSheetsData['VolumetricFog'];
+        const volumetricFogHeaderRow = volumetricFogData[0];
+        const volumetricFogNotesColumnIndex = volumetricFogHeaderRow.findIndex(col => col === 'notes');
+
+        if (volumetricFogNotesColumnIndex === -1) {
+            console.log('RSC_Theme VolumetricFog sheet没有notes列，使用默认值');
+            resetVolumetricFogConfigToDefaults();
+            return;
+        }
+
+        // 查找主题行
+        let themeRowIndex = -1;
+        for (let i = 1; i < volumetricFogData.length; i++) {
+            if (volumetricFogData[i][volumetricFogNotesColumnIndex] === themeName) {
+                themeRowIndex = i;
+                break;
+            }
+        }
+
+        if (themeRowIndex === -1) {
+            console.log(`在VolumetricFog sheet中未找到主题"${themeName}"，使用默认值`);
+            resetVolumetricFogConfigToDefaults();
+            return;
+        }
+
+        const themeRow = volumetricFogData[themeRowIndex];
+        console.log(`找到VolumetricFog主题"${themeName}"，行索引: ${themeRowIndex}`, themeRow);
+
+        // VolumetricFog字段映射
+        const volumetricFogFieldMapping = {
+            'Color': 'volumetricfogColor',
+            'X': 'volumetricfogX',
+            'Y': 'volumetricfogY',
+            'Z': 'volumetricfogZ',
+            'Density': 'volumetricfogDensity',
+            'Rotate': 'volumetricfogRotate',
+            'IsOn': 'volumetricfogIsOn'
+        };
+
+        // 加载配置到界面
+        Object.entries(volumetricFogFieldMapping).forEach(([columnName, fieldId]) => {
+            const columnIndex = volumetricFogHeaderRow.findIndex(col => col === columnName);
+            if (columnIndex !== -1) {
+                const value = themeRow[columnIndex];
+                const input = document.getElementById(fieldId);
+
+                if (input) {
+                    if (fieldId === 'volumetricfogIsOn') {
+                        // 处理checkbox
+                        input.checked = value === 1 || value === '1' || value === true;
+                    } else if (fieldId === 'volumetricfogDensity') {
+                        // Density字段需要÷10显示
+                        const displayValue = (parseFloat(value) / 10).toFixed(1);
+                        input.value = displayValue;
+                    } else {
+                        // 其他字段
+                        input.value = (value !== undefined && value !== null && value !== '') ? value.toString() : '';
+
+                        // 更新颜色预览
+                        if (fieldId === 'volumetricfogColor') {
+                            updateVolumetricFogColorPreview();
+                        }
+                    }
+                }
+            } else {
+                console.warn(`VolumetricFog sheet中找不到列: ${columnName}`);
+            }
+        });
+
+        console.log('VolumetricFog配置加载完成');
     }
 
     /**

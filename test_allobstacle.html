@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AllObstacle功能测试页面</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .test-section h2 {
+            color: #34495e;
+            margin-top: 0;
+        }
+        .test-case {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            background-color: white;
+        }
+        .test-case h3 {
+            margin-top: 0;
+            color: #2980b9;
+        }
+        .test-steps {
+            list-style-type: decimal;
+            padding-left: 20px;
+        }
+        .test-steps li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        .expected-result {
+            background-color: #e8f5e8;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .expected-result strong {
+            color: #27ae60;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .warning strong {
+            color: #d68910;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .info strong {
+            color: #0c5460;
+        }
+        .button-group {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 0 10px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        .btn-success {
+            background-color: #27ae60;
+        }
+        .btn-success:hover {
+            background-color: #229954;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 AllObstacle.xls 功能测试页面</h1>
+        
+        <div class="info">
+            <strong>📋 测试目标：</strong> 验证AllObstacle.xls文件处理功能在全新系列主题创建时的正确性
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ 重要提醒：</strong>
+            <ul>
+                <li>测试前请确保Unity项目文件夹中包含AllObstacle.xls文件</li>
+                <li>AllObstacle.xls文件必须包含Info工作表，且具有id、notes、nameID、Sort、isFilter列</li>
+                <li>建议在测试前备份AllObstacle.xls文件</li>
+                <li>只有创建全新系列主题时才会触发AllObstacle处理</li>
+                <li><strong>格式兼容性：</strong>系统会优先保存为XLS格式以确保与Java工具兼容</li>
+                <li><strong>重要：</strong>如果保存为XLSX格式，Java工具可能报错，需要手动转换</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>🔧 测试环境准备</h2>
+            <div class="test-case">
+                <h3>环境检查清单</h3>
+                <ol class="test-steps">
+                    <li>确保浏览器支持File System Access API（推荐Chrome/Edge）</li>
+                    <li>准备包含以下文件的Unity项目文件夹：
+                        <ul>
+                            <li>RSC_Theme.xls</li>
+                            <li>UGCTheme.xls</li>
+                            <li>AllObstacle.xls（必须包含Info工作表）</li>
+                        </ul>
+                    </li>
+                    <li>确保AllObstacle.xls的Info工作表包含必要的列：id、notes、nameID、Sort、isFilter</li>
+                    <li>注意：Info工作表的表头在第1行，数据从第6行开始</li>
+                    <li>记录AllObstacle.xls文件中现有的最大ID和Sort值（从第6行开始的数据）</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 测试用例</h2>
+            
+            <div class="test-case">
+                <h3>测试用例1：全新系列主题创建（应触发AllObstacle处理）</h3>
+                <ol class="test-steps">
+                    <li>打开ColorToolConnectRC工具主页面</li>
+                    <li>选择Unity项目文件夹（包含AllObstacle.xls）</li>
+                    <li>输入一个全新系列的主题名称（如"测试主题1"，确保现有主题中没有"测试主题"系列）</li>
+                    <li>配置多语言ID（输入一个未使用的数字，如9999）</li>
+                    <li>设置颜色配置并点击"处理主题数据"</li>
+                    <li>观察控制台日志和状态提示</li>
+                    <li>检查AllObstacle.xls文件的Info工作表是否新增了一行数据</li>
+                </ol>
+                <div class="expected-result">
+                    <strong>预期结果：</strong>
+                    <ul>
+                        <li>控制台显示"检测到全新系列主题，开始处理AllObstacle文件..."</li>
+                        <li>控制台显示"✅ AllObstacle文件处理成功"</li>
+                        <li>状态栏显示"AllObstacle文件处理成功"</li>
+                        <li>AllObstacle.xls的Info工作表新增一行（在现有数据末尾），包含：
+                            <ul>
+                                <li>id: 现有数据（第6行开始）中的最大值+1</li>
+                                <li>notes: "测试主题"（去除数字后的基础名称）</li>
+                                <li>nameID: 9999（用户输入的多语言ID）</li>
+                                <li>Sort: 现有数据（第6行开始）中的最大值+1</li>
+                                <li>isFilter: 1</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="test-case">
+                <h3>测试用例2：同系列主题创建（不应触发AllObstacle处理）</h3>
+                <ol class="test-steps">
+                    <li>在测试用例1的基础上，创建同系列的新主题</li>
+                    <li>输入主题名称"测试主题2"（与测试用例1同系列）</li>
+                    <li>观察是否显示多语言配置面板（应该隐藏）</li>
+                    <li>点击"处理主题数据"</li>
+                    <li>观察控制台日志和状态提示</li>
+                </ol>
+                <div class="expected-result">
+                    <strong>预期结果：</strong>
+                    <ul>
+                        <li>多语言配置面板不显示</li>
+                        <li>控制台显示"非全新系列主题或多语言配置无效，跳过AllObstacle处理"</li>
+                        <li>AllObstacle.xls文件不会被修改</li>
+                        <li>主题处理正常完成，但不包含AllObstacle处理</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="test-case">
+                <h3>测试用例3：AllObstacle文件不存在的情况</h3>
+                <ol class="test-steps">
+                    <li>选择一个不包含AllObstacle.xls文件的Unity项目文件夹</li>
+                    <li>创建全新系列主题</li>
+                    <li>观察系统行为</li>
+                </ol>
+                <div class="expected-result">
+                    <strong>预期结果：</strong>
+                    <ul>
+                        <li>控制台显示"AllObstacle.xls文件未找到，跳过处理"</li>
+                        <li>状态栏显示"AllObstacle.xls文件未找到，跳过AllObstacle处理"</li>
+                        <li>主题处理正常完成，不受AllObstacle缺失影响</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="test-case">
+                <h3>测试用例4：XLS格式兼容性验证</h3>
+                <ol class="test-steps">
+                    <li>创建全新系列主题，触发AllObstacle处理</li>
+                    <li>观察保存过程中的格式选择</li>
+                    <li>检查保存后的文件格式</li>
+                    <li>使用Java工具验证文件兼容性：<br>
+                        <code>java -Dfile.encoding=UTF-8 -jar HerosClientBuildTools_fat.jar .\xlsx true</code>
+                    </li>
+                </ol>
+                <div class="expected-result">
+                    <strong>预期结果：</strong>
+                    <ul>
+                        <li>控制台显示"尝试使用XLS格式（无日期处理）保存..."</li>
+                        <li>优先保存为XLS格式（OLE2格式）</li>
+                        <li>Java工具能正常处理文件，不报格式错误</li>
+                        <li>如果保存为XLSX格式，会显示兼容性警告</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="test-case">
+                <h3>测试用例5：重复多语言ID检测</h3>
+                <ol class="test-steps">
+                    <li>查看AllObstacle.xls的Info工作表，记录一个已存在的nameID值（从第6行开始的数据中）</li>
+                    <li>创建全新系列主题，使用已存在的多语言ID</li>
+                    <li>观察系统行为</li>
+                </ol>
+                <div class="expected-result">
+                    <strong>预期结果：</strong>
+                    <ul>
+                        <li>控制台显示"多语言ID XXX 已存在于第 X 行，跳过处理"</li>
+                        <li>AllObstacle.xls文件不会被修改</li>
+                        <li>主题处理正常完成</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔍 验证检查清单</h2>
+            <div class="test-case">
+                <h3>功能验证要点</h3>
+                <ol class="test-steps">
+                    <li>✅ 文件发现：系统能正确发现并获取AllObstacle.xls文件权限</li>
+                    <li>✅ 触发条件：只有全新系列主题才触发AllObstacle处理</li>
+                    <li>✅ 数据处理：正确计算新的ID和Sort值</li>
+                    <li>✅ 字段填充：所有字段按规则正确填充</li>
+                    <li>✅ 错误处理：各种异常情况都有适当处理</li>
+                    <li>✅ 用户反馈：提供清晰的状态提示和日志信息</li>
+                    <li>✅ 向后兼容：不影响现有的RSC_Theme和UGCTheme处理</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <a href="index.html" class="btn btn-success">🚀 开始测试</a>
+            <button class="btn" onclick="window.open('js/themeManager.js', '_blank')">📝 查看代码</button>
+        </div>
+    </div>
+
+    <script>
+        // 简单的测试辅助功能
+        console.log('🧪 AllObstacle功能测试页面已加载');
+        console.log('📋 请按照测试用例逐步验证功能');
+        
+        // 检查浏览器兼容性
+        if ('showDirectoryPicker' in window) {
+            console.log('✅ 浏览器支持File System Access API');
+        } else {
+            console.warn('⚠️ 浏览器不支持File System Access API，建议使用Chrome或Edge');
+        }
+    </script>
+</body>
+</html>

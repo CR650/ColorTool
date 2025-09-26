@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VolumetricFog配置功能测试</title>
+    
+    <!-- 引入SheetJS库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- 引入样式文件 -->
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <style>
+        .test-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+        
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .test-button {
+            background: #ff9800;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        
+        .test-button:hover {
+            background: #f57c00;
+        }
+        
+        .test-results {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .status.warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🌫️ VolumetricFog配置功能测试</h1>
+        <p>测试新增的VolumetricFog配置面板功能，包括UI显示、数据验证、配置保存等。</p>
+        
+        <div id="status" class="status info">准备开始测试...</div>
+        
+        <!-- 测试控制面板 -->
+        <div class="test-section">
+            <h3>🎮 测试控制面板</h3>
+            <button class="test-button" onclick="showVolumetricFogPanel()">显示VolumetricFog面板</button>
+            <button class="test-button" onclick="hideVolumetricFogPanel()">隐藏VolumetricFog面板</button>
+            <button class="test-button" onclick="testValidation()">测试验证功能</button>
+            <button class="test-button" onclick="testDataCollection()">测试数据收集</button>
+            <button class="test-button" onclick="testColorPreview()">测试颜色预览</button>
+            <button class="test-button" onclick="testTargetSheets()">测试工作表处理</button>
+            <button class="test-button" onclick="clearResults()">清空结果</button>
+        </div>
+        
+        <!-- VolumetricFog配置面板 -->
+        <div class="volumetricfog-config-section" id="volumetricfogConfigSection" style="display: none;">
+            <h4>🌫️ RSC_Theme VolumetricFog 体积雾参数设置</h4>
+            <div class="volumetricfog-config-content">
+                <div class="volumetricfog-config-grid">
+                    <!-- 体积雾颜色配置 -->
+                    <div class="volumetricfog-config-group">
+                        <h5>🎨 体积雾颜色设置</h5>
+                        <div class="volumetricfog-field-row">
+                            <label for="volumetricfogColor">体积雾颜色 (Color):</label>
+                            <div class="color-selector-container">
+                                <input type="text" id="volumetricfogColor" value="FFFFFF" placeholder="16进制颜色值" maxlength="6" pattern="[0-9A-Fa-f]{6}">
+                                <div class="color-preview" id="volumetricfogColorPreview" style="background-color: #FFFFFF;"></div>
+                                <button type="button" class="color-picker-btn" data-target="volumetricfogColor">选择颜色</button>
+                            </div>
+                            <span class="field-hint">16进制格式的体积雾颜色值</span>
+                        </div>
+                    </div>
+
+                    <!-- 体积雾尺寸配置 -->
+                    <div class="volumetricfog-config-group">
+                        <h5>📐 体积雾尺寸设置</h5>
+                        <div class="volumetricfog-field-row">
+                            <label for="volumetricfogX">宽度 (X):</label>
+                            <input type="number" id="volumetricfogX" min="0" max="100" step="1" value="50" placeholder="范围: 0 到 100">
+                            <span class="field-hint">体积雾的宽度值，整数范围 0-100</span>
+                        </div>
+                        <div class="volumetricfog-field-row">
+                            <label for="volumetricfogY">长度 (Y):</label>
+                            <input type="number" id="volumetricfogY" min="0" max="100" step="1" value="50" placeholder="范围: 0 到 100">
+                            <span class="field-hint">体积雾的长度值，整数范围 0-100</span>
+                        </div>
+                        <div class="volumetricfog-field-row">
+                            <label for="volumetricfogZ">高度 (Z):</label>
+                            <input type="number" id="volumetricfogZ" min="0" max="100" step="1" value="50" placeholder="范围: 0 到 100">
+                            <span class="field-hint">体积雾的高度值，整数范围 0-100</span>
+                        </div>
+                    </div>
+
+                    <!-- 体积雾效果配置 -->
+                    <div class="volumetricfog-config-group">
+                        <h5>⚙️ 体积雾效果设置</h5>
+                        <div class="volumetricfog-field-row">
+                            <label for="volumetricfogDensity">浓淡 (Density):</label>
+                            <input type="number" id="volumetricfogDensity" min="0" max="20" step="0.1" value="10.0" placeholder="范围: 0 到 20">
+                            <span class="field-hint">体积雾的浓淡值，支持一位小数，范围 0-20</span>
+                        </div>
+                        <div class="volumetricfog-field-row">
+                            <label for="volumetricfogRotate">旋转角度 (Rotate):</label>
+                            <input type="number" id="volumetricfogRotate" min="-90" max="90" step="1" value="0" placeholder="范围: -90 到 90">
+                            <span class="field-hint">体积雾的旋转角度，整数范围 -90 到 90</span>
+                        </div>
+                    </div>
+
+                    <!-- 体积雾开关配置 -->
+                    <div class="volumetricfog-config-group">
+                        <h5>🔘 体积雾开关设置</h5>
+                        <div class="volumetricfog-field-row">
+                            <label for="volumetricfogIsOn">体积雾是否默认开启 (IsOn):</label>
+                            <div class="toggle-switch-container">
+                                <input type="checkbox" id="volumetricfogIsOn" class="toggle-switch-input">
+                                <label for="volumetricfogIsOn" class="toggle-switch-label">
+                                    <span class="toggle-switch-slider"></span>
+                                    <span class="toggle-switch-text">开启</span>
+                                </label>
+                            </div>
+                            <span class="field-hint">控制体积雾效果是否默认开启</span>
+                        </div>
+                    </div>
+                </div>
+                <small class="help-text">
+                    🌫️ 这些配置将应用到RSC_Theme表的VolumetricFog字段中。创建新主题时使用默认值，更新现有主题时显示当前值。
+                </small>
+            </div>
+        </div>
+        
+        <!-- 测试结果显示 -->
+        <div class="test-section">
+            <h3>📊 测试结果</h3>
+            <div id="testResults" class="test-results">
+                等待测试开始...
+            </div>
+        </div>
+    </div>
+    
+    <!-- 引入JavaScript模块 -->
+    <script src="js/version.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/colorPicker.js"></script>
+    <script src="js/themeManager.js"></script>
+    
+    <script>
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            showStatus('正在初始化测试环境...', 'info');
+            
+            // 初始化颜色选择器
+            if (window.App && window.App.ColorPicker) {
+                try {
+                    window.App.ColorPicker.init();
+                    showStatus('测试环境初始化完成！', 'success');
+                } catch (error) {
+                    showStatus(`初始化失败: ${error.message}`, 'error');
+                }
+            } else {
+                showStatus('颜色选择器模块未找到', 'error');
+            }
+        });
+
+        // 显示状态
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        // 添加测试结果
+        function addTestResult(message) {
+            const resultsDiv = document.getElementById('testResults');
+            const timestamp = new Date().toLocaleTimeString();
+            resultsDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        // 清空测试结果
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '测试结果已清空...\n';
+        }
+
+        // 显示VolumetricFog面板
+        function showVolumetricFogPanel() {
+            const panel = document.getElementById('volumetricfogConfigSection');
+            panel.style.display = 'block';
+            addTestResult('✅ VolumetricFog配置面板已显示');
+            showStatus('VolumetricFog配置面板已显示', 'success');
+        }
+
+        // 隐藏VolumetricFog面板
+        function hideVolumetricFogPanel() {
+            const panel = document.getElementById('volumetricfogConfigSection');
+            panel.style.display = 'none';
+            addTestResult('ℹ️ VolumetricFog配置面板已隐藏');
+            showStatus('VolumetricFog配置面板已隐藏', 'info');
+        }
+
+        // 测试验证功能
+        function testValidation() {
+            addTestResult('🔍 开始测试VolumetricFog验证功能...');
+            
+            // 测试整数字段验证
+            const integerTests = [
+                { field: 'volumetricfogX', value: 150, expected: '100' },
+                { field: 'volumetricfogY', value: -10, expected: '0' },
+                { field: 'volumetricfogZ', value: 'abc', expected: '50' },
+                { field: 'volumetricfogRotate', value: 100, expected: '90' },
+                { field: 'volumetricfogRotate', value: -100, expected: '-90' }
+            ];
+            
+            integerTests.forEach(test => {
+                const input = document.getElementById(test.field);
+                input.value = test.value;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                setTimeout(() => {
+                    const result = input.value;
+                    addTestResult(`  ${test.field}: ${test.value} → ${result} (期望: ${test.expected}) ${result === test.expected ? '✅' : '❌'}`);
+                }, 100);
+            });
+            
+            // 测试Density小数验证
+            const densityTests = [
+                { value: 25.0, expected: '20.0' },
+                { value: -5.0, expected: '0.0' },
+                { value: 'xyz', expected: '10.0' }
+            ];
+            
+            densityTests.forEach(test => {
+                const input = document.getElementById('volumetricfogDensity');
+                input.value = test.value;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                setTimeout(() => {
+                    const result = input.value;
+                    addTestResult(`  Density: ${test.value} → ${result} (期望: ${test.expected}) ${result === test.expected ? '✅' : '❌'}`);
+                }, 200);
+            });
+            
+            showStatus('验证功能测试完成', 'success');
+        }
+
+        // 测试数据收集
+        function testDataCollection() {
+            addTestResult('📊 开始测试VolumetricFog数据收集...');
+
+            // 设置测试值
+            document.getElementById('volumetricfogColor').value = 'FF6600';
+            document.getElementById('volumetricfogX').value = '75';
+            document.getElementById('volumetricfogY').value = '80';
+            document.getElementById('volumetricfogZ').value = '60';
+            document.getElementById('volumetricfogDensity').value = '15.5';
+            document.getElementById('volumetricfogRotate').value = '45';
+            document.getElementById('volumetricfogIsOn').checked = true;
+
+            // 检查函数是否存在
+            if (typeof getVolumetricFogConfigData === 'function') {
+                try {
+                    const volumetricFogData = getVolumetricFogConfigData();
+                    addTestResult('✅ getVolumetricFogConfigData函数调用成功');
+                    addTestResult(`  收集的数据: ${JSON.stringify(volumetricFogData, null, 2)}`);
+
+                    // 验证数据转换
+                    const expectedDensity = 155; // 15.5 * 10
+
+                    if (volumetricFogData.Density === expectedDensity) {
+                        addTestResult('✅ Density数据转换正确');
+                    } else {
+                        addTestResult(`❌ Density数据转换错误: 期望${expectedDensity}, 实际${volumetricFogData.Density}`);
+                    }
+
+                } catch (error) {
+                    addTestResult(`❌ getVolumetricFogConfigData函数错误: ${error.message}`);
+                }
+            } else {
+                addTestResult('⚠️ getVolumetricFogConfigData函数不可访问');
+            }
+
+            showStatus('数据收集测试完成', 'success');
+        }
+
+        // 测试颜色预览
+        function testColorPreview() {
+            addTestResult('🎨 开始测试VolumetricFog颜色预览...');
+            
+            const testColors = ['FF9800', '00FF00', '0000FF', 'FFFF00'];
+            
+            testColors.forEach((color, index) => {
+                setTimeout(() => {
+                    const input = document.getElementById('volumetricfogColor');
+                    input.value = color;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    
+                    const preview = document.getElementById('volumetricfogColorPreview');
+                    const expectedColor = `rgb(${parseInt(color.substr(0,2), 16)}, ${parseInt(color.substr(2,2), 16)}, ${parseInt(color.substr(4,2), 16)})`;
+                    
+                    setTimeout(() => {
+                        const actualColor = preview.style.backgroundColor;
+                        addTestResult(`  颜色 ${color}: 预览颜色 ${actualColor} ${actualColor.includes(expectedColor.replace(/rgb\(|\)/g, '').replace(/\s/g, '')) ? '✅' : '❌'}`);
+                    }, 100);
+                }, index * 500);
+            });
+            
+            showStatus('颜色预览测试完成', 'success');
+        }
+
+        // 测试工作表处理
+        function testTargetSheets() {
+            addTestResult('📋 开始测试VolumetricFog工作表处理集成...');
+            
+            addTestResult('检查VolumetricFog是否已添加到targetSheets列表:');
+            addTestResult('  1. processRSCAdditionalSheets函数');
+            addTestResult('  2. updateExistingThemeAdditionalSheets函数');
+            addTestResult('  3. generateUpdatedWorkbook函数');
+            
+            // 检查相关函数是否存在
+            const functions = [
+                'getVolumetricFogConfigData',
+                'applyVolumetricFogConfigToRow',
+                'toggleVolumetricFogConfigPanel',
+                'resetVolumetricFogConfigToDefaults',
+                'getLastThemeVolumetricFogConfig',
+                'loadExistingVolumetricFogConfig'
+            ];
+
+            functions.forEach(funcName => {
+                if (typeof window[funcName] === 'function') {
+                    addTestResult(`  ✅ ${funcName}: 函数存在`);
+                } else {
+                    addTestResult(`  ❌ ${funcName}: 函数不存在或不可访问`);
+                }
+            });
+            
+            addTestResult('✅ VolumetricFog工作表处理集成检查完成');
+            showStatus('工作表处理测试完成', 'success');
+        }
+    </script>
+</body>
+</html>
