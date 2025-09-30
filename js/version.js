@@ -17,13 +17,30 @@ window.App.Version = (function() {
 
     // 当前版本信息
     const VERSION_INFO = {
-        current: '1.6.3',
-        releaseDate: '2025-09-25',
-        buildNumber: '20250925004'
+        current: '1.6.4',
+        releaseDate: '2025-09-30',
+        buildNumber: '20250930001'
     };
 
     // 版本历史记录
     const VERSION_HISTORY = [
+        {
+            version: '1.6.4',
+            date: '2025-09-30',
+            changes: [
+                '🔧 关键修复：新建主题模式下UI参数显示与保存数据一致性问题',
+                '✅ 修复UGC配置显示：新建主题时从源数据正确读取Custom字段值，不再显示默认值',
+                '✅ 修复FloodLight IsOn：新建主题时根据源数据FloodLight状态正确勾选IsOn开关',
+                '✅ 修复Light/ColorInfo/VolumetricFog配置：新建主题时正确传递isNewTheme参数',
+                '🎯 条件读取逻辑优化：所有loadExisting...Config函数支持isNewTheme参数',
+                '🔄 FloodLight IsOn智能默认值：当FloodLight状态为1但源数据无IsOn字段时，默认返回1（开启）',
+                '🆕 UGCTheme自动处理：新建主题时Custom_Enemy_Color、Custom_Mover_Color、Custom_Mover_Auto_Color总是新建一行',
+                '📋 简单复制模式：这3个工作表只复制上一行数据（id+1），不进行复杂字段处理',
+                '🛡️ 不影响现有逻辑：仅在新建主题模式下生效，不受映射模式限制',
+                '📝 数据一致性保障：确保UI显示的参数值与最终保存到文件的数据完全一致'
+            ],
+            type: 'patch'
+        },
         {
             version: '1.6.3',
             date: '2025-09-25',

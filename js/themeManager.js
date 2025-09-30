@@ -25,6 +25,7 @@ window.App.ThemeManager = (function() {
     let mappingData = null;          // 对比映射数据
     let processedResult = null;      // 处理结果
     let rscAllSheetsData = null;     // RSC_Theme文件的所有Sheet数据
+    let rscOriginalSheetsData = null; // 🔧 RSC_Theme文件的原始Sheet数据（用于重置非目标工作表）
     let ugcAllSheetsData = null;     // UGCTheme文件的所有Sheet数据
     let allObstacleData = null;      // AllObstacle.xls文件数据
     let multiLangConfig = null;      // 多语言配置数据
@@ -1845,19 +1846,129 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
     /**
      * 加载现有主题的UGC配置
+     * @param {string} themeName - 主题名称
+     * @param {boolean} isNewTheme - 是否为新建主题（默认false）
      */
-    function loadExistingUGCConfig(themeName) {
-        console.log('=== 开始加载现有UGC配置 ===');
+    function loadExistingUGCConfig(themeName, isNewTheme = false) {
+        console.log('\n=== 开始加载UGC配置（支持条件读取） ===');
         console.log('主题名称:', themeName);
+        console.log('是否新建主题:', isNewTheme);
         console.log('ugcAllSheetsData状态:', ugcAllSheetsData ? '已加载' : '未加载');
         console.log('rscAllSheetsData状态:', rscAllSheetsData ? '已加载' : '未加载');
+        console.log('sourceData状态:', sourceData ? '已加载' : '未加载');
+        console.log('当前映射模式:', currentMappingMode);
 
         if (ugcAllSheetsData) {
             console.log('UGC数据包含的sheets:', Object.keys(ugcAllSheetsData));
         }
 
-        if (!ugcAllSheetsData || !rscAllSheetsData || !themeName) {
-            console.log('UGC数据或RSC数据未加载，或主题名称为空，使用默认值');
+        if (!themeName) {
+            console.log('主题名称为空，使用默认值');
+            resetUGCConfigToDefaults();
+            return;
+        }
+
+        // 检查是否为直接映射模式
+        const isDirectMode = currentMappingMode === 'direct';
+        console.log(`是否为直接映射模式: ${isDirectMode}`);
+
+        // 🔧 新建主题模式下，如果是直接映射模式且有源数据，直接从源数据读取
+        if (isNewTheme && isDirectMode && sourceData && sourceData.workbook) {
+            console.log('🔧 新建主题（直接映射模式）：直接从源数据读取UGC配置');
+
+            // 定义条件读取函数映射
+            const conditionalReadFunctions = {
+                'Custom_Ground_Color': findCustomGroundColorValueDirect,
+                'Custom_Fragile_Color': findCustomFragileColorValueDirect,
+                'Custom_Fragile_Active_Color': findCustomFragileActiveColorValueDirect,
+                'Custom_Jump_Color': findCustomJumpColorValueDirect,
+                'Custom_Jump_Active_Color': findCustomJumpActiveColorValueDirect
+            };
+
+            // 定义字段映射
+            const sheetFieldMapping = {
+                'Custom_Ground_Color': {
+                    patternField: 'groundPatternIndex',
+                    frameField: 'groundFrameIndex',
+                    patternColumn: '_PatternUpIndex',
+                    frameColumn: '_FrameIndex'
+                },
+                'Custom_Fragile_Color': {
+                    patternField: 'fragilePatternIndex',
+                    frameField: 'fragileFrameIndex',
+                    glassAlphaField: 'fragileGlassAlpha',
+                    patternAlphaField: 'fragilePatternAlpha',
+                    patternColumn: '_PatternUpIndex',
+                    frameColumn: '_FrameIndex',
+                    glassAlphaColumn: '_GlassAlpha',
+                    patternAlphaColumn: '_PatternAlpha'
+                },
+                'Custom_Fragile_Active_Color': {
+                    patternField: 'fragileActivePatternIndex',
+                    frameField: 'fragileActiveFrameIndex',
+                    glassAlphaField: 'fragileActiveGlassAlpha',
+                    patternAlphaField: 'fragileActivePatternAlpha',
+                    patternColumn: '_PatternUpIndex',
+                    frameColumn: '_FrameIndex',
+                    glassAlphaColumn: '_GlassAlpha',
+                    patternAlphaColumn: '_PatternAlpha'
+                },
+                'Custom_Jump_Color': {
+                    patternField: 'jumpPatternIndex',
+                    frameField: 'jumpFrameIndex',
+                    patternColumn: '_PatternUpIndex',
+                    frameColumn: '_FrameIndex'
+                },
+                'Custom_Jump_Active_Color': {
+                    patternField: 'jumpActivePatternIndex',
+                    frameField: 'jumpActiveFrameIndex',
+                    patternColumn: '_PatternUpIndex',
+                    frameColumn: '_FrameIndex'
+                }
+            };
+
+            const configData = {};
+
+            // 遍历每个sheet，使用条件读取函数从源数据读取
+            Object.entries(sheetFieldMapping).forEach(([sheetName, mapping]) => {
+                console.log(`\n--- 新建主题：从源数据加载Sheet: ${sheetName} 的UI配置 ---`);
+
+                const conditionalReadFunc = conditionalReadFunctions[sheetName];
+                if (!conditionalReadFunc) {
+                    console.warn(`未找到Sheet ${sheetName} 的条件读取函数`);
+                    return;
+                }
+
+                // 提取字段值
+                Object.entries(mapping).forEach(([fieldKey, fieldValue]) => {
+                    if (fieldKey.endsWith('Field')) {
+                        const columnName = mapping[fieldKey.replace('Field', 'Column')];
+
+                        // 🔧 使用条件读取函数，传递isNewTheme=true
+                        const directValue = conditionalReadFunc(columnName, true, themeName);
+
+                        if (directValue !== null && directValue !== undefined && directValue !== '') {
+                            const finalValue = parseInt(directValue) || 0;
+                            configData[fieldValue] = finalValue;
+                            console.log(`✅ [源数据读取] Sheet ${sheetName} 字段 ${columnName}: ${finalValue} -> UI字段 ${fieldValue}`);
+                        } else {
+                            // 使用默认值
+                            const defaultValue = fieldValue.includes('Alpha') ? 50 : 0;
+                            configData[fieldValue] = defaultValue;
+                            console.log(`⚠️ [使用默认值] Sheet ${sheetName} 字段 ${columnName}: ${defaultValue} -> UI字段 ${fieldValue}`);
+                        }
+                    }
+                });
+            });
+
+            console.log('\n✅ 新建主题：最终加载的UGC配置数据（将显示在UI中）:', configData);
+            setUGCConfigData(configData);
+            return;
+        }
+
+        // 🔧 更新现有主题模式：需要从RSC_Theme和UGCTheme中查找主题
+        if (!ugcAllSheetsData || !rscAllSheetsData) {
+            console.log('UGC数据或RSC数据未加载，使用默认值');
             resetUGCConfigToDefaults();
             return;
         }
@@ -1938,50 +2049,80 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 }
             };
 
+            // 定义条件读取函数映射
+            const conditionalReadFunctions = {
+                'Custom_Ground_Color': findCustomGroundColorValueDirect,
+                'Custom_Fragile_Color': findCustomFragileColorValueDirect,
+                'Custom_Fragile_Active_Color': findCustomFragileActiveColorValueDirect,
+                'Custom_Jump_Color': findCustomJumpColorValueDirect,
+                'Custom_Jump_Active_Color': findCustomJumpActiveColorValueDirect
+            };
+
             const configData = {};
 
             // 遍历每个sheet查找主题数据（使用行号匹配）
             Object.entries(sheetFieldMapping).forEach(([sheetName, mapping]) => {
-                console.log(`\n--- 处理Sheet: ${sheetName} ---`);
-                const sheetData = ugcAllSheetsData[sheetName];
-                if (!sheetData || sheetData.length === 0) {
-                    console.log(`Sheet ${sheetName} 不存在或为空`);
-                    return;
-                }
+                console.log(`\n--- 加载Sheet: ${sheetName} 的UI配置 ---`);
 
-                console.log(`Sheet ${sheetName} 数据行数: ${sheetData.length}`);
-                console.log(`目标行号: ${targetRowNumber}`);
-
-                // 检查目标行是否存在
-                if (targetRowNumber >= sheetData.length) {
-                    console.log(`Sheet ${sheetName} 中不存在行号 ${targetRowNumber}（总行数: ${sheetData.length}）`);
-                    return;
-                }
-
-                const headerRow = sheetData[0];
-                const themeRow = sheetData[targetRowNumber];
-
-                console.log(`Sheet ${sheetName} 表头:`, headerRow);
-                console.log(`Sheet ${sheetName} 目标行数据:`, themeRow);
-
-                // 提取字段值
+                // 提取字段值（支持条件读取）
                 Object.entries(mapping).forEach(([fieldKey, fieldValue]) => {
                     if (fieldKey.endsWith('Field')) {
                         const columnName = mapping[fieldKey.replace('Field', 'Column')];
-                        const columnIndex = headerRow.findIndex(col => col === columnName);
+                        let finalValue = 0;
 
-                        if (columnIndex !== -1) {
-                            const value = themeRow[columnIndex];
-                            configData[fieldValue] = value !== undefined && value !== '' ? parseInt(value) || 0 : 0;
-                            console.log(`Sheet ${sheetName} 提取字段 ${columnName}(索引${columnIndex}) = ${value} -> ${fieldValue}`);
+                        // 如果是直接映射模式，尝试使用条件读取函数从源数据读取
+                        if (isDirectMode && sourceData && conditionalReadFunctions[sheetName]) {
+                            const conditionalReadFunc = conditionalReadFunctions[sheetName];
+                            const directValue = conditionalReadFunc(columnName, false, themeName);
+
+                            if (directValue !== null && directValue !== undefined && directValue !== '') {
+                                finalValue = parseInt(directValue) || 0;
+                                console.log(`✅ [源数据读取] Sheet ${sheetName} 字段 ${columnName}: ${finalValue} -> UI字段 ${fieldValue}`);
+                            } else {
+                                // 条件读取返回空，从UGCTheme文件读取
+                                const sheetData = ugcAllSheetsData[sheetName];
+                                if (sheetData && sheetData.length > targetRowNumber) {
+                                    const headerRow = sheetData[0];
+                                    const themeRow = sheetData[targetRowNumber];
+                                    const columnIndex = headerRow.findIndex(col => col === columnName);
+
+                                    if (columnIndex !== -1) {
+                                        const value = themeRow[columnIndex];
+                                        finalValue = value !== undefined && value !== '' ? parseInt(value) || 0 : 0;
+                                        console.log(`📋 [UGCTheme文件] Sheet ${sheetName} 字段 ${columnName}: ${finalValue} -> UI字段 ${fieldValue}`);
+                                    } else {
+                                        console.log(`⚠️ Sheet ${sheetName} 未找到列 ${columnName}，使用默认值0`);
+                                    }
+                                } else {
+                                    console.log(`⚠️ Sheet ${sheetName} 数据不足，使用默认值0`);
+                                }
+                            }
                         } else {
-                            console.log(`Sheet ${sheetName} 未找到列 ${columnName}`);
+                            // 非直接映射模式，从UGCTheme文件读取
+                            const sheetData = ugcAllSheetsData[sheetName];
+                            if (sheetData && sheetData.length > targetRowNumber) {
+                                const headerRow = sheetData[0];
+                                const themeRow = sheetData[targetRowNumber];
+                                const columnIndex = headerRow.findIndex(col => col === columnName);
+
+                                if (columnIndex !== -1) {
+                                    const value = themeRow[columnIndex];
+                                    finalValue = value !== undefined && value !== '' ? parseInt(value) || 0 : 0;
+                                    console.log(`📋 [UGCTheme文件] Sheet ${sheetName} 字段 ${columnName}: ${finalValue} -> UI字段 ${fieldValue}`);
+                                } else {
+                                    console.log(`⚠️ Sheet ${sheetName} 未找到列 ${columnName}，使用默认值0`);
+                                }
+                            } else {
+                                console.log(`⚠️ Sheet ${sheetName} 数据不足，使用默认值0`);
+                            }
                         }
+
+                        configData[fieldValue] = finalValue;
                     }
                 });
             });
 
-            console.log('加载的UGC配置数据:', configData);
+            console.log('\n✅ 最终加载的UGC配置数据（将显示在UI中）:', configData);
             setUGCConfigData(configData);
 
         } catch (error) {
@@ -2476,47 +2617,318 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             return 'json';
         }
 
-        // 第二优先级：检查是否包含"Color"工作表
-        const hasColorSheet = sheetNames.includes('Color');
-        if (hasColorSheet) {
-            console.log('✅ 找到"Color"工作表，使用直接映射模式');
+        // 第二优先级：检查是否包含"Status"工作表
+        const hasStatusSheet = sheetNames.includes('Status');
+        if (hasStatusSheet) {
+            console.log('✅ 找到"Status"工作表，使用直接映射模式');
 
-            // 验证Color工作表是否有有效数据
+            // 验证Status工作表是否有有效数据
             try {
-                const colorSheet = sourceData.workbook.Sheets['Color'];
-                const colorData = XLSX.utils.sheet_to_json(colorSheet, {
+                const statusSheet = sourceData.workbook.Sheets['Status'];
+                const statusData = XLSX.utils.sheet_to_json(statusSheet, {
                     header: 1,
                     defval: '',
                     raw: false
                 });
 
-                if (!colorData || colorData.length < 2) {
-                    console.log('⚠️ Color工作表数据不足，回退到JSON映射模式');
+                if (!statusData || statusData.length < 2) {
+                    console.log('⚠️ Status工作表数据不足，回退到JSON映射模式');
                     return 'json';
                 }
 
-                const headers = colorData[0];
-                console.log('Color工作表表头:', headers);
+                const headers = statusData[0];
+                console.log('Status工作表表头:', headers);
 
                 // 简化检测：只要有表头和数据就启用直接映射
                 if (headers && headers.length > 0) {
-                    console.log(`✅ 检测到直接映射模式：Color工作表包含${headers.length}个字段`);
+                    console.log(`✅ 检测到直接映射模式：Status工作表包含${headers.length}个字段`);
                     return 'direct';
                 } else {
-                    console.log('⚠️ Color工作表表头为空，回退到JSON映射模式');
+                    console.log('⚠️ Status工作表表头为空，回退到JSON映射模式');
                     return 'json';
                 }
 
             } catch (error) {
-                console.error('读取Color工作表时出错:', error);
-                console.log('⚠️ Color工作表读取失败，回退到JSON映射模式');
+                console.error('读取Status工作表时出错:', error);
+                console.log('⚠️ Status工作表读取失败，回退到JSON映射模式');
                 return 'json';
             }
         }
 
         // 默认情况：没有找到特定工作表，使用JSON映射模式
-        console.log('未找到"完整配色表"或"Color"工作表，使用JSON映射模式');
+        console.log('未找到"完整配色表"或"Status"工作表，使用JSON映射模式');
         return 'json';
+    }
+
+    /**
+     * 解析Status工作表，提取Color字段状态
+     * @param {Object} sourceData - 源数据对象
+     * @returns {Object} Status状态信息对象
+     */
+    function parseStatusSheet(sourceData) {
+        console.log('=== 开始解析Status工作表 ===');
+
+        if (!sourceData || !sourceData.workbook) {
+            console.warn('源数据无效，无法解析Status工作表');
+            return { colorStatus: 0, hasColorField: false, error: '源数据无效' };
+        }
+
+        try {
+            const statusSheet = sourceData.workbook.Sheets['Status'];
+            if (!statusSheet) {
+                console.warn('Status工作表不存在');
+                return { colorStatus: 0, hasColorField: false, error: 'Status工作表不存在' };
+            }
+
+            const statusData = XLSX.utils.sheet_to_json(statusSheet, {
+                header: 1,
+                defval: '',
+                raw: false
+            });
+
+            if (!statusData || statusData.length < 2) {
+                console.warn('Status工作表数据不足');
+                return { colorStatus: 0, hasColorField: false, error: 'Status工作表数据不足' };
+            }
+
+            const headers = statusData[0];
+            const statusRow = statusData[1]; // 第二行是状态行
+
+            console.log('Status工作表表头:', headers);
+            console.log('Status工作表状态行:', statusRow);
+
+            // 查找Color列的索引
+            const colorColumnIndex = headers.findIndex(header => {
+                if (!header) return false;
+                const headerStr = header.toString().trim().toUpperCase();
+                return headerStr === 'COLOR';
+            });
+
+            let colorStatus = 0;
+            let hasColorField = false;
+            if (colorColumnIndex !== -1) {
+                const colorStatusValue = statusRow[colorColumnIndex];
+                colorStatus = parseInt(colorStatusValue) || 0;
+                hasColorField = true;
+                console.log(`Color字段状态: ${colorStatus} (原始值: "${colorStatusValue}")`);
+            } else {
+                console.log('Status工作表中未找到Color列');
+            }
+
+            // 查找Light列的索引
+            const lightColumnIndex = headers.findIndex(header => {
+                if (!header) return false;
+                const headerStr = header.toString().trim().toUpperCase();
+                return headerStr === 'LIGHT';
+            });
+
+            let lightStatus = 0;
+            let hasLightField = false;
+            if (lightColumnIndex !== -1) {
+                const lightStatusValue = statusRow[lightColumnIndex];
+                lightStatus = parseInt(lightStatusValue) || 0;
+                hasLightField = true;
+                console.log(`Light字段状态: ${lightStatus} (原始值: "${lightStatusValue}")`);
+            } else {
+                console.log('Status工作表中未找到Light列');
+            }
+
+            // 查找ColorInfo列的索引
+            const colorInfoColumnIndex = headers.findIndex(header => {
+                if (!header) return false;
+                const headerStr = header.toString().trim().toUpperCase();
+                return headerStr === 'COLORINFO';
+            });
+
+            let colorInfoStatus = 0;
+            let hasColorInfoField = false;
+            if (colorInfoColumnIndex !== -1) {
+                const colorInfoStatusValue = statusRow[colorInfoColumnIndex];
+                colorInfoStatus = parseInt(colorInfoStatusValue) || 0;
+                hasColorInfoField = true;
+                console.log(`ColorInfo字段状态: ${colorInfoStatus} (原始值: "${colorInfoStatusValue}")`);
+            } else {
+                console.log('Status工作表中未找到ColorInfo列');
+            }
+
+            // 查找VolumetricFog列的索引
+            const volumetricFogColumnIndex = headers.findIndex(header => {
+                if (!header) return false;
+                const headerStr = header.toString().trim().toUpperCase();
+                return headerStr === 'VOLUMETRICFOG';
+            });
+
+            let volumetricFogStatus = 0;
+            let hasVolumetricFogField = false;
+            if (volumetricFogColumnIndex !== -1) {
+                const volumetricFogStatusValue = statusRow[volumetricFogColumnIndex];
+                volumetricFogStatus = parseInt(volumetricFogStatusValue) || 0;
+                hasVolumetricFogField = true;
+                console.log(`VolumetricFog字段状态: ${volumetricFogStatus} (原始值: "${volumetricFogStatusValue}")`);
+            } else {
+                console.log('Status工作表中未找到VolumetricFog列');
+            }
+
+            // 查找FloodLight列的索引
+            const floodLightColumnIndex = headers.findIndex(header => {
+                if (!header) return false;
+                const headerStr = header.toString().trim().toUpperCase();
+                return headerStr === 'FLOODLIGHT';
+            });
+
+            let floodLightStatus = 0;
+            let hasFloodLightField = false;
+            if (floodLightColumnIndex !== -1) {
+                const floodLightStatusValue = statusRow[floodLightColumnIndex];
+                floodLightStatus = parseInt(floodLightStatusValue) || 0;
+                hasFloodLightField = true;
+                console.log(`FloodLight字段状态: ${floodLightStatus} (原始值: "${floodLightStatusValue}")`);
+            } else {
+                console.log('Status工作表中未找到FloodLight列');
+            }
+
+            // 查找Custom_Ground_Color列的索引
+            const customGroundColorColumnIndex = headers.findIndex(header => {
+                if (!header) return false;
+                const headerStr = header.toString().trim().toUpperCase();
+                return headerStr === 'CUSTOM_GROUND_COLOR';
+            });
+
+            let customGroundColorStatus = 0;
+            let hasCustomGroundColorField = false;
+            if (customGroundColorColumnIndex !== -1) {
+                const customGroundColorStatusValue = statusRow[customGroundColorColumnIndex];
+                customGroundColorStatus = parseInt(customGroundColorStatusValue) || 0;
+                hasCustomGroundColorField = true;
+                console.log(`Custom_Ground_Color字段状态: ${customGroundColorStatus} (原始值: "${customGroundColorStatusValue}")`);
+            } else {
+                console.log('Status工作表中未找到Custom_Ground_Color列');
+            }
+
+            // 查找Custom_Fragile_Color列的索引
+            const customFragileColorColumnIndex = headers.findIndex(header => {
+                if (!header) return false;
+                const headerStr = header.toString().trim().toUpperCase();
+                return headerStr === 'CUSTOM_FRAGILE_COLOR';
+            });
+
+            let customFragileColorStatus = 0;
+            let hasCustomFragileColorField = false;
+            if (customFragileColorColumnIndex !== -1) {
+                const customFragileColorStatusValue = statusRow[customFragileColorColumnIndex];
+                customFragileColorStatus = parseInt(customFragileColorStatusValue) || 0;
+                hasCustomFragileColorField = true;
+                console.log(`Custom_Fragile_Color字段状态: ${customFragileColorStatus} (原始值: "${customFragileColorStatusValue}")`);
+            } else {
+                console.log('Status工作表中未找到Custom_Fragile_Color列');
+            }
+
+            // 查找Custom_Fragile_Active_Color列的索引
+            const customFragileActiveColorColumnIndex = headers.findIndex(header => {
+                if (!header) return false;
+                const headerStr = header.toString().trim().toUpperCase();
+                return headerStr === 'CUSTOM_FRAGILE_ACTIVE_COLOR';
+            });
+
+            let customFragileActiveColorStatus = 0;
+            let hasCustomFragileActiveColorField = false;
+            if (customFragileActiveColorColumnIndex !== -1) {
+                const customFragileActiveColorStatusValue = statusRow[customFragileActiveColorColumnIndex];
+                customFragileActiveColorStatus = parseInt(customFragileActiveColorStatusValue) || 0;
+                hasCustomFragileActiveColorField = true;
+                console.log(`Custom_Fragile_Active_Color字段状态: ${customFragileActiveColorStatus} (原始值: "${customFragileActiveColorStatusValue}")`);
+            } else {
+                console.log('Status工作表中未找到Custom_Fragile_Active_Color列');
+            }
+
+            // 查找Custom_Jump_Color列的索引
+            const customJumpColorColumnIndex = headers.findIndex(header => {
+                if (!header) return false;
+                const headerStr = header.toString().trim().toUpperCase();
+                return headerStr === 'CUSTOM_JUMP_COLOR';
+            });
+
+            let customJumpColorStatus = 0;
+            let hasCustomJumpColorField = false;
+            if (customJumpColorColumnIndex !== -1) {
+                const customJumpColorStatusValue = statusRow[customJumpColorColumnIndex];
+                customJumpColorStatus = parseInt(customJumpColorStatusValue) || 0;
+                hasCustomJumpColorField = true;
+                console.log(`Custom_Jump_Color字段状态: ${customJumpColorStatus} (原始值: "${customJumpColorStatusValue}")`);
+            } else {
+                console.log('Status工作表中未找到Custom_Jump_Color列');
+            }
+
+            // 查找Custom_Jump_Active_Color列的索引
+            const customJumpActiveColorColumnIndex = headers.findIndex(header => {
+                if (!header) return false;
+                const headerStr = header.toString().trim().toUpperCase();
+                return headerStr === 'CUSTOM_JUMP_ACTIVE_COLOR';
+            });
+
+            let customJumpActiveColorStatus = 0;
+            let hasCustomJumpActiveColorField = false;
+            if (customJumpActiveColorColumnIndex !== -1) {
+                const customJumpActiveColorStatusValue = statusRow[customJumpActiveColorColumnIndex];
+                customJumpActiveColorStatus = parseInt(customJumpActiveColorStatusValue) || 0;
+                hasCustomJumpActiveColorField = true;
+                console.log(`Custom_Jump_Active_Color字段状态: ${customJumpActiveColorStatus} (原始值: "${customJumpActiveColorStatusValue}")`);
+            } else {
+                console.log('Status工作表中未找到Custom_Jump_Active_Color列');
+            }
+
+            const result = {
+                colorStatus: colorStatus,
+                hasColorField: hasColorField,
+                colorColumnIndex: colorColumnIndex,
+                lightStatus: lightStatus,
+                hasLightField: hasLightField,
+                lightColumnIndex: lightColumnIndex,
+                colorInfoStatus: colorInfoStatus,
+                hasColorInfoField: hasColorInfoField,
+                colorInfoColumnIndex: colorInfoColumnIndex,
+                volumetricFogStatus: volumetricFogStatus,
+                hasVolumetricFogField: hasVolumetricFogField,
+                volumetricFogColumnIndex: volumetricFogColumnIndex,
+                floodLightStatus: floodLightStatus,
+                hasFloodLightField: hasFloodLightField,
+                floodLightColumnIndex: floodLightColumnIndex,
+                customGroundColorStatus: customGroundColorStatus,
+                hasCustomGroundColorField: hasCustomGroundColorField,
+                customGroundColorColumnIndex: customGroundColorColumnIndex,
+                customFragileColorStatus: customFragileColorStatus,
+                hasCustomFragileColorField: hasCustomFragileColorField,
+                customFragileColorColumnIndex: customFragileColorColumnIndex,
+                customFragileActiveColorStatus: customFragileActiveColorStatus,
+                hasCustomFragileActiveColorField: hasCustomFragileActiveColorField,
+                customFragileActiveColorColumnIndex: customFragileActiveColorColumnIndex,
+                customJumpColorStatus: customJumpColorStatus,
+                hasCustomJumpColorField: hasCustomJumpColorField,
+                customJumpColorColumnIndex: customJumpColorColumnIndex,
+                customJumpActiveColorStatus: customJumpActiveColorStatus,
+                hasCustomJumpActiveColorField: hasCustomJumpActiveColorField,
+                customJumpActiveColorColumnIndex: customJumpActiveColorColumnIndex,
+                headers: headers,
+                statusRow: statusRow,
+                isColorValid: colorStatus === 1,
+                isLightValid: lightStatus === 1,
+                isColorInfoValid: colorInfoStatus === 1,
+                isVolumetricFogValid: volumetricFogStatus === 1,
+                isFloodLightValid: floodLightStatus === 1,
+                isCustomGroundColorValid: customGroundColorStatus === 1,
+                isCustomFragileColorValid: customFragileColorStatus === 1,
+                isCustomFragileActiveColorValid: customFragileActiveColorStatus === 1,
+                isCustomJumpColorValid: customJumpColorStatus === 1,
+                isCustomJumpActiveColorValid: customJumpActiveColorStatus === 1
+            };
+
+            console.log('Status工作表解析结果:', result);
+            return result;
+
+        } catch (error) {
+            console.error('解析Status工作表时出错:', error);
+            return { colorStatus: 0, hasColorField: false, error: error.message };
+        }
     }
 
     /**
@@ -2543,9 +2955,11 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 mappingModeInfo.style.backgroundColor = '#e7f3ff';
                 mappingModeInfo.style.color = '#0066cc';
                 mappingModeInfo.style.border = '1px solid #b3d9ff';
+                const colorStatus = additionalInfo.colorStatus !== undefined ?
+                    (additionalInfo.colorStatus === 1 ? '有效' : '无效') : '未知';
                 mappingModeInfo.innerHTML = `
                     🎯 <strong>直接映射模式</strong><br>
-                    <small>检测到Color工作表，将使用直接字段映射（${additionalInfo.fieldCount || 0}个字段）</small>
+                    <small>检测到Status工作表，Color状态: ${colorStatus}（${additionalInfo.fieldCount || 0}个字段）</small>
                 `;
             } else {
                 mappingModeInfo.style.backgroundColor = '#fff3cd';
@@ -2571,12 +2985,34 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
             if (mode === 'direct') {
                 mappingModeIndicator.classList.add('direct-mode');
+                const colorStatus = additionalInfo.colorStatus !== undefined ?
+                    (additionalInfo.colorStatus === 1 ? '有效' : '无效') : '未知';
+                const lightStatus = additionalInfo.lightStatus !== undefined ?
+                    (additionalInfo.lightStatus === 1 ? '有效' : '无效') : '未知';
+                const colorInfoStatus = additionalInfo.colorInfoStatus !== undefined ?
+                    (additionalInfo.colorInfoStatus === 1 ? '有效' : '无效') : '未知';
+                const volumetricFogStatus = additionalInfo.volumetricFogStatus !== undefined ?
+                    (additionalInfo.volumetricFogStatus === 1 ? '有效' : '无效') : '未知';
+                const floodLightStatus = additionalInfo.floodLightStatus !== undefined ?
+                    (additionalInfo.floodLightStatus === 1 ? '有效' : '无效') : '未知';
+                const customGroundColorStatus = additionalInfo.customGroundColorStatus !== undefined ?
+                    (additionalInfo.customGroundColorStatus === 1 ? '有效' : '无效') : '未知';
+                const customFragileColorStatus = additionalInfo.customFragileColorStatus !== undefined ?
+                    (additionalInfo.customFragileColorStatus === 1 ? '有效' : '无效') : '未知';
+                const customFragileActiveColorStatus = additionalInfo.customFragileActiveColorStatus !== undefined ?
+                    (additionalInfo.customFragileActiveColorStatus === 1 ? '有效' : '无效') : '未知';
+                const customJumpColorStatus = additionalInfo.customJumpColorStatus !== undefined ?
+                    (additionalInfo.customJumpColorStatus === 1 ? '有效' : '无效') : '未知';
+                const customJumpActiveColorStatus = additionalInfo.customJumpActiveColorStatus !== undefined ?
+                    (additionalInfo.customJumpActiveColorStatus === 1 ? '有效' : '无效') : '未知';
                 mappingModeContent.innerHTML = `
                     <div class="mapping-mode-title">
                         <span class="mapping-mode-icon">🎯</span>直接映射模式
                     </div>
                     <div class="mapping-mode-description">
-                        检测到Color工作表，支持${additionalInfo.fieldCount || 0}个直接字段映射
+                        <strong>RSC工作表状态:</strong> Color: ${colorStatus}, Light: ${lightStatus}, ColorInfo: ${colorInfoStatus}, VolumetricFog: ${volumetricFogStatus}, FloodLight: ${floodLightStatus}<br>
+                        <strong>UGC工作表状态:</strong> Ground: ${customGroundColorStatus}, Fragile: ${customFragileColorStatus}, FragileActive: ${customFragileActiveColorStatus}, Jump: ${customJumpColorStatus}, JumpActive: ${customJumpActiveColorStatus}<br>
+                        支持${additionalInfo.fieldCount || 0}个直接字段映射
                     </div>
                 `;
             } else {
@@ -2607,17 +3043,48 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
         // 获取附加信息用于显示
         let additionalInfo = {};
-        if (detectedMode === 'direct' && data.workbook && data.workbook.Sheets['Color']) {
+        if (detectedMode === 'direct' && data.workbook && data.workbook.Sheets['Status']) {
             try {
-                const colorData = XLSX.utils.sheet_to_json(data.workbook.Sheets['Color'], { header: 1 });
-                const headers = colorData[0] || [];
-                const directFields = [];
-                for (let i = 1; i <= 7; i++) directFields.push(`G${i}`);
-                for (let i = 1; i <= 49; i++) directFields.push(`P${i}`);
-                const foundFields = headers.filter(h => directFields.includes(h?.toString().trim().toUpperCase()));
-                additionalInfo.fieldCount = foundFields.length;
+                // 解析Status工作表获取Color、Light、ColorInfo、VolumetricFog和FloodLight状态
+                const statusInfo = parseStatusSheet(data);
+                additionalInfo.colorStatus = statusInfo.colorStatus;
+                additionalInfo.hasColorField = statusInfo.hasColorField;
+                additionalInfo.lightStatus = statusInfo.lightStatus;
+                additionalInfo.hasLightField = statusInfo.hasLightField;
+                additionalInfo.colorInfoStatus = statusInfo.colorInfoStatus;
+                additionalInfo.hasColorInfoField = statusInfo.hasColorInfoField;
+                additionalInfo.volumetricFogStatus = statusInfo.volumetricFogStatus;
+                additionalInfo.hasVolumetricFogField = statusInfo.hasVolumetricFogField;
+                additionalInfo.floodLightStatus = statusInfo.floodLightStatus;
+                additionalInfo.hasFloodLightField = statusInfo.hasFloodLightField;
+                additionalInfo.customGroundColorStatus = statusInfo.customGroundColorStatus;
+                additionalInfo.hasCustomGroundColorField = statusInfo.hasCustomGroundColorField;
+                additionalInfo.customFragileColorStatus = statusInfo.customFragileColorStatus;
+                additionalInfo.hasCustomFragileColorField = statusInfo.hasCustomFragileColorField;
+                additionalInfo.customFragileActiveColorStatus = statusInfo.customFragileActiveColorStatus;
+                additionalInfo.hasCustomFragileActiveColorField = statusInfo.hasCustomFragileActiveColorField;
+                additionalInfo.customJumpColorStatus = statusInfo.customJumpColorStatus;
+                additionalInfo.hasCustomJumpColorField = statusInfo.hasCustomJumpColorField;
+                additionalInfo.customJumpActiveColorStatus = statusInfo.customJumpActiveColorStatus;
+                additionalInfo.hasCustomJumpActiveColorField = statusInfo.hasCustomJumpActiveColorField;
+
+                // 如果有Color工作表，计算字段数量
+                if (data.workbook.Sheets['Color']) {
+                    const colorData = XLSX.utils.sheet_to_json(data.workbook.Sheets['Color'], { header: 1 });
+                    const headers = colorData[0] || [];
+                    const directFields = [];
+                    for (let i = 1; i <= 7; i++) directFields.push(`G${i}`);
+                    for (let i = 1; i <= 49; i++) directFields.push(`P${i}`);
+                    const foundFields = headers.filter(h => directFields.includes(h?.toString().trim().toUpperCase()));
+                    additionalInfo.fieldCount = foundFields.length;
+                } else {
+                    additionalInfo.fieldCount = 0;
+                }
             } catch (error) {
-                console.warn('获取直接映射字段数量时出错:', error);
+                console.warn('获取直接映射信息时出错:', error);
+                additionalInfo.colorStatus = 0;
+                additionalInfo.hasColorField = false;
+                additionalInfo.fieldCount = 0;
             }
         }
 
@@ -2726,6 +3193,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
                 // 存储所有Sheet数据
                 rscAllSheetsData = {};
+                rscOriginalSheetsData = {}; // 🔧 同时保存原始数据的深拷贝
                 workbook.SheetNames.forEach(sheetName => {
                     const worksheet = workbook.Sheets[sheetName];
                     const sheetData = XLSX.utils.sheet_to_json(worksheet, {
@@ -2734,9 +3202,13 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                         raw: false
                     });
                     rscAllSheetsData[sheetName] = sheetData;
+
+                    // 🔧 深拷贝原始数据（用于后续重置非目标工作表）
+                    rscOriginalSheetsData[sheetName] = JSON.parse(JSON.stringify(sheetData));
                 });
 
                 console.log('RSC_Theme所有Sheet数据已存储:', Object.keys(rscAllSheetsData));
+                console.log('🔧 RSC_Theme原始Sheet数据已备份:', Object.keys(rscOriginalSheetsData));
 
                 updateFileStatus('rscThemeStatus', '已加载', 'success');
                 console.log('RSC_Theme.xls文件加载成功');
@@ -2940,26 +3412,58 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
             // 显示UGC配置面板（新建主题时总是显示）
             toggleUGCConfigPanel(true);
+            // 🔧 新建主题时，如果是直接映射模式，从源数据加载UGC配置
+            if (currentMappingMode === 'direct' && sourceData && sourceData.workbook) {
+                console.log('🔧 新建主题（直接映射模式）：尝试从源数据加载UGC配置到UI');
+                loadExistingUGCConfig(inputValue, true); // 🔧 传递isNewTheme=true
+            } else {
+                // 非直接映射模式或无源数据，使用默认值
+                resetUGCConfigToDefaults();
+            }
 
             // 显示Light配置面板（新建主题时总是显示）
             toggleLightConfigPanel(true);
-            // 新建主题时使用最后一个主题的Light配置作为默认值
-            resetLightConfigToDefaults();
+            // 🔧 新建主题时，如果是直接映射模式，从源数据加载Light配置
+            if (currentMappingMode === 'direct' && sourceData && sourceData.workbook) {
+                console.log('🔧 新建主题（直接映射模式）：尝试从源数据加载Light配置到UI');
+                loadExistingLightConfig(inputValue, true); // 🔧 传递isNewTheme=true
+            } else {
+                // 非直接映射模式或无源数据，使用最后一个主题的Light配置作为默认值
+                resetLightConfigToDefaults();
+            }
 
             // 显示ColorInfo配置面板（新建主题时总是显示）
             toggleColorInfoConfigPanel(true);
-            // 新建主题时使用最后一个主题的ColorInfo配置作为默认值
-            resetColorInfoConfigToDefaults();
+            // 🔧 新建主题时，如果是直接映射模式，从源数据加载ColorInfo配置
+            if (currentMappingMode === 'direct' && sourceData && sourceData.workbook) {
+                console.log('🔧 新建主题（直接映射模式）：尝试从源数据加载ColorInfo配置到UI');
+                loadExistingColorInfoConfig(inputValue, true); // 🔧 传递isNewTheme=true
+            } else {
+                // 非直接映射模式或无源数据，使用最后一个主题的ColorInfo配置作为默认值
+                resetColorInfoConfigToDefaults();
+            }
 
             // 显示FloodLight配置面板（新建主题时总是显示）
             toggleFloodLightConfigPanel(true);
-            // 新建主题时使用最后一个主题的FloodLight配置作为默认值
-            resetFloodLightConfigToDefaults();
+            // 🔧 新建主题时，如果是直接映射模式，从源数据加载FloodLight配置
+            if (currentMappingMode === 'direct' && sourceData && sourceData.workbook) {
+                console.log('🔧 新建主题（直接映射模式）：尝试从源数据加载FloodLight配置到UI');
+                loadExistingFloodLightConfig(inputValue, true); // 🔧 传递isNewTheme=true
+            } else {
+                // 非直接映射模式或无源数据，使用最后一个主题的FloodLight配置作为默认值
+                resetFloodLightConfigToDefaults();
+            }
 
             // 显示VolumetricFog配置面板（新建主题时总是显示）
             toggleVolumetricFogConfigPanel(true);
-            // 新建主题时使用最后一个主题的VolumetricFog配置作为默认值
-            resetVolumetricFogConfigToDefaults();
+            // 🔧 新建主题时，如果是直接映射模式，从源数据加载VolumetricFog配置
+            if (currentMappingMode === 'direct' && sourceData && sourceData.workbook) {
+                console.log('🔧 新建主题（直接映射模式）：尝试从源数据加载VolumetricFog配置到UI');
+                loadExistingVolumetricFogConfig(inputValue, true); // 🔧 传递isNewTheme=true
+            } else {
+                // 非直接映射模式或无源数据，使用最后一个主题的VolumetricFog配置作为默认值
+                resetVolumetricFogConfigToDefaults();
+            }
 
             // 更新多语言配置状态提示
             updateThemeTypeIndicator(smartConfig);
@@ -3308,7 +3812,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             let updateResult;
             if (currentMappingMode === 'direct') {
                 console.log('使用直接映射模式处理颜色数据...');
-                updateResult = updateThemeColorsDirect(themeRowIndex, themeName);
+                updateResult = updateThemeColorsDirect(themeRowIndex, themeName, isNewTheme);
             } else {
                 console.log('使用JSON映射模式处理颜色数据...');
                 updateResult = updateThemeColors(themeRowIndex, themeName);
@@ -3472,21 +3976,193 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
     }
 
     /**
-     * 直接映射模式：在源数据中查找颜色值
+     * 从原RSC_Theme文件的Color工作表中读取颜色值
      * @param {string} colorChannel - 颜色通道名称（如P1, G1等）
+     * @param {string} themeName - 主题名称
      * @returns {string|null} 颜色值或null
      */
-    function findColorValueDirect(colorChannel) {
+    function findColorValueFromRSCTheme(colorChannel, themeName) {
+        console.log(`=== 从RSC_Theme文件查找颜色值: ${colorChannel} ===`);
+
+        if (!rscThemeData || !rscThemeData.workbook) {
+            console.warn('RSC_Theme数据不可用');
+            return null;
+        }
+
+        try {
+            // 检查是否有Color工作表
+            const colorSheetName = 'Color';
+            if (!rscThemeData.workbook.SheetNames.includes(colorSheetName)) {
+                console.warn('RSC_Theme文件中未找到Color工作表');
+                return null;
+            }
+
+            const colorSheet = rscThemeData.workbook.Sheets[colorSheetName];
+            const colorData = XLSX.utils.sheet_to_json(colorSheet, {
+                header: 1,
+                defval: '',
+                raw: false
+            });
+
+            if (!colorData || colorData.length < 2) {
+                console.warn('RSC_Theme Color工作表数据不足');
+                return null;
+            }
+
+            const headers = colorData[0];
+            console.log('RSC_Theme Color工作表表头:', headers);
+
+            // 查找颜色通道列索引
+            const targetChannel = colorChannel.toUpperCase();
+            const channelColumnIndex = headers.findIndex(header => {
+                if (!header) return false;
+                const headerStr = header.toString().trim().toUpperCase();
+                return headerStr === targetChannel;
+            });
+
+            if (channelColumnIndex === -1) {
+                console.log(`RSC_Theme中未找到颜色通道 ${colorChannel}`);
+                return null;
+            }
+
+            // 查找notes列索引
+            const notesColumnIndex = headers.findIndex(header => {
+                if (!header) return false;
+                const headerStr = header.toString().trim().toLowerCase();
+                return headerStr === 'notes';
+            });
+
+            if (notesColumnIndex === -1) {
+                console.warn('RSC_Theme Color工作表中未找到notes列');
+                return null;
+            }
+
+            // 查找对应主题的行
+            for (let i = 1; i < colorData.length; i++) {
+                const row = colorData[i];
+                const rowThemeName = row[notesColumnIndex];
+
+                if (rowThemeName === themeName) {
+                    const colorValue = row[channelColumnIndex];
+
+                    if (colorValue && colorValue !== '' && colorValue !== null && colorValue !== undefined) {
+                        // 清理颜色值
+                        let cleanValue = colorValue.toString().trim().toUpperCase();
+                        if (cleanValue.startsWith('#')) {
+                            cleanValue = cleanValue.substring(1);
+                        }
+
+                        console.log(`✅ 从RSC_Theme找到 ${colorChannel} = ${cleanValue} (主题: ${themeName})`);
+                        return cleanValue;
+                    }
+                }
+            }
+
+            console.log(`RSC_Theme中未找到主题 ${themeName} 的 ${colorChannel} 颜色值`);
+            return null;
+
+        } catch (error) {
+            console.error(`从RSC_Theme查找 ${colorChannel} 时出错:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * 直接映射模式：在源数据中查找颜色值
+     * @param {string} colorChannel - 颜色通道名称（如P1, G1等）
+     * @param {boolean} isNewTheme - 是否为新建主题
+     * @param {string} themeName - 主题名称
+     * @returns {string|null} 颜色值或null
+     */
+    function findColorValueDirect(colorChannel, isNewTheme = false, themeName = '') {
+        console.log(`=== 直接映射查找颜色值: ${colorChannel} (新主题: ${isNewTheme}, 主题名: ${themeName}) ===`);
+
         if (!sourceData || !sourceData.workbook) {
             console.warn('源数据不可用');
             return null;
         }
 
+        // 解析Status工作表状态
+        const statusInfo = parseStatusSheet(sourceData);
+        console.log('Status状态信息:', statusInfo);
+
+        if (!statusInfo.hasColorField) {
+            console.warn('Status工作表中没有Color字段，根据主题类型处理');
+
+            if (!isNewTheme && themeName) {
+                // 更新现有主题模式：直接从RSC_Theme文件读取
+                console.log('更新现有主题且无Color字段，直接从RSC_Theme文件读取颜色值');
+                const rscColorValue = findColorValueFromRSCTheme(colorChannel, themeName);
+                if (rscColorValue) {
+                    console.log(`✅ 从RSC_Theme文件找到: ${colorChannel} = ${rscColorValue}`);
+                    return rscColorValue;
+                }
+            }
+
+            // 新建主题模式或未找到：返回null，使用默认值
+            console.log(`⚠️ 无Color字段，${isNewTheme ? '新建主题' : '现有主题'}未找到颜色值: ${colorChannel}`);
+            return null;
+        }
+
+        const isColorValid = statusInfo.isColorValid;
+        console.log(`Color字段状态: ${isColorValid ? '有效(1)' : '无效(0)'}`);
+
+        // 根据Color状态和主题类型决定处理逻辑
+        if (isColorValid) {
+            // Color状态为有效(1)
+            console.log('Color状态有效，优先从源数据Color工作表查找');
+
+            // 优先从源数据Color工作表查找
+            const sourceColorValue = findColorValueFromSourceColor(colorChannel);
+            if (sourceColorValue) {
+                console.log(`✅ 从源数据Color工作表找到: ${colorChannel} = ${sourceColorValue}`);
+                return sourceColorValue;
+            }
+
+            if (!isNewTheme && themeName) {
+                // 更新现有主题模式：回退到RSC_Theme文件
+                console.log('源数据Color工作表未找到，回退到RSC_Theme文件查找');
+                const rscColorValue = findColorValueFromRSCTheme(colorChannel, themeName);
+                if (rscColorValue) {
+                    console.log(`✅ 从RSC_Theme文件找到: ${colorChannel} = ${rscColorValue}`);
+                    return rscColorValue;
+                }
+            }
+
+            console.log(`⚠️ Color状态有效但未找到颜色值: ${colorChannel}`);
+            return null;
+
+        } else {
+            // Color状态为无效(0)
+            console.log('Color状态无效，忽略源数据Color工作表');
+
+            if (!isNewTheme && themeName) {
+                // 更新现有主题模式：直接从RSC_Theme文件读取
+                console.log('直接从RSC_Theme文件读取颜色值');
+                const rscColorValue = findColorValueFromRSCTheme(colorChannel, themeName);
+                if (rscColorValue) {
+                    console.log(`✅ 从RSC_Theme文件找到: ${colorChannel} = ${rscColorValue}`);
+                    return rscColorValue;
+                }
+            }
+
+            // 新建主题模式或未找到：返回null，使用默认值
+            console.log(`⚠️ Color状态无效，${isNewTheme ? '新建主题' : '现有主题'}未找到颜色值: ${colorChannel}`);
+            return null;
+        }
+    }
+
+    /**
+     * 从源数据Color工作表中查找颜色值
+     * @param {string} colorChannel - 颜色通道名称（如P1, G1等）
+     * @returns {string|null} 颜色值或null
+     */
+    function findColorValueFromSourceColor(colorChannel) {
         try {
             // 读取Color工作表
             const colorSheet = sourceData.workbook.Sheets['Color'];
             if (!colorSheet) {
-                console.warn('Color工作表不存在');
+                console.log('源数据中Color工作表不存在');
                 return null;
             }
 
@@ -3497,7 +4173,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             });
 
             if (!colorData || colorData.length < 2) {
-                console.warn('Color工作表数据不足');
+                console.log('源数据Color工作表数据不足');
                 return null;
             }
 
@@ -3513,7 +4189,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             });
 
             if (columnIndex === -1) {
-                console.log(`直接映射：未找到字段 ${colorChannel}，可用字段: ${headers.join(', ')}`);
+                console.log(`源数据Color工作表：未找到字段 ${colorChannel}，可用字段: ${headers.join(', ')}`);
                 return null;
             }
 
@@ -3521,7 +4197,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
             // 简化验证：只检查非空
             if (!colorValue || colorValue === '' || colorValue === null || colorValue === undefined) {
-                console.log(`直接映射：字段 ${colorChannel} 的值为空，原始值: "${colorValue}"`);
+                console.log(`源数据Color工作表：字段 ${colorChannel} 的值为空，原始值: "${colorValue}"`);
                 return null;
             }
 
@@ -3531,11 +4207,1691 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 cleanValue = cleanValue.substring(1);
             }
 
-            console.log(`直接映射：找到 ${colorChannel} = ${cleanValue} (列索引: ${columnIndex})`);
+            console.log(`源数据Color工作表：找到 ${colorChannel} = ${cleanValue} (列索引: ${columnIndex})`);
             return cleanValue;
 
         } catch (error) {
-            console.error(`直接映射查找 ${colorChannel} 时出错:`, error);
+            console.error(`从源数据Color工作表查找 ${colorChannel} 时出错:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * 从源数据Light工作表中查找Light字段值
+     * @param {string} lightField - Light字段名称（如Max, Dark, Min等）
+     * @returns {string|null} Light字段值或null
+     */
+    function findLightValueFromSourceLight(lightField) {
+        try {
+            // 读取Light工作表
+            const lightSheet = sourceData.workbook.Sheets['Light'];
+            if (!lightSheet) {
+                console.log('源数据中Light工作表不存在');
+                return null;
+            }
+
+            const lightData = XLSX.utils.sheet_to_json(lightSheet, {
+                header: 1,
+                defval: '',
+                raw: false
+            });
+
+            if (!lightData || lightData.length < 2) {
+                console.log('源数据Light工作表数据不足');
+                return null;
+            }
+
+            const headers = lightData[0];
+            const dataRow = lightData[1]; // 第二行是数据行
+
+            // 查找对应的列索引 - 灵活匹配
+            const targetField = lightField.toString().trim();
+            const columnIndex = headers.findIndex(header => {
+                if (!header) return false;
+                const headerStr = header.toString().trim();
+                return headerStr === targetField;
+            });
+
+            if (columnIndex === -1) {
+                console.log(`源数据Light工作表：未找到字段 ${lightField}，可用字段: ${headers.join(', ')}`);
+                return null;
+            }
+
+            const lightValue = dataRow[columnIndex];
+
+            // 验证：检查非空
+            if (lightValue === '' || lightValue === null || lightValue === undefined) {
+                console.log(`源数据Light工作表：字段 ${lightField} 的值为空，原始值: "${lightValue}"`);
+                return null;
+            }
+
+            // 清理Light值（转换为字符串）
+            let cleanValue = lightValue.toString().trim();
+
+            console.log(`✅ 从源数据Light工作表找到: ${lightField} = ${cleanValue}`);
+            return cleanValue;
+
+        } catch (error) {
+            console.error(`从源数据Light工作表查找 ${lightField} 时出错:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * 从源数据ColorInfo工作表中查找ColorInfo字段值
+     * @param {string} colorInfoField - ColorInfo字段名称
+     * @returns {string|null} ColorInfo字段值，未找到返回null
+     */
+    function findColorInfoValueFromSourceColorInfo(colorInfoField) {
+        console.log(`=== 开始从源数据ColorInfo工作表查找字段: ${colorInfoField} ===`);
+
+        if (!sourceData || !sourceData.workbook) {
+            console.warn('源数据未加载，无法从ColorInfo工作表读取');
+            return null;
+        }
+
+        try {
+            const workbook = sourceData.workbook;
+            const sheetNames = workbook.SheetNames;
+            console.log('源数据包含的工作表:', sheetNames);
+
+            // 查找ColorInfo工作表
+            if (!sheetNames.includes('ColorInfo')) {
+                console.log('源数据中未找到ColorInfo工作表');
+                return null;
+            }
+
+            const colorInfoWorksheet = workbook.Sheets['ColorInfo'];
+            const colorInfoData = XLSX.utils.sheet_to_json(colorInfoWorksheet, {
+                header: 1,
+                defval: '',
+                raw: false
+            });
+
+            if (colorInfoData.length === 0) {
+                console.log('ColorInfo工作表为空');
+                return null;
+            }
+
+            const headerRow = colorInfoData[0];
+            console.log('ColorInfo工作表表头:', headerRow);
+
+            // 查找目标字段列
+            const fieldColumnIndex = headerRow.findIndex(col => col === colorInfoField);
+            if (fieldColumnIndex === -1) {
+                console.log(`ColorInfo工作表中未找到字段: ${colorInfoField}`);
+                return null;
+            }
+
+            // 获取字段值（通常在第二行）
+            if (colorInfoData.length > 1) {
+                const fieldValue = colorInfoData[1][fieldColumnIndex];
+                if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                    console.log(`✅ 从源数据ColorInfo工作表找到: ${colorInfoField} = ${fieldValue}`);
+                    return fieldValue.toString();
+                }
+            }
+
+            console.log(`ColorInfo工作表中字段 ${colorInfoField} 值为空`);
+            return null;
+
+        } catch (error) {
+            console.error('从源数据ColorInfo工作表读取字段时出错:', error);
+            return null;
+        }
+    }
+
+    /**
+     * 从RSC_Theme ColorInfo工作表中查找ColorInfo字段值
+     * @param {string} colorInfoField - ColorInfo字段名称
+     * @param {string} themeName - 主题名称
+     * @returns {string|null} ColorInfo字段值，未找到返回null
+     */
+    function findColorInfoValueFromRSCThemeColorInfo(colorInfoField, themeName) {
+        console.log(`=== 开始从RSC_Theme ColorInfo工作表查找字段: ${colorInfoField}, 主题: ${themeName} ===`);
+
+        if (!rscAllSheetsData || !rscAllSheetsData['ColorInfo']) {
+            console.warn('RSC_Theme ColorInfo数据未加载');
+            return null;
+        }
+
+        try {
+            const colorInfoData = rscAllSheetsData['ColorInfo'];
+            if (colorInfoData.length === 0) {
+                console.log('RSC_Theme ColorInfo工作表为空');
+                return null;
+            }
+
+            const headerRow = colorInfoData[0];
+            console.log('RSC_Theme ColorInfo工作表表头:', headerRow);
+
+            // 查找notes列
+            const notesColumnIndex = headerRow.findIndex(col => col === 'notes');
+            if (notesColumnIndex === -1) {
+                console.log('RSC_Theme ColorInfo工作表中未找到notes列');
+                return null;
+            }
+
+            // 查找目标字段列
+            const fieldColumnIndex = headerRow.findIndex(col => col === colorInfoField);
+            if (fieldColumnIndex === -1) {
+                console.log(`RSC_Theme ColorInfo工作表中未找到字段: ${colorInfoField}`);
+                return null;
+            }
+
+            // 查找主题对应的行
+            for (let i = 1; i < colorInfoData.length; i++) {
+                const row = colorInfoData[i];
+                if (row[notesColumnIndex] === themeName) {
+                    const fieldValue = row[fieldColumnIndex];
+                    if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                        console.log(`✅ 从RSC_Theme ColorInfo工作表找到: ${colorInfoField} = ${fieldValue} (主题: ${themeName})`);
+                        return fieldValue.toString();
+                    } else {
+                        console.log(`RSC_Theme ColorInfo工作表中主题 ${themeName} 的字段 ${colorInfoField} 值为空`);
+                        return null;
+                    }
+                }
+            }
+
+            console.log(`RSC_Theme ColorInfo工作表中未找到主题: ${themeName}`);
+            return null;
+
+        } catch (error) {
+            console.error('从RSC_Theme ColorInfo工作表读取字段时出错:', error);
+            return null;
+        }
+    }
+
+    /**
+     * 从RSC_Theme Light工作表中读取Light字段值
+     * @param {string} lightField - Light字段名称（如Max, Dark, Min等）
+     * @param {string} themeName - 主题名称
+     * @returns {string|null} Light字段值或null
+     */
+    function findLightValueFromRSCThemeLight(lightField, themeName) {
+        console.log(`=== 从RSC_Theme Light工作表查找Light字段值: ${lightField} ===`);
+
+        if (!rscAllSheetsData || !rscAllSheetsData['Light']) {
+            console.warn('RSC_Theme Light数据不可用');
+            return null;
+        }
+
+        try {
+            const lightData = rscAllSheetsData['Light'];
+            const lightHeaderRow = lightData[0];
+
+            if (!lightData || lightData.length < 2) {
+                console.warn('RSC_Theme Light工作表数据不足');
+                return null;
+            }
+
+            console.log('RSC_Theme Light工作表表头:', lightHeaderRow);
+
+            // 查找Light字段列索引
+            const targetField = lightField.toString().trim();
+            const fieldColumnIndex = lightHeaderRow.findIndex(header => {
+                if (!header) return false;
+                const headerStr = header.toString().trim();
+                return headerStr === targetField;
+            });
+
+            if (fieldColumnIndex === -1) {
+                console.log(`RSC_Theme Light工作表中未找到字段 ${lightField}`);
+                return null;
+            }
+
+            // 查找notes列索引
+            const notesColumnIndex = lightHeaderRow.findIndex(header => {
+                if (!header) return false;
+                const headerStr = header.toString().trim().toLowerCase();
+                return headerStr === 'notes';
+            });
+
+            if (notesColumnIndex === -1) {
+                console.warn('RSC_Theme Light工作表中未找到notes列');
+                return null;
+            }
+
+            // 查找对应主题的行
+            for (let i = 1; i < lightData.length; i++) {
+                const row = lightData[i];
+                const rowThemeName = row[notesColumnIndex];
+
+                if (rowThemeName === themeName) {
+                    const lightValue = row[fieldColumnIndex];
+
+                    if (lightValue !== undefined && lightValue !== null && lightValue !== '') {
+                        // 清理Light值
+                        let cleanValue = lightValue.toString().trim();
+
+                        console.log(`✅ 从RSC_Theme Light工作表找到 ${lightField} = ${cleanValue} (主题: ${themeName})`);
+                        return cleanValue;
+                    }
+                }
+            }
+
+            console.log(`RSC_Theme Light工作表中未找到主题 ${themeName} 的 ${lightField} 字段值`);
+            return null;
+
+        } catch (error) {
+            console.error(`从RSC_Theme Light工作表查找 ${lightField} 时出错:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * 在直接映射模式下查找ColorInfo字段值（带条件判断）
+     * @param {string} colorInfoField - ColorInfo字段名称
+     * @param {boolean} isNewTheme - 是否为新建主题
+     * @param {string} themeName - 主题名称
+     * @returns {string|null} ColorInfo字段值或null
+     */
+    function findColorInfoValueDirect(colorInfoField, isNewTheme = false, themeName = '') {
+        console.log(`=== 直接映射模式查找ColorInfo字段: ${colorInfoField} ===`);
+        console.log(`主题类型: ${isNewTheme ? '新建主题' : '更新现有主题'}, 主题名称: ${themeName}`);
+
+        if (!sourceData || !sourceData.workbook) {
+            console.warn('源数据未加载，无法进行ColorInfo字段条件读取');
+            return null;
+        }
+
+        // 解析Status工作表获取ColorInfo状态
+        const statusInfo = parseStatusSheet(sourceData);
+        console.log('ColorInfo状态信息:', {
+            hasColorInfoField: statusInfo.hasColorInfoField,
+            colorInfoStatus: statusInfo.colorInfoStatus,
+            isColorInfoValid: statusInfo.isColorInfoValid
+        });
+
+        if (!statusInfo.hasColorInfoField) {
+            console.warn('Status工作表中没有ColorInfo字段，根据主题类型处理');
+
+            if (!isNewTheme && themeName) {
+                // 更新现有主题模式：直接从RSC_Theme ColorInfo工作表读取
+                console.log('更新现有主题且无ColorInfo字段，直接从RSC_Theme ColorInfo工作表读取字段值');
+                const rscColorInfoValue = findColorInfoValueFromRSCThemeColorInfo(colorInfoField, themeName);
+                if (rscColorInfoValue) {
+                    console.log(`✅ 从RSC_Theme ColorInfo工作表找到: ${colorInfoField} = ${rscColorInfoValue}`);
+                    return rscColorInfoValue;
+                }
+            }
+
+            console.log('无ColorInfo字段且无法从RSC_Theme读取，返回null');
+            return null;
+        }
+
+        if (statusInfo.isColorInfoValid) {
+            // ColorInfo状态为有效(1)
+            console.log('ColorInfo状态有效，尝试从源数据ColorInfo工作表读取');
+
+            const sourceColorInfoValue = findColorInfoValueFromSourceColorInfo(colorInfoField);
+            if (sourceColorInfoValue) {
+                console.log(`✅ 从源数据ColorInfo工作表找到: ${colorInfoField} = ${sourceColorInfoValue}`);
+                return sourceColorInfoValue;
+            }
+
+            // 如果从源数据ColorInfo工作表读取字段值没有找到字段，回退到RSC_Theme ColorInfo工作表
+            if (!isNewTheme && themeName) {
+                console.log('源数据ColorInfo工作表未找到字段，回退到RSC_Theme ColorInfo工作表查找');
+                const rscColorInfoValue = findColorInfoValueFromRSCThemeColorInfo(colorInfoField, themeName);
+                if (rscColorInfoValue) {
+                    console.log(`✅ 从RSC_Theme ColorInfo工作表找到: ${colorInfoField} = ${rscColorInfoValue}`);
+                    return rscColorInfoValue;
+                }
+            }
+
+            console.log('ColorInfo状态有效但未找到字段值，返回null');
+            return null;
+        } else {
+            // ColorInfo状态为无效(0)
+            console.log('ColorInfo状态无效，忽略源数据ColorInfo工作表');
+
+            if (!isNewTheme && themeName) {
+                // 更新现有主题模式：直接从RSC_Theme ColorInfo工作表读取
+                console.log('直接从RSC_Theme ColorInfo工作表读取ColorInfo字段值');
+                const rscColorInfoValue = findColorInfoValueFromRSCThemeColorInfo(colorInfoField, themeName);
+                if (rscColorInfoValue) {
+                    console.log(`✅ 从RSC_Theme ColorInfo工作表找到: ${colorInfoField} = ${rscColorInfoValue}`);
+                    return rscColorInfoValue;
+                }
+            }
+
+            console.log('ColorInfo状态无效且无法从RSC_Theme读取，返回null');
+            return null;
+        }
+    }
+
+    /**
+     * 从源数据VolumetricFog工作表中读取VolumetricFog字段值
+     * @param {string} volumetricFogField - VolumetricFog字段名称（如Color, X, Y等）
+     * @returns {string|null} VolumetricFog字段值或null
+     */
+    function findVolumetricFogValueFromSourceVolumetricFog(volumetricFogField) {
+        console.log(`=== 从源数据VolumetricFog工作表查找字段: ${volumetricFogField} ===`);
+
+        try {
+            if (!sourceData || !sourceData.workbook) {
+                console.warn('源数据未加载，无法从源数据VolumetricFog工作表读取字段');
+                return null;
+            }
+
+            const volumetricFogSheetName = 'VolumetricFog';
+            const volumetricFogWorksheet = sourceData.workbook.Sheets[volumetricFogSheetName];
+
+            if (!volumetricFogWorksheet) {
+                console.log(`源数据中未找到${volumetricFogSheetName}工作表`);
+                return null;
+            }
+
+            // 将工作表转换为数组
+            const volumetricFogData = XLSX.utils.sheet_to_json(volumetricFogWorksheet, { header: 1 });
+
+            if (!volumetricFogData || volumetricFogData.length < 2) {
+                console.log(`${volumetricFogSheetName}工作表数据不足`);
+                return null;
+            }
+
+            // 查找字段列索引
+            const headerRow = volumetricFogData[0];
+            const fieldColumnIndex = headerRow.findIndex(col => col === volumetricFogField);
+
+            if (fieldColumnIndex === -1) {
+                console.log(`源数据${volumetricFogSheetName}工作表中未找到字段: ${volumetricFogField}`);
+                return null;
+            }
+
+            // 从第二行获取字段值（假设只有一行数据）
+            if (volumetricFogData.length > 1) {
+                const fieldValue = volumetricFogData[1][fieldColumnIndex];
+                if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                    console.log(`✅ 从源数据${volumetricFogSheetName}工作表找到: ${volumetricFogField} = ${fieldValue}`);
+                    return fieldValue.toString();
+                } else {
+                    console.log(`源数据${volumetricFogSheetName}工作表中字段 ${volumetricFogField} 值为空`);
+                    return null;
+                }
+            }
+
+            console.log(`源数据${volumetricFogSheetName}工作表中没有数据行`);
+            return null;
+
+        } catch (error) {
+            console.error('从源数据VolumetricFog工作表读取字段时出错:', error);
+            return null;
+        }
+    }
+
+    /**
+     * 从RSC_Theme VolumetricFog工作表中读取VolumetricFog字段值
+     * @param {string} volumetricFogField - VolumetricFog字段名称（如Color, X, Y等）
+     * @param {string} themeName - 主题名称
+     * @returns {string|null} VolumetricFog字段值或null
+     */
+    function findVolumetricFogValueFromRSCThemeVolumetricFog(volumetricFogField, themeName) {
+        console.log(`=== 从RSC_Theme VolumetricFog工作表查找字段: ${volumetricFogField}, 主题: ${themeName} ===`);
+
+        try {
+            if (!rscAllSheetsData || !rscAllSheetsData['VolumetricFog']) {
+                console.warn('RSC_Theme VolumetricFog数据未加载');
+                return null;
+            }
+
+            const volumetricFogData = rscAllSheetsData['VolumetricFog'];
+
+            if (!volumetricFogData || volumetricFogData.length < 2) {
+                console.log('RSC_Theme VolumetricFog工作表数据不足');
+                return null;
+            }
+
+            // 查找字段列索引和notes列索引
+            const headerRow = volumetricFogData[0];
+            const fieldColumnIndex = headerRow.findIndex(col => col === volumetricFogField);
+            const notesColumnIndex = headerRow.findIndex(col => col === 'notes');
+
+            if (fieldColumnIndex === -1) {
+                console.log(`RSC_Theme VolumetricFog工作表中未找到字段: ${volumetricFogField}`);
+                return null;
+            }
+
+            if (notesColumnIndex === -1) {
+                console.log('RSC_Theme VolumetricFog工作表中未找到notes列');
+                return null;
+            }
+
+            // 查找主题对应的行
+            for (let i = 1; i < volumetricFogData.length; i++) {
+                const row = volumetricFogData[i];
+                if (row[notesColumnIndex] === themeName) {
+                    const fieldValue = row[fieldColumnIndex];
+                    if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                        console.log(`✅ 从RSC_Theme VolumetricFog工作表找到: ${volumetricFogField} = ${fieldValue} (主题: ${themeName})`);
+                        return fieldValue.toString();
+                    } else {
+                        console.log(`RSC_Theme VolumetricFog工作表中主题 ${themeName} 的字段 ${volumetricFogField} 值为空`);
+                        return null;
+                    }
+                }
+            }
+
+            console.log(`RSC_Theme VolumetricFog工作表中未找到主题: ${themeName}`);
+            return null;
+
+        } catch (error) {
+            console.error('从RSC_Theme VolumetricFog工作表读取字段时出错:', error);
+            return null;
+        }
+    }
+
+    /**
+     * 直接映射模式：VolumetricFog字段条件读取
+     * @param {string} volumetricFogField - VolumetricFog字段名称（如Color, X, Y等）
+     * @param {boolean} isNewTheme - 是否为新建主题
+     * @param {string} themeName - 主题名称
+     * @returns {string|null} VolumetricFog字段值或null
+     */
+    function findVolumetricFogValueDirect(volumetricFogField, isNewTheme = false, themeName = '') {
+        console.log(`=== 直接映射模式查找VolumetricFog字段: ${volumetricFogField} ===`);
+        console.log(`主题类型: ${isNewTheme ? '新建主题' : '更新现有主题'}, 主题名称: ${themeName}`);
+
+        if (!sourceData || !sourceData.workbook) {
+            console.warn('源数据未加载，无法进行VolumetricFog字段条件读取');
+            return null;
+        }
+
+        // 解析Status工作表获取VolumetricFog状态
+        const statusInfo = parseStatusSheet(sourceData);
+        console.log('VolumetricFog状态信息:', {
+            hasVolumetricFogField: statusInfo.hasVolumetricFogField,
+            volumetricFogStatus: statusInfo.volumetricFogStatus,
+            isVolumetricFogValid: statusInfo.isVolumetricFogValid
+        });
+
+        if (!statusInfo.hasVolumetricFogField) {
+            console.warn('Status工作表中没有VolumetricFog字段，根据主题类型处理');
+
+            if (!isNewTheme && themeName) {
+                // 更新现有主题模式：直接从RSC_Theme VolumetricFog工作表读取
+                console.log('更新现有主题且无VolumetricFog字段，直接从RSC_Theme VolumetricFog工作表读取字段值');
+                const rscVolumetricFogValue = findVolumetricFogValueFromRSCThemeVolumetricFog(volumetricFogField, themeName);
+                if (rscVolumetricFogValue) {
+                    console.log(`✅ 从RSC_Theme VolumetricFog工作表找到: ${volumetricFogField} = ${rscVolumetricFogValue}`);
+                    return rscVolumetricFogValue;
+                }
+            }
+
+            console.log('无VolumetricFog字段且无法从RSC_Theme读取，返回null');
+            return null;
+        }
+
+        if (statusInfo.isVolumetricFogValid) {
+            // VolumetricFog状态为有效(1)
+            console.log('VolumetricFog状态有效，尝试从源数据VolumetricFog工作表读取');
+
+            const sourceVolumetricFogValue = findVolumetricFogValueFromSourceVolumetricFog(volumetricFogField);
+            if (sourceVolumetricFogValue) {
+                console.log(`✅ 从源数据VolumetricFog工作表找到: ${volumetricFogField} = ${sourceVolumetricFogValue}`);
+                return sourceVolumetricFogValue;
+            }
+
+            // 如果从源数据VolumetricFog工作表读取字段值没有找到字段，回退到RSC_Theme VolumetricFog工作表
+            if (!isNewTheme && themeName) {
+                console.log('源数据VolumetricFog工作表未找到字段，回退到RSC_Theme VolumetricFog工作表查找');
+                const rscVolumetricFogValue = findVolumetricFogValueFromRSCThemeVolumetricFog(volumetricFogField, themeName);
+                if (rscVolumetricFogValue) {
+                    console.log(`✅ 从RSC_Theme VolumetricFog工作表找到: ${volumetricFogField} = ${rscVolumetricFogValue}`);
+                    return rscVolumetricFogValue;
+                }
+            }
+
+            console.log('VolumetricFog状态有效但未找到字段值，返回null');
+            return null;
+        } else {
+            // VolumetricFog状态为无效(0)
+            console.log('VolumetricFog状态无效，忽略源数据VolumetricFog工作表');
+
+            if (!isNewTheme && themeName) {
+                // 更新现有主题模式：直接从RSC_Theme VolumetricFog工作表读取
+                console.log('直接从RSC_Theme VolumetricFog工作表读取VolumetricFog字段值');
+                const rscVolumetricFogValue = findVolumetricFogValueFromRSCThemeVolumetricFog(volumetricFogField, themeName);
+                if (rscVolumetricFogValue) {
+                    console.log(`✅ 从RSC_Theme VolumetricFog工作表找到: ${volumetricFogField} = ${rscVolumetricFogValue}`);
+                    return rscVolumetricFogValue;
+                }
+            }
+
+            console.log('VolumetricFog状态无效且无法从RSC_Theme读取，返回null');
+            return null;
+        }
+    }
+
+    /**
+     * 从源数据FloodLight工作表中读取FloodLight字段值
+     * @param {string} floodLightField - FloodLight字段名称（如Color, TippingPoint, Strength等）
+     * @returns {string|null} FloodLight字段值或null
+     */
+    function findFloodLightValueFromSourceFloodLight(floodLightField) {
+        console.log(`=== 从源数据FloodLight工作表查找字段: ${floodLightField} ===`);
+
+        try {
+            if (!sourceData || !sourceData.workbook) {
+                console.warn('源数据未加载，无法从源数据FloodLight工作表读取字段');
+                return null;
+            }
+
+            const floodLightSheetName = 'FloodLight';
+            const floodLightWorksheet = sourceData.workbook.Sheets[floodLightSheetName];
+
+            if (!floodLightWorksheet) {
+                console.log(`源数据中未找到${floodLightSheetName}工作表`);
+                return null;
+            }
+
+            // 将工作表转换为数组
+            const floodLightData = XLSX.utils.sheet_to_json(floodLightWorksheet, { header: 1 });
+
+            if (!floodLightData || floodLightData.length < 2) {
+                console.log(`${floodLightSheetName}工作表数据不足`);
+                return null;
+            }
+
+            // 查找字段列索引
+            const headerRow = floodLightData[0];
+            const fieldColumnIndex = headerRow.findIndex(col => col === floodLightField);
+
+            if (fieldColumnIndex === -1) {
+                console.log(`源数据${floodLightSheetName}工作表中未找到字段: ${floodLightField}`);
+                return null;
+            }
+
+            // 从第二行获取字段值（假设只有一行数据）
+            if (floodLightData.length > 1) {
+                const fieldValue = floodLightData[1][fieldColumnIndex];
+                if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                    console.log(`✅ 从源数据${floodLightSheetName}工作表找到: ${floodLightField} = ${fieldValue}`);
+                    return fieldValue.toString();
+                } else {
+                    console.log(`源数据${floodLightSheetName}工作表中字段 ${floodLightField} 值为空`);
+                    return null;
+                }
+            }
+
+            console.log(`源数据${floodLightSheetName}工作表中没有数据行`);
+            return null;
+
+        } catch (error) {
+            console.error('从源数据FloodLight工作表读取字段时出错:', error);
+            return null;
+        }
+    }
+
+    /**
+     * 从RSC_Theme FloodLight工作表中读取FloodLight字段值
+     * @param {string} floodLightField - FloodLight字段名称（如Color, TippingPoint, Strength等）
+     * @param {string} themeName - 主题名称
+     * @returns {string|null} FloodLight字段值或null
+     */
+    function findFloodLightValueFromRSCThemeFloodLight(floodLightField, themeName) {
+        console.log(`=== 从RSC_Theme FloodLight工作表查找字段: ${floodLightField}, 主题: ${themeName} ===`);
+
+        try {
+            if (!rscAllSheetsData || !rscAllSheetsData['FloodLight']) {
+                console.warn('RSC_Theme FloodLight数据未加载');
+                return null;
+            }
+
+            const floodLightData = rscAllSheetsData['FloodLight'];
+
+            if (!floodLightData || floodLightData.length < 2) {
+                console.log('RSC_Theme FloodLight工作表数据不足');
+                return null;
+            }
+
+            // 查找字段列索引和notes列索引
+            const headerRow = floodLightData[0];
+            const fieldColumnIndex = headerRow.findIndex(col => col === floodLightField);
+            const notesColumnIndex = headerRow.findIndex(col => col === 'notes');
+
+            if (fieldColumnIndex === -1) {
+                console.log(`RSC_Theme FloodLight工作表中未找到字段: ${floodLightField}`);
+                return null;
+            }
+
+            if (notesColumnIndex === -1) {
+                console.log('RSC_Theme FloodLight工作表中未找到notes列');
+                return null;
+            }
+
+            // 查找主题对应的行
+            for (let i = 1; i < floodLightData.length; i++) {
+                const row = floodLightData[i];
+                if (row[notesColumnIndex] === themeName) {
+                    const fieldValue = row[fieldColumnIndex];
+                    if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                        console.log(`✅ 从RSC_Theme FloodLight工作表找到: ${floodLightField} = ${fieldValue} (主题: ${themeName})`);
+                        return fieldValue.toString();
+                    } else {
+                        console.log(`RSC_Theme FloodLight工作表中主题 ${themeName} 的字段 ${floodLightField} 值为空`);
+                        return null;
+                    }
+                }
+            }
+
+            console.log(`RSC_Theme FloodLight工作表中未找到主题: ${themeName}`);
+            return null;
+
+        } catch (error) {
+            console.error('从RSC_Theme FloodLight工作表读取字段时出错:', error);
+            return null;
+        }
+    }
+
+    /**
+     * 直接映射模式：FloodLight字段条件读取
+     * @param {string} floodLightField - FloodLight字段名称（如Color, TippingPoint, Strength等）
+     * @param {boolean} isNewTheme - 是否为新建主题
+     * @param {string} themeName - 主题名称
+     * @returns {string|null} FloodLight字段值或null
+     */
+    function findFloodLightValueDirect(floodLightField, isNewTheme = false, themeName = '') {
+        console.log(`=== 直接映射模式查找FloodLight字段: ${floodLightField} ===`);
+        console.log(`主题类型: ${isNewTheme ? '新建主题' : '更新现有主题'}, 主题名称: ${themeName}`);
+
+        if (!sourceData || !sourceData.workbook) {
+            console.warn('源数据未加载，无法进行FloodLight字段条件读取');
+            return null;
+        }
+
+        // 解析Status工作表获取FloodLight状态
+        const statusInfo = parseStatusSheet(sourceData);
+        console.log('FloodLight状态信息:', {
+            hasFloodLightField: statusInfo.hasFloodLightField,
+            floodLightStatus: statusInfo.floodLightStatus,
+            isFloodLightValid: statusInfo.isFloodLightValid
+        });
+
+        if (!statusInfo.hasFloodLightField) {
+            console.warn('Status工作表中没有FloodLight字段，根据主题类型处理');
+
+            if (!isNewTheme && themeName) {
+                // 更新现有主题模式：直接从RSC_Theme FloodLight工作表读取
+                console.log('更新现有主题且无FloodLight字段，直接从RSC_Theme FloodLight工作表读取字段值');
+                const rscFloodLightValue = findFloodLightValueFromRSCThemeFloodLight(floodLightField, themeName);
+                if (rscFloodLightValue) {
+                    console.log(`✅ 从RSC_Theme FloodLight工作表找到: ${floodLightField} = ${rscFloodLightValue}`);
+                    return rscFloodLightValue;
+                }
+            }
+
+            console.log('无FloodLight字段且无法从RSC_Theme读取，返回null');
+            return null;
+        }
+
+        if (statusInfo.isFloodLightValid) {
+            // FloodLight状态为有效(1)
+            console.log('FloodLight状态有效，尝试从源数据FloodLight工作表读取');
+
+            const sourceFloodLightValue = findFloodLightValueFromSourceFloodLight(floodLightField);
+            if (sourceFloodLightValue !== null && sourceFloodLightValue !== undefined && sourceFloodLightValue !== '') {
+                console.log(`✅ 从源数据FloodLight工作表找到: ${floodLightField} = ${sourceFloodLightValue}`);
+                return sourceFloodLightValue;
+            }
+
+            // 🔧 特殊处理：如果是IsOn字段且FloodLight状态为1，但源数据中没有IsOn字段，默认返回1
+            if (floodLightField === 'IsOn') {
+                console.log('⚠️ 源数据FloodLight工作表未找到IsOn字段，但FloodLight状态为1，默认返回1（开启）');
+                return '1';
+            }
+
+            // 如果从源数据FloodLight工作表读取字段值没有找到字段，回退到RSC_Theme FloodLight工作表
+            if (!isNewTheme && themeName) {
+                console.log('源数据FloodLight工作表未找到字段，回退到RSC_Theme FloodLight工作表查找');
+                const rscFloodLightValue = findFloodLightValueFromRSCThemeFloodLight(floodLightField, themeName);
+                if (rscFloodLightValue) {
+                    console.log(`✅ 从RSC_Theme FloodLight工作表找到: ${floodLightField} = ${rscFloodLightValue}`);
+                    return rscFloodLightValue;
+                }
+            }
+
+            console.log('FloodLight状态有效但未找到字段值，返回null');
+            return null;
+        } else {
+            // FloodLight状态为无效(0)
+            console.log('FloodLight状态无效，忽略源数据FloodLight工作表');
+
+            if (!isNewTheme && themeName) {
+                // 更新现有主题模式：直接从RSC_Theme FloodLight工作表读取
+                console.log('直接从RSC_Theme FloodLight工作表读取FloodLight字段值');
+                const rscFloodLightValue = findFloodLightValueFromRSCThemeFloodLight(floodLightField, themeName);
+                if (rscFloodLightValue) {
+                    console.log(`✅ 从RSC_Theme FloodLight工作表找到: ${floodLightField} = ${rscFloodLightValue}`);
+                    return rscFloodLightValue;
+                }
+            }
+
+            console.log('FloodLight状态无效且无法从RSC_Theme读取，返回null');
+            return null;
+        }
+    }
+
+    /**
+     * 从源数据Custom_Ground_Color工作表读取字段值
+     * @param {string} fieldName - 字段名称
+     * @returns {string|null} 字段值或null
+     */
+    function findCustomGroundColorValueFromSourceCustomGroundColor(fieldName) {
+        console.log(`=== 从源数据Custom_Ground_Color工作表查找字段: ${fieldName} ===`);
+
+        if (!sourceData || !sourceData.workbook) {
+            console.log('源数据不可用');
+            return null;
+        }
+
+        try {
+            const customGroundColorSheet = sourceData.workbook.Sheets['Custom_Ground_Color'];
+            if (!customGroundColorSheet) {
+                console.log('源数据中未找到Custom_Ground_Color工作表');
+                return null;
+            }
+
+            const customGroundColorData = XLSX.utils.sheet_to_json(customGroundColorSheet, {
+                header: 1,
+                defval: '',
+                raw: false
+            });
+
+            if (!customGroundColorData || customGroundColorData.length < 2) {
+                console.log('源数据Custom_Ground_Color工作表数据不足');
+                return null;
+            }
+
+            const headerRow = customGroundColorData[0];
+            const dataRow = customGroundColorData[1]; // 第二行数据
+
+            const fieldColumnIndex = headerRow.findIndex(col => col === fieldName);
+            if (fieldColumnIndex === -1) {
+                console.log(`源数据Custom_Ground_Color工作表中未找到字段: ${fieldName}`);
+                return null;
+            }
+
+            const fieldValue = dataRow[fieldColumnIndex];
+            if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                console.log(`✅ 从源数据Custom_Ground_Color工作表找到: ${fieldName} = ${fieldValue}`);
+                return fieldValue.toString();
+            } else {
+                console.log(`源数据Custom_Ground_Color工作表字段 ${fieldName} 值为空`);
+                return null;
+            }
+
+        } catch (error) {
+            console.error(`从源数据Custom_Ground_Color工作表读取字段 ${fieldName} 时出错:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * 从UGCTheme Custom_Ground_Color工作表读取字段值
+     * @param {string} fieldName - 字段名称
+     * @param {string} themeName - 主题名称
+     * @returns {string|null} 字段值或null
+     */
+    function findCustomGroundColorValueFromUGCThemeCustomGroundColor(fieldName, themeName) {
+        console.log(`=== 从UGCTheme Custom_Ground_Color工作表查找字段: ${fieldName} (主题: ${themeName}) ===`);
+
+        if (!ugcAllSheetsData || !ugcAllSheetsData['Custom_Ground_Color']) {
+            console.log('UGCTheme Custom_Ground_Color数据未加载');
+            return null;
+        }
+
+        try {
+            const customGroundColorData = ugcAllSheetsData['Custom_Ground_Color'];
+            if (!customGroundColorData || customGroundColorData.length < 2) {
+                console.log('UGCTheme Custom_Ground_Color工作表数据不足');
+                return null;
+            }
+
+            const headerRow = customGroundColorData[0];
+            const fieldColumnIndex = headerRow.findIndex(col => col === fieldName);
+            if (fieldColumnIndex === -1) {
+                console.log(`UGCTheme Custom_Ground_Color工作表中未找到字段: ${fieldName}`);
+                return null;
+            }
+
+            // 查找notes列
+            const notesColumnIndex = headerRow.findIndex(col => col === 'notes');
+            if (notesColumnIndex === -1) {
+                console.log('UGCTheme Custom_Ground_Color工作表中未找到notes列');
+                return null;
+            }
+
+            // 查找主题对应的行
+            for (let i = 1; i < customGroundColorData.length; i++) {
+                const row = customGroundColorData[i];
+                if (row[notesColumnIndex] === themeName) {
+                    const fieldValue = row[fieldColumnIndex];
+                    if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                        console.log(`✅ 从UGCTheme Custom_Ground_Color工作表找到: ${fieldName} = ${fieldValue} (主题: ${themeName})`);
+                        return fieldValue.toString();
+                    } else {
+                        console.log(`UGCTheme Custom_Ground_Color工作表中主题 ${themeName} 的字段 ${fieldName} 值为空`);
+                        return null;
+                    }
+                }
+            }
+
+            console.log(`UGCTheme Custom_Ground_Color工作表中未找到主题: ${themeName}`);
+            return null;
+
+        } catch (error) {
+            console.error(`从UGCTheme Custom_Ground_Color工作表读取字段 ${fieldName} 时出错:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Custom_Ground_Color字段条件读取逻辑
+     * @param {string} fieldName - 字段名称
+     * @param {boolean} isNewTheme - 是否为新建主题
+     * @param {string} themeName - 主题名称
+     * @returns {string|null} 字段值或null
+     */
+    function findCustomGroundColorValueDirect(fieldName, isNewTheme = false, themeName = '') {
+        console.log(`=== 直接映射查找Custom_Ground_Color字段值: ${fieldName} (新主题: ${isNewTheme}, 主题名: ${themeName}) ===`);
+
+        if (!sourceData || !sourceData.workbook) {
+            console.warn('源数据不可用');
+            return null;
+        }
+
+        // 解析Status工作表状态
+        const statusInfo = parseStatusSheet(sourceData);
+        console.log('Status状态信息:', statusInfo);
+
+        if (!statusInfo.hasCustomGroundColorField) {
+            console.log('Status工作表中没有Custom_Ground_Color字段');
+            // 没有Custom_Ground_Color字段：更新现有主题时从UGCTheme读取，新建主题返回null
+            if (!isNewTheme && themeName) {
+                console.log('更新现有主题，从UGCTheme Custom_Ground_Color工作表读取');
+                return findCustomGroundColorValueFromUGCThemeCustomGroundColor(fieldName, themeName);
+            } else {
+                console.log('新建主题且无Custom_Ground_Color字段，返回null');
+                return null;
+            }
+        }
+
+        const customGroundColorStatus = statusInfo.customGroundColorStatus;
+        console.log(`Custom_Ground_Color状态: ${customGroundColorStatus}`);
+
+        if (customGroundColorStatus === 1) {
+            console.log('Custom_Ground_Color状态为1（有效），优先从源数据读取');
+            // 优先从源数据读取
+            const sourceValue = findCustomGroundColorValueFromSourceCustomGroundColor(fieldName);
+            if (sourceValue !== null) {
+                return sourceValue;
+            }
+
+            console.log('源数据中未找到，回退到UGCTheme Custom_Ground_Color工作表');
+            // 回退到UGCTheme
+            if (themeName) {
+                return findCustomGroundColorValueFromUGCThemeCustomGroundColor(fieldName, themeName);
+            }
+            return null;
+
+        } else {
+            console.log('Custom_Ground_Color状态为0（无效），忽略源数据，仅从UGCTheme读取');
+            // 状态为0：忽略源数据，仅从UGCTheme读取
+            if (themeName) {
+                return findCustomGroundColorValueFromUGCThemeCustomGroundColor(fieldName, themeName);
+            }
+            return null;
+        }
+    }
+
+    /**
+     * 从源数据Custom_Fragile_Color工作表读取字段值
+     * @param {string} fieldName - 字段名称
+     * @returns {string|null} 字段值或null
+     */
+    function findCustomFragileColorValueFromSourceCustomFragileColor(fieldName) {
+        console.log(`=== 从源数据Custom_Fragile_Color工作表查找字段: ${fieldName} ===`);
+
+        if (!sourceData || !sourceData.workbook) {
+            console.log('源数据不可用');
+            return null;
+        }
+
+        try {
+            const customFragileColorSheet = sourceData.workbook.Sheets['Custom_Fragile_Color'];
+            if (!customFragileColorSheet) {
+                console.log('源数据中未找到Custom_Fragile_Color工作表');
+                return null;
+            }
+
+            const customFragileColorData = XLSX.utils.sheet_to_json(customFragileColorSheet, {
+                header: 1,
+                defval: '',
+                raw: false
+            });
+
+            if (!customFragileColorData || customFragileColorData.length < 2) {
+                console.log('源数据Custom_Fragile_Color工作表数据不足');
+                return null;
+            }
+
+            const headerRow = customFragileColorData[0];
+            const dataRow = customFragileColorData[1];
+
+            const fieldColumnIndex = headerRow.findIndex(col => col === fieldName);
+            if (fieldColumnIndex === -1) {
+                console.log(`源数据Custom_Fragile_Color工作表中未找到字段: ${fieldName}`);
+                return null;
+            }
+
+            const fieldValue = dataRow[fieldColumnIndex];
+            if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                console.log(`✅ 从源数据Custom_Fragile_Color工作表找到: ${fieldName} = ${fieldValue}`);
+                return fieldValue.toString();
+            } else {
+                console.log(`源数据Custom_Fragile_Color工作表字段 ${fieldName} 值为空`);
+                return null;
+            }
+
+        } catch (error) {
+            console.error(`从源数据Custom_Fragile_Color工作表读取字段 ${fieldName} 时出错:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * 从UGCTheme Custom_Fragile_Color工作表读取字段值
+     * @param {string} fieldName - 字段名称
+     * @param {string} themeName - 主题名称
+     * @returns {string|null} 字段值或null
+     */
+    function findCustomFragileColorValueFromUGCThemeCustomFragileColor(fieldName, themeName) {
+        console.log(`=== 从UGCTheme Custom_Fragile_Color工作表查找字段: ${fieldName} (主题: ${themeName}) ===`);
+
+        if (!ugcAllSheetsData || !ugcAllSheetsData['Custom_Fragile_Color']) {
+            console.log('UGCTheme Custom_Fragile_Color数据未加载');
+            return null;
+        }
+
+        try {
+            const customFragileColorData = ugcAllSheetsData['Custom_Fragile_Color'];
+            if (!customFragileColorData || customFragileColorData.length < 2) {
+                console.log('UGCTheme Custom_Fragile_Color工作表数据不足');
+                return null;
+            }
+
+            const headerRow = customFragileColorData[0];
+            const fieldColumnIndex = headerRow.findIndex(col => col === fieldName);
+            if (fieldColumnIndex === -1) {
+                console.log(`UGCTheme Custom_Fragile_Color工作表中未找到字段: ${fieldName}`);
+                return null;
+            }
+
+            const notesColumnIndex = headerRow.findIndex(col => col === 'notes');
+            if (notesColumnIndex === -1) {
+                console.log('UGCTheme Custom_Fragile_Color工作表中未找到notes列');
+                return null;
+            }
+
+            for (let i = 1; i < customFragileColorData.length; i++) {
+                const row = customFragileColorData[i];
+                if (row[notesColumnIndex] === themeName) {
+                    const fieldValue = row[fieldColumnIndex];
+                    if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                        console.log(`✅ 从UGCTheme Custom_Fragile_Color工作表找到: ${fieldName} = ${fieldValue} (主题: ${themeName})`);
+                        return fieldValue.toString();
+                    } else {
+                        console.log(`UGCTheme Custom_Fragile_Color工作表中主题 ${themeName} 的字段 ${fieldName} 值为空`);
+                        return null;
+                    }
+                }
+            }
+
+            console.log(`UGCTheme Custom_Fragile_Color工作表中未找到主题: ${themeName}`);
+            return null;
+
+        } catch (error) {
+            console.error(`从UGCTheme Custom_Fragile_Color工作表读取字段 ${fieldName} 时出错:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Custom_Fragile_Color字段条件读取逻辑
+     * @param {string} fieldName - 字段名称
+     * @param {boolean} isNewTheme - 是否为新建主题
+     * @param {string} themeName - 主题名称
+     * @returns {string|null} 字段值或null
+     */
+    function findCustomFragileColorValueDirect(fieldName, isNewTheme = false, themeName = '') {
+        console.log(`=== 直接映射查找Custom_Fragile_Color字段值: ${fieldName} (新主题: ${isNewTheme}, 主题名: ${themeName}) ===`);
+
+        if (!sourceData || !sourceData.workbook) {
+            console.warn('源数据不可用');
+            return null;
+        }
+
+        const statusInfo = parseStatusSheet(sourceData);
+        console.log('Status状态信息:', statusInfo);
+
+        if (!statusInfo.hasCustomFragileColorField) {
+            console.log('Status工作表中没有Custom_Fragile_Color字段');
+            if (!isNewTheme && themeName) {
+                console.log('更新现有主题，从UGCTheme Custom_Fragile_Color工作表读取');
+                return findCustomFragileColorValueFromUGCThemeCustomFragileColor(fieldName, themeName);
+            } else {
+                console.log('新建主题且无Custom_Fragile_Color字段，返回null');
+                return null;
+            }
+        }
+
+        const customFragileColorStatus = statusInfo.customFragileColorStatus;
+        console.log(`Custom_Fragile_Color状态: ${customFragileColorStatus}`);
+
+        if (customFragileColorStatus === 1) {
+            console.log('Custom_Fragile_Color状态为1（有效），优先从源数据读取');
+            const sourceValue = findCustomFragileColorValueFromSourceCustomFragileColor(fieldName);
+            if (sourceValue !== null) {
+                return sourceValue;
+            }
+
+            console.log('源数据中未找到，回退到UGCTheme Custom_Fragile_Color工作表');
+            if (themeName) {
+                return findCustomFragileColorValueFromUGCThemeCustomFragileColor(fieldName, themeName);
+            }
+            return null;
+
+        } else {
+            console.log('Custom_Fragile_Color状态为0（无效），忽略源数据，仅从UGCTheme读取');
+            if (themeName) {
+                return findCustomFragileColorValueFromUGCThemeCustomFragileColor(fieldName, themeName);
+            }
+            return null;
+        }
+    }
+
+    /**
+     * 从源数据Custom_Fragile_Active_Color工作表读取字段值
+     * @param {string} fieldName - 字段名称
+     * @returns {string|null} 字段值或null
+     */
+    function findCustomFragileActiveColorValueFromSourceCustomFragileActiveColor(fieldName) {
+        console.log(`=== 从源数据Custom_Fragile_Active_Color工作表查找字段: ${fieldName} ===`);
+
+        if (!sourceData || !sourceData.workbook) {
+            console.log('源数据不可用');
+            return null;
+        }
+
+        try {
+            const customFragileActiveColorSheet = sourceData.workbook.Sheets['Custom_Fragile_Active_Color'];
+            if (!customFragileActiveColorSheet) {
+                console.log('源数据中未找到Custom_Fragile_Active_Color工作表');
+                return null;
+            }
+
+            const customFragileActiveColorData = XLSX.utils.sheet_to_json(customFragileActiveColorSheet, {
+                header: 1,
+                defval: '',
+                raw: false
+            });
+
+            if (!customFragileActiveColorData || customFragileActiveColorData.length < 2) {
+                console.log('源数据Custom_Fragile_Active_Color工作表数据不足');
+                return null;
+            }
+
+            const headerRow = customFragileActiveColorData[0];
+            const dataRow = customFragileActiveColorData[1];
+
+            const fieldColumnIndex = headerRow.findIndex(col => col === fieldName);
+            if (fieldColumnIndex === -1) {
+                console.log(`源数据Custom_Fragile_Active_Color工作表中未找到字段: ${fieldName}`);
+                return null;
+            }
+
+            const fieldValue = dataRow[fieldColumnIndex];
+            if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                console.log(`✅ 从源数据Custom_Fragile_Active_Color工作表找到: ${fieldName} = ${fieldValue}`);
+                return fieldValue.toString();
+            } else {
+                console.log(`源数据Custom_Fragile_Active_Color工作表字段 ${fieldName} 值为空`);
+                return null;
+            }
+
+        } catch (error) {
+            console.error(`从源数据Custom_Fragile_Active_Color工作表读取字段 ${fieldName} 时出错:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * 从UGCTheme Custom_Fragile_Active_Color工作表读取字段值
+     * @param {string} fieldName - 字段名称
+     * @param {string} themeName - 主题名称
+     * @returns {string|null} 字段值或null
+     */
+    function findCustomFragileActiveColorValueFromUGCThemeCustomFragileActiveColor(fieldName, themeName) {
+        console.log(`=== 从UGCTheme Custom_Fragile_Active_Color工作表查找字段: ${fieldName} (主题: ${themeName}) ===`);
+
+        if (!ugcAllSheetsData || !ugcAllSheetsData['Custom_Fragile_Active_Color']) {
+            console.log('UGCTheme Custom_Fragile_Active_Color数据未加载');
+            return null;
+        }
+
+        try {
+            const customFragileActiveColorData = ugcAllSheetsData['Custom_Fragile_Active_Color'];
+            if (!customFragileActiveColorData || customFragileActiveColorData.length < 2) {
+                console.log('UGCTheme Custom_Fragile_Active_Color工作表数据不足');
+                return null;
+            }
+
+            const headerRow = customFragileActiveColorData[0];
+            const fieldColumnIndex = headerRow.findIndex(col => col === fieldName);
+            if (fieldColumnIndex === -1) {
+                console.log(`UGCTheme Custom_Fragile_Active_Color工作表中未找到字段: ${fieldName}`);
+                return null;
+            }
+
+            const notesColumnIndex = headerRow.findIndex(col => col === 'notes');
+            if (notesColumnIndex === -1) {
+                console.log('UGCTheme Custom_Fragile_Active_Color工作表中未找到notes列');
+                return null;
+            }
+
+            for (let i = 1; i < customFragileActiveColorData.length; i++) {
+                const row = customFragileActiveColorData[i];
+                if (row[notesColumnIndex] === themeName) {
+                    const fieldValue = row[fieldColumnIndex];
+                    if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                        console.log(`✅ 从UGCTheme Custom_Fragile_Active_Color工作表找到: ${fieldName} = ${fieldValue} (主题: ${themeName})`);
+                        return fieldValue.toString();
+                    } else {
+                        console.log(`UGCTheme Custom_Fragile_Active_Color工作表中主题 ${themeName} 的字段 ${fieldName} 值为空`);
+                        return null;
+                    }
+                }
+            }
+
+            console.log(`UGCTheme Custom_Fragile_Active_Color工作表中未找到主题: ${themeName}`);
+            return null;
+
+        } catch (error) {
+            console.error(`从UGCTheme Custom_Fragile_Active_Color工作表读取字段 ${fieldName} 时出错:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Custom_Fragile_Active_Color字段条件读取逻辑
+     * @param {string} fieldName - 字段名称
+     * @param {boolean} isNewTheme - 是否为新建主题
+     * @param {string} themeName - 主题名称
+     * @returns {string|null} 字段值或null
+     */
+    function findCustomFragileActiveColorValueDirect(fieldName, isNewTheme = false, themeName = '') {
+        console.log(`=== 直接映射查找Custom_Fragile_Active_Color字段值: ${fieldName} (新主题: ${isNewTheme}, 主题名: ${themeName}) ===`);
+
+        if (!sourceData || !sourceData.workbook) {
+            console.warn('源数据不可用');
+            return null;
+        }
+
+        const statusInfo = parseStatusSheet(sourceData);
+        console.log('Status状态信息:', statusInfo);
+
+        if (!statusInfo.hasCustomFragileActiveColorField) {
+            console.log('Status工作表中没有Custom_Fragile_Active_Color字段');
+            if (!isNewTheme && themeName) {
+                console.log('更新现有主题，从UGCTheme Custom_Fragile_Active_Color工作表读取');
+                return findCustomFragileActiveColorValueFromUGCThemeCustomFragileActiveColor(fieldName, themeName);
+            } else {
+                console.log('新建主题且无Custom_Fragile_Active_Color字段，返回null');
+                return null;
+            }
+        }
+
+        const customFragileActiveColorStatus = statusInfo.customFragileActiveColorStatus;
+        console.log(`Custom_Fragile_Active_Color状态: ${customFragileActiveColorStatus}`);
+
+        if (customFragileActiveColorStatus === 1) {
+            console.log('Custom_Fragile_Active_Color状态为1（有效），优先从源数据读取');
+            const sourceValue = findCustomFragileActiveColorValueFromSourceCustomFragileActiveColor(fieldName);
+            if (sourceValue !== null) {
+                return sourceValue;
+            }
+
+            console.log('源数据中未找到，回退到UGCTheme Custom_Fragile_Active_Color工作表');
+            if (themeName) {
+                return findCustomFragileActiveColorValueFromUGCThemeCustomFragileActiveColor(fieldName, themeName);
+            }
+            return null;
+
+        } else {
+            console.log('Custom_Fragile_Active_Color状态为0（无效），忽略源数据，仅从UGCTheme读取');
+            if (themeName) {
+                return findCustomFragileActiveColorValueFromUGCThemeCustomFragileActiveColor(fieldName, themeName);
+            }
+            return null;
+        }
+    }
+
+    /**
+     * 从源数据Custom_Jump_Color工作表读取字段值
+     * @param {string} fieldName - 字段名称
+     * @returns {string|null} 字段值或null
+     */
+    function findCustomJumpColorValueFromSourceCustomJumpColor(fieldName) {
+        console.log(`=== 从源数据Custom_Jump_Color工作表查找字段: ${fieldName} ===`);
+
+        if (!sourceData || !sourceData.workbook) {
+            console.log('源数据不可用');
+            return null;
+        }
+
+        try {
+            const customJumpColorSheet = sourceData.workbook.Sheets['Custom_Jump_Color'];
+            if (!customJumpColorSheet) {
+                console.log('源数据中未找到Custom_Jump_Color工作表');
+                return null;
+            }
+
+            const customJumpColorData = XLSX.utils.sheet_to_json(customJumpColorSheet, {
+                header: 1,
+                defval: '',
+                raw: false
+            });
+
+            if (!customJumpColorData || customJumpColorData.length < 2) {
+                console.log('源数据Custom_Jump_Color工作表数据不足');
+                return null;
+            }
+
+            const headerRow = customJumpColorData[0];
+            const dataRow = customJumpColorData[1];
+
+            const fieldColumnIndex = headerRow.findIndex(col => col === fieldName);
+            if (fieldColumnIndex === -1) {
+                console.log(`源数据Custom_Jump_Color工作表中未找到字段: ${fieldName}`);
+                return null;
+            }
+
+            const fieldValue = dataRow[fieldColumnIndex];
+            if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                console.log(`✅ 从源数据Custom_Jump_Color工作表找到: ${fieldName} = ${fieldValue}`);
+                return fieldValue.toString();
+            } else {
+                console.log(`源数据Custom_Jump_Color工作表字段 ${fieldName} 值为空`);
+                return null;
+            }
+
+        } catch (error) {
+            console.error(`从源数据Custom_Jump_Color工作表读取字段 ${fieldName} 时出错:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * 从UGCTheme Custom_Jump_Color工作表读取字段值
+     * @param {string} fieldName - 字段名称
+     * @param {string} themeName - 主题名称
+     * @returns {string|null} 字段值或null
+     */
+    function findCustomJumpColorValueFromUGCThemeCustomJumpColor(fieldName, themeName) {
+        console.log(`=== 从UGCTheme Custom_Jump_Color工作表查找字段: ${fieldName} (主题: ${themeName}) ===`);
+
+        if (!ugcAllSheetsData || !ugcAllSheetsData['Custom_Jump_Color']) {
+            console.log('UGCTheme Custom_Jump_Color数据未加载');
+            return null;
+        }
+
+        try {
+            const customJumpColorData = ugcAllSheetsData['Custom_Jump_Color'];
+            if (!customJumpColorData || customJumpColorData.length < 2) {
+                console.log('UGCTheme Custom_Jump_Color工作表数据不足');
+                return null;
+            }
+
+            const headerRow = customJumpColorData[0];
+            const fieldColumnIndex = headerRow.findIndex(col => col === fieldName);
+            if (fieldColumnIndex === -1) {
+                console.log(`UGCTheme Custom_Jump_Color工作表中未找到字段: ${fieldName}`);
+                return null;
+            }
+
+            const notesColumnIndex = headerRow.findIndex(col => col === 'notes');
+            if (notesColumnIndex === -1) {
+                console.log('UGCTheme Custom_Jump_Color工作表中未找到notes列');
+                return null;
+            }
+
+            for (let i = 1; i < customJumpColorData.length; i++) {
+                const row = customJumpColorData[i];
+                if (row[notesColumnIndex] === themeName) {
+                    const fieldValue = row[fieldColumnIndex];
+                    if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                        console.log(`✅ 从UGCTheme Custom_Jump_Color工作表找到: ${fieldName} = ${fieldValue} (主题: ${themeName})`);
+                        return fieldValue.toString();
+                    } else {
+                        console.log(`UGCTheme Custom_Jump_Color工作表中主题 ${themeName} 的字段 ${fieldName} 值为空`);
+                        return null;
+                    }
+                }
+            }
+
+            console.log(`UGCTheme Custom_Jump_Color工作表中未找到主题: ${themeName}`);
+            return null;
+
+        } catch (error) {
+            console.error(`从UGCTheme Custom_Jump_Color工作表读取字段 ${fieldName} 时出错:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Custom_Jump_Color字段条件读取逻辑
+     * @param {string} fieldName - 字段名称
+     * @param {boolean} isNewTheme - 是否为新建主题
+     * @param {string} themeName - 主题名称
+     * @returns {string|null} 字段值或null
+     */
+    function findCustomJumpColorValueDirect(fieldName, isNewTheme = false, themeName = '') {
+        console.log(`=== 直接映射查找Custom_Jump_Color字段值: ${fieldName} (新主题: ${isNewTheme}, 主题名: ${themeName}) ===`);
+
+        if (!sourceData || !sourceData.workbook) {
+            console.warn('源数据不可用');
+            return null;
+        }
+
+        const statusInfo = parseStatusSheet(sourceData);
+        console.log('Status状态信息:', statusInfo);
+
+        if (!statusInfo.hasCustomJumpColorField) {
+            console.log('Status工作表中没有Custom_Jump_Color字段');
+            if (!isNewTheme && themeName) {
+                console.log('更新现有主题，从UGCTheme Custom_Jump_Color工作表读取');
+                return findCustomJumpColorValueFromUGCThemeCustomJumpColor(fieldName, themeName);
+            } else {
+                console.log('新建主题且无Custom_Jump_Color字段，返回null');
+                return null;
+            }
+        }
+
+        const customJumpColorStatus = statusInfo.customJumpColorStatus;
+        console.log(`Custom_Jump_Color状态: ${customJumpColorStatus}`);
+
+        if (customJumpColorStatus === 1) {
+            console.log('Custom_Jump_Color状态为1（有效），优先从源数据读取');
+            const sourceValue = findCustomJumpColorValueFromSourceCustomJumpColor(fieldName);
+            if (sourceValue !== null) {
+                return sourceValue;
+            }
+
+            console.log('源数据中未找到，回退到UGCTheme Custom_Jump_Color工作表');
+            if (themeName) {
+                return findCustomJumpColorValueFromUGCThemeCustomJumpColor(fieldName, themeName);
+            }
+            return null;
+
+        } else {
+            console.log('Custom_Jump_Color状态为0（无效），忽略源数据，仅从UGCTheme读取');
+            if (themeName) {
+                return findCustomJumpColorValueFromUGCThemeCustomJumpColor(fieldName, themeName);
+            }
+            return null;
+        }
+    }
+
+    /**
+     * 从源数据Custom_Jump_Active_Color工作表读取字段值
+     * @param {string} fieldName - 字段名称
+     * @returns {string|null} 字段值或null
+     */
+    function findCustomJumpActiveColorValueFromSourceCustomJumpActiveColor(fieldName) {
+        console.log(`=== 从源数据Custom_Jump_Active_Color工作表查找字段: ${fieldName} ===`);
+
+        if (!sourceData || !sourceData.workbook) {
+            console.log('源数据不可用');
+            return null;
+        }
+
+        try {
+            const customJumpActiveColorSheet = sourceData.workbook.Sheets['Custom_Jump_Active_Color'];
+            if (!customJumpActiveColorSheet) {
+                console.log('源数据中未找到Custom_Jump_Active_Color工作表');
+                return null;
+            }
+
+            const customJumpActiveColorData = XLSX.utils.sheet_to_json(customJumpActiveColorSheet, {
+                header: 1,
+                defval: '',
+                raw: false
+            });
+
+            if (!customJumpActiveColorData || customJumpActiveColorData.length < 2) {
+                console.log('源数据Custom_Jump_Active_Color工作表数据不足');
+                return null;
+            }
+
+            const headerRow = customJumpActiveColorData[0];
+            const dataRow = customJumpActiveColorData[1];
+
+            const fieldColumnIndex = headerRow.findIndex(col => col === fieldName);
+            if (fieldColumnIndex === -1) {
+                console.log(`源数据Custom_Jump_Active_Color工作表中未找到字段: ${fieldName}`);
+                return null;
+            }
+
+            const fieldValue = dataRow[fieldColumnIndex];
+            if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                console.log(`✅ 从源数据Custom_Jump_Active_Color工作表找到: ${fieldName} = ${fieldValue}`);
+                return fieldValue.toString();
+            } else {
+                console.log(`源数据Custom_Jump_Active_Color工作表字段 ${fieldName} 值为空`);
+                return null;
+            }
+
+        } catch (error) {
+            console.error(`从源数据Custom_Jump_Active_Color工作表读取字段 ${fieldName} 时出错:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * 从UGCTheme Custom_Jump_Active_Color工作表读取字段值
+     * @param {string} fieldName - 字段名称
+     * @param {string} themeName - 主题名称
+     * @returns {string|null} 字段值或null
+     */
+    function findCustomJumpActiveColorValueFromUGCThemeCustomJumpActiveColor(fieldName, themeName) {
+        console.log(`=== 从UGCTheme Custom_Jump_Active_Color工作表查找字段: ${fieldName} (主题: ${themeName}) ===`);
+
+        if (!ugcAllSheetsData || !ugcAllSheetsData['Custom_Jump_Active_Color']) {
+            console.log('UGCTheme Custom_Jump_Active_Color数据未加载');
+            return null;
+        }
+
+        try {
+            const customJumpActiveColorData = ugcAllSheetsData['Custom_Jump_Active_Color'];
+            if (!customJumpActiveColorData || customJumpActiveColorData.length < 2) {
+                console.log('UGCTheme Custom_Jump_Active_Color工作表数据不足');
+                return null;
+            }
+
+            const headerRow = customJumpActiveColorData[0];
+            const fieldColumnIndex = headerRow.findIndex(col => col === fieldName);
+            if (fieldColumnIndex === -1) {
+                console.log(`UGCTheme Custom_Jump_Active_Color工作表中未找到字段: ${fieldName}`);
+                return null;
+            }
+
+            const notesColumnIndex = headerRow.findIndex(col => col === 'notes');
+            if (notesColumnIndex === -1) {
+                console.log('UGCTheme Custom_Jump_Active_Color工作表中未找到notes列');
+                return null;
+            }
+
+            for (let i = 1; i < customJumpActiveColorData.length; i++) {
+                const row = customJumpActiveColorData[i];
+                if (row[notesColumnIndex] === themeName) {
+                    const fieldValue = row[fieldColumnIndex];
+                    if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                        console.log(`✅ 从UGCTheme Custom_Jump_Active_Color工作表找到: ${fieldName} = ${fieldValue} (主题: ${themeName})`);
+                        return fieldValue.toString();
+                    } else {
+                        console.log(`UGCTheme Custom_Jump_Active_Color工作表中主题 ${themeName} 的字段 ${fieldName} 值为空`);
+                        return null;
+                    }
+                }
+            }
+
+            console.log(`UGCTheme Custom_Jump_Active_Color工作表中未找到主题: ${themeName}`);
+            return null;
+
+        } catch (error) {
+            console.error(`从UGCTheme Custom_Jump_Active_Color工作表读取字段 ${fieldName} 时出错:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Custom_Jump_Active_Color字段条件读取逻辑
+     * @param {string} fieldName - 字段名称
+     * @param {boolean} isNewTheme - 是否为新建主题
+     * @param {string} themeName - 主题名称
+     * @returns {string|null} 字段值或null
+     */
+    function findCustomJumpActiveColorValueDirect(fieldName, isNewTheme = false, themeName = '') {
+        console.log(`=== 直接映射查找Custom_Jump_Active_Color字段值: ${fieldName} (新主题: ${isNewTheme}, 主题名: ${themeName}) ===`);
+
+        if (!sourceData || !sourceData.workbook) {
+            console.warn('源数据不可用');
+            return null;
+        }
+
+        const statusInfo = parseStatusSheet(sourceData);
+        console.log('Status状态信息:', statusInfo);
+
+        if (!statusInfo.hasCustomJumpActiveColorField) {
+            console.log('Status工作表中没有Custom_Jump_Active_Color字段');
+            if (!isNewTheme && themeName) {
+                console.log('更新现有主题，从UGCTheme Custom_Jump_Active_Color工作表读取');
+                return findCustomJumpActiveColorValueFromUGCThemeCustomJumpActiveColor(fieldName, themeName);
+            } else {
+                console.log('新建主题且无Custom_Jump_Active_Color字段，返回null');
+                return null;
+            }
+        }
+
+        const customJumpActiveColorStatus = statusInfo.customJumpActiveColorStatus;
+        console.log(`Custom_Jump_Active_Color状态: ${customJumpActiveColorStatus}`);
+
+        if (customJumpActiveColorStatus === 1) {
+            console.log('Custom_Jump_Active_Color状态为1（有效），优先从源数据读取');
+            const sourceValue = findCustomJumpActiveColorValueFromSourceCustomJumpActiveColor(fieldName);
+            if (sourceValue !== null) {
+                return sourceValue;
+            }
+
+            console.log('源数据中未找到，回退到UGCTheme Custom_Jump_Active_Color工作表');
+            if (themeName) {
+                return findCustomJumpActiveColorValueFromUGCThemeCustomJumpActiveColor(fieldName, themeName);
+            }
+            return null;
+
+        } else {
+            console.log('Custom_Jump_Active_Color状态为0（无效），忽略源数据，仅从UGCTheme读取');
+            if (themeName) {
+                return findCustomJumpActiveColorValueFromUGCThemeCustomJumpActiveColor(fieldName, themeName);
+            }
+            return null;
+        }
+    }
+
+    /**
+     * 直接映射模式：Light字段条件读取
+     * @param {string} lightField - Light字段名称（如Max, Dark, Min等）
+     * @param {boolean} isNewTheme - 是否为新建主题
+     * @param {string} themeName - 主题名称
+     * @returns {string|null} Light字段值或null
+     */
+    function findLightValueDirect(lightField, isNewTheme = false, themeName = '') {
+        console.log(`=== 直接映射查找Light字段值: ${lightField} (新主题: ${isNewTheme}, 主题名: ${themeName}) ===`);
+
+        if (!sourceData || !sourceData.workbook) {
+            console.warn('源数据不可用');
+            return null;
+        }
+
+        // 解析Status工作表状态
+        const statusInfo = parseStatusSheet(sourceData);
+        console.log('Status状态信息:', statusInfo);
+
+        if (!statusInfo.hasLightField) {
+            console.warn('Status工作表中没有Light字段，根据主题类型处理');
+
+            if (!isNewTheme && themeName) {
+                // 更新现有主题模式：直接从RSC_Theme Light工作表读取
+                console.log('更新现有主题且无Light字段，直接从RSC_Theme Light工作表读取字段值');
+                const rscLightValue = findLightValueFromRSCThemeLight(lightField, themeName);
+                if (rscLightValue) {
+                    console.log(`✅ 从RSC_Theme Light工作表找到: ${lightField} = ${rscLightValue}`);
+                    return rscLightValue;
+                }
+            }
+
+            // 新建主题模式或未找到：返回null，使用默认值
+            console.log(`⚠️ 无Light字段，${isNewTheme ? '新建主题' : '现有主题'}未找到Light字段值: ${lightField}`);
+            return null;
+        }
+
+        const isLightValid = statusInfo.isLightValid;
+        console.log(`Light字段状态: ${isLightValid ? '有效(1)' : '无效(0)'}`);
+
+        // 根据Light状态和主题类型决定处理逻辑
+        if (isLightValid) {
+            // Light状态为有效(1)
+            console.log('Light状态有效，优先从源数据Light工作表查找');
+
+            // 优先从源数据Light工作表查找
+            const sourceLightValue = findLightValueFromSourceLight(lightField);
+            if (sourceLightValue) {
+                console.log(`✅ 从源数据Light工作表找到: ${lightField} = ${sourceLightValue}`);
+                return sourceLightValue;
+            }
+
+            if (!isNewTheme && themeName) {
+                // 更新现有主题模式：回退到RSC_Theme Light工作表
+                console.log('源数据Light工作表未找到，回退到RSC_Theme Light工作表查找');
+                const rscLightValue = findLightValueFromRSCThemeLight(lightField, themeName);
+                if (rscLightValue) {
+                    console.log(`✅ 从RSC_Theme Light工作表找到: ${lightField} = ${rscLightValue}`);
+                    return rscLightValue;
+                }
+            }
+
+            console.log(`⚠️ Light状态有效但未找到Light字段值: ${lightField}`);
+            return null;
+
+        } else {
+            // Light状态为无效(0)
+            console.log('Light状态无效，忽略源数据Light工作表');
+
+            if (!isNewTheme && themeName) {
+                // 更新现有主题模式：直接从RSC_Theme Light工作表读取
+                console.log('直接从RSC_Theme Light工作表读取Light字段值');
+                const rscLightValue = findLightValueFromRSCThemeLight(lightField, themeName);
+                if (rscLightValue) {
+                    console.log(`✅ 从RSC_Theme Light工作表找到: ${lightField} = ${rscLightValue}`);
+                    return rscLightValue;
+                }
+            }
+
+            // 新建主题模式或未找到：返回null，使用默认值
+            console.log(`⚠️ Light状态无效，${isNewTheme ? '新建主题' : '现有主题'}未找到Light字段值: ${lightField}`);
             return null;
         }
     }
@@ -3544,11 +5900,12 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
      * 直接映射模式：更新主题颜色数据
      * @param {number} rowIndex - 主题行索引
      * @param {string} themeName - 主题名称
+     * @param {boolean} isNewTheme - 是否为新建主题
      * @returns {Object} 更新结果
      */
-    function updateThemeColorsDirect(rowIndex, themeName) {
+    function updateThemeColorsDirect(rowIndex, themeName, isNewTheme = false) {
         console.log('=== 开始直接映射模式更新主题颜色数据 ===');
-        console.log(`目标行索引: ${rowIndex}, 主题名称: ${themeName}`);
+        console.log(`目标行索引: ${rowIndex}, 主题名称: ${themeName}, 是否新主题: ${isNewTheme}`);
 
         const data = rscThemeData.data;
         const headerRow = data[0];
@@ -3586,8 +5943,8 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             summary.total++;
 
             try {
-                // 直接查找对应的颜色值
-                const colorValue = findColorValueDirect(channel);
+                // 直接查找对应的颜色值，传递isNewTheme和themeName参数
+                const colorValue = findColorValueDirect(channel, isNewTheme, themeName);
 
                 let finalColorValue = null;
                 let isDefault = false;
@@ -3936,8 +6293,8 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 }
 
                 if (needsDefault) {
-                    // 设置默认值
-                    const defaultValue = 'FFFFFF';
+                    // 设置默认值（蓝色：5C84F1）
+                    const defaultValue = '5C84F1';
                     themeRow[columnIndex] = defaultValue;
 
                     // 记录更新结果
@@ -3961,6 +6318,138 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         });
 
         console.log('=== 所有颜色通道处理完成 ===\n');
+    }
+
+    /**
+     * 根据Status工作表状态获取需要处理的工作表列表
+     * @returns {Array} 需要处理的工作表名称数组
+     */
+    function getActiveSheetsByStatus() {
+        console.log('=== 开始根据Status工作表状态获取需要处理的工作表列表 ===');
+
+        // 默认的所有可能工作表
+        const allPossibleSheets = ['ColorInfo', 'Light', 'FloodLight', 'VolumetricFog'];
+
+        // 🔧 修复：只有在直接映射模式下，才严格按照Status工作表状态决定处理哪些工作表
+        // 间接映射模式保持原逻辑，处理所有工作表
+        if (currentMappingMode !== 'direct') {
+            console.log('非直接映射模式，处理所有工作表');
+            return allPossibleSheets;
+        }
+
+        // 直接映射模式：解析Status工作表状态
+        const statusInfo = parseStatusSheet(sourceData);
+        console.log('直接映射模式 - Status状态信息:', statusInfo);
+
+        const activeSheets = [];
+
+        // 根据各字段状态决定是否处理对应工作表
+        if (statusInfo.hasColorInfoField && statusInfo.colorInfoStatus === 1) {
+            activeSheets.push('ColorInfo');
+            console.log('✅ ColorInfo状态为1，添加到处理列表');
+        } else {
+            console.log('⚠️ ColorInfo状态为0或不存在，跳过处理');
+        }
+
+        if (statusInfo.hasLightField && statusInfo.lightStatus === 1) {
+            activeSheets.push('Light');
+            console.log('✅ Light状态为1，添加到处理列表');
+        } else {
+            console.log('⚠️ Light状态为0或不存在，跳过处理');
+        }
+
+        if (statusInfo.hasVolumetricFogField && statusInfo.volumetricFogStatus === 1) {
+            activeSheets.push('VolumetricFog');
+            console.log('✅ VolumetricFog状态为1，添加到处理列表');
+        } else {
+            console.log('⚠️ VolumetricFog状态为0或不存在，跳过处理');
+        }
+
+        // FloodLight独立状态驱动处理
+        if (statusInfo.hasFloodLightField && statusInfo.floodLightStatus === 1) {
+            activeSheets.push('FloodLight');
+            console.log('✅ FloodLight状态为1，添加到处理列表');
+        } else {
+            console.log('⚠️ FloodLight状态为0或不存在，跳过处理');
+        }
+
+        console.log(`直接映射模式 - 最终需要处理的工作表: [${activeSheets.join(', ')}]`);
+        return activeSheets;
+    }
+
+    /**
+     * 根据Status工作表状态获取需要处理的UGC工作表列表
+     * @returns {Array} 需要处理的UGC工作表名称数组
+     */
+    function getActiveUGCSheetsByStatus() {
+        console.log('=== 开始根据Status工作表状态获取需要处理的UGC工作表列表 ===');
+
+        // 默认的所有可能UGC工作表
+        const allPossibleUGCSheets = [
+            'Custom_Ground_Color',
+            'Custom_Fragile_Color',
+            'Custom_Fragile_Active_Color',
+            'Custom_Jump_Color',
+            'Custom_Jump_Active_Color'
+        ];
+
+        // 🔧 修复：只有在直接映射模式下，才严格按照Status工作表状态决定处理哪些UGC工作表
+        // 间接映射模式保持原逻辑，处理所有UGC工作表
+        if (currentMappingMode !== 'direct') {
+            console.log('非直接映射模式，处理所有UGC工作表');
+            return allPossibleUGCSheets;
+        }
+
+        // 直接映射模式：检查源数据是否可用
+        if (!sourceData || !sourceData.workbook) {
+            console.log('⚠️ 源数据不可用，无法解析Status工作表，返回空列表');
+            return [];
+        }
+
+        // 直接映射模式：解析Status工作表状态
+        const statusInfo = parseStatusSheet(sourceData);
+        console.log('直接映射模式 - Status状态信息:', statusInfo);
+
+        const activeUGCSheets = [];
+
+        // 根据各字段状态决定是否处理对应UGC工作表
+        if (statusInfo.hasCustomGroundColorField && statusInfo.customGroundColorStatus === 1) {
+            activeUGCSheets.push('Custom_Ground_Color');
+            console.log('✅ Custom_Ground_Color状态为1，添加到处理列表');
+        } else {
+            console.log('⚠️ Custom_Ground_Color状态为0或不存在，跳过处理');
+        }
+
+        if (statusInfo.hasCustomFragileColorField && statusInfo.customFragileColorStatus === 1) {
+            activeUGCSheets.push('Custom_Fragile_Color');
+            console.log('✅ Custom_Fragile_Color状态为1，添加到处理列表');
+        } else {
+            console.log('⚠️ Custom_Fragile_Color状态为0或不存在，跳过处理');
+        }
+
+        if (statusInfo.hasCustomFragileActiveColorField && statusInfo.customFragileActiveColorStatus === 1) {
+            activeUGCSheets.push('Custom_Fragile_Active_Color');
+            console.log('✅ Custom_Fragile_Active_Color状态为1，添加到处理列表');
+        } else {
+            console.log('⚠️ Custom_Fragile_Active_Color状态为0或不存在，跳过处理');
+        }
+
+        if (statusInfo.hasCustomJumpColorField && statusInfo.customJumpColorStatus === 1) {
+            activeUGCSheets.push('Custom_Jump_Color');
+            console.log('✅ Custom_Jump_Color状态为1，添加到处理列表');
+        } else {
+            console.log('⚠️ Custom_Jump_Color状态为0或不存在，跳过处理');
+        }
+
+        if (statusInfo.hasCustomJumpActiveColorField && statusInfo.customJumpActiveColorStatus === 1) {
+            activeUGCSheets.push('Custom_Jump_Active_Color');
+            console.log('✅ Custom_Jump_Active_Color状态为1，添加到处理列表');
+        } else {
+            console.log('⚠️ Custom_Jump_Active_Color状态为0或不存在，跳过处理');
+        }
+
+        console.log(`直接映射模式 - 最终需要处理的UGC工作表: [${activeUGCSheets.join(', ')}]`);
+        return activeUGCSheets;
     }
 
     /**
@@ -3989,9 +6478,20 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             const sheetNames = workbook.SheetNames;
             console.log('RSC_Theme包含的sheet:', sheetNames);
 
-            // 严格限制：仅处理这5个目标工作表（主工作表、Light、ColorInfo、FloodLight、VolumetricFog）
-            // 不影响RSC_Theme.xls文件中的其他工作表
-            const targetSheets = ['ColorInfo', 'Light', 'FloodLight', 'VolumetricFog'];
+            // 🔧 修复：根据Status工作表状态获取需要处理的工作表列表
+            const targetSheets = getActiveSheetsByStatus();
+            console.log('🎯 根据Status状态确定的目标工作表:', targetSheets);
+
+            if (targetSheets.length === 0) {
+                console.log('⚠️ 没有需要处理的工作表，跳过处理');
+                return {
+                    success: true,
+                    action: 'skip_processing',
+                    message: 'Status工作表中没有状态为1的字段，跳过工作表处理',
+                    processedSheets: []
+                };
+            }
+
             const processedSheets = [];
 
             targetSheets.forEach(sheetName => {
@@ -4006,7 +6506,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                     });
 
                     if (sheetData.length > 0) {
-                        const result = addNewRowToSheet(sheetData, themeName, sheetName);
+                        const result = addNewRowToSheet(sheetData, themeName, sheetName, isNewTheme);
                         if (result.success) {
                             // 更新工作表
                             const newWorksheet = XLSX.utils.aoa_to_sheet(sheetData);
@@ -4072,7 +6572,20 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             const sheetNames = workbook.SheetNames;
             console.log('RSC_Theme包含的sheet:', sheetNames);
 
-            const targetSheets = ['ColorInfo', 'Light', 'FloodLight', 'VolumetricFog'];
+            // 🔧 修复：根据Status工作表状态获取需要处理的工作表列表
+            const targetSheets = getActiveSheetsByStatus();
+            console.log('🎯 根据Status状态确定的目标工作表:', targetSheets);
+
+            if (targetSheets.length === 0) {
+                console.log('⚠️ 没有需要处理的工作表，跳过处理');
+                return {
+                    success: true,
+                    action: 'skip_processing',
+                    message: 'Status工作表中没有状态为1的字段，跳过工作表处理',
+                    updatedSheets: []
+                };
+            }
+
             const updatedSheets = [];
 
             targetSheets.forEach(sheetName => {
@@ -4179,13 +6692,13 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
         // 根据sheet类型应用用户配置的数据
         if (sheetName === 'Light') {
-            applyLightConfigToRow(headerRow, existingRow);
+            applyLightConfigToRow(headerRow, existingRow, themeName, false); // 更新现有主题，isNewTheme=false
         } else if (sheetName === 'ColorInfo') {
-            applyColorInfoConfigToRow(headerRow, existingRow);
+            applyColorInfoConfigToRow(headerRow, existingRow, themeName, false); // 更新现有主题，isNewTheme=false
         } else if (sheetName === 'FloodLight') {
-            applyFloodLightConfigToRow(headerRow, existingRow);
+            applyFloodLightConfigToRow(headerRow, existingRow, themeName, false); // 更新现有主题，isNewTheme=false
         } else if (sheetName === 'VolumetricFog') {
-            applyVolumetricFogConfigToRow(headerRow, existingRow);
+            applyVolumetricFogConfigToRow(headerRow, existingRow, themeName, false); // 更新现有主题，isNewTheme=false
         }
 
         console.log(`✅ ${sheetName}中主题"${themeName}"的配置已更新`);
@@ -4203,9 +6716,10 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
      * @param {Array} sheetData - sheet数据数组
      * @param {string} themeName - 主题名称
      * @param {string} sheetName - sheet名称
+     * @param {boolean} isNewTheme - 是否为新建主题
      * @returns {Object} 处理结果
      */
-    function addNewRowToSheet(sheetData, themeName, sheetName) {
+    function addNewRowToSheet(sheetData, themeName, sheetName, isNewTheme = true) {
         console.log(`=== 开始向${sheetName}添加新行 ===`);
 
         if (sheetData.length === 0) {
@@ -4251,13 +6765,13 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
         // 根据sheet类型应用用户配置的数据
         if (sheetName === 'Light') {
-            applyLightConfigToRow(headerRow, newRow);
+            applyLightConfigToRow(headerRow, newRow, themeName, isNewTheme);
         } else if (sheetName === 'ColorInfo') {
-            applyColorInfoConfigToRow(headerRow, newRow);
+            applyColorInfoConfigToRow(headerRow, newRow, themeName, isNewTheme);
         } else if (sheetName === 'FloodLight') {
-            applyFloodLightConfigToRow(headerRow, newRow);
+            applyFloodLightConfigToRow(headerRow, newRow, themeName, isNewTheme);
         } else if (sheetName === 'VolumetricFog') {
-            applyVolumetricFogConfigToRow(headerRow, newRow);
+            applyVolumetricFogConfigToRow(headerRow, newRow, themeName, isNewTheme);
         }
 
         // 添加新行到数据数组
@@ -4278,14 +6792,17 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
      * 应用Light配置数据到新行
      * @param {Array} headerRow - 表头行
      * @param {Array} newRow - 新行数据
+     * @param {string} themeName - 主题名称（可选，用于直接映射模式）
+     * @param {boolean} isNewTheme - 是否为新建主题（可选，用于直接映射模式）
      */
-    function applyLightConfigToRow(headerRow, newRow) {
+    function applyLightConfigToRow(headerRow, newRow, themeName = '', isNewTheme = false) {
         console.log('=== 开始应用Light配置数据到新行 ===');
+        console.log(`主题名称: ${themeName}, 是否新建主题: ${isNewTheme}`);
 
         try {
-            // 获取用户配置的Light数据
-            const lightConfig = getLightConfigData();
-            console.log('用户配置的Light数据:', lightConfig);
+            // 检查是否为直接映射模式
+            const isDirectMode = currentMappingMode === 'direct';
+            console.log(`当前映射模式: ${currentMappingMode}, 是否直接映射: ${isDirectMode}`);
 
             // Light字段映射
             const lightFieldMapping = {
@@ -4301,9 +6818,39 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             Object.entries(lightFieldMapping).forEach(([columnName, configKey]) => {
                 const columnIndex = headerRow.findIndex(col => col === columnName);
                 if (columnIndex !== -1) {
-                    const value = lightConfig[configKey];
+                    let value;
+
+                    if (isDirectMode && themeName) {
+                        // 直接映射模式：使用条件读取逻辑
+                        console.log(`直接映射模式：查找Light字段 ${columnName}`);
+                        const directValue = findLightValueDirect(columnName, isNewTheme, themeName);
+
+                        if (directValue !== null && directValue !== undefined && directValue !== '') {
+                            value = directValue;
+                            console.log(`✅ 直接映射找到Light字段值: ${columnName} = ${value}`);
+                        } else {
+                            // 使用默认值（从上一个主题获取）
+                            const defaultConfig = getLastThemeLightConfig();
+                            const defaultKey = {
+                                'Max': 'lightMax',
+                                'Dark': 'lightDark',
+                                'Min': 'lightMin',
+                                'SpecularLevel': 'lightSpecularLevel',
+                                'Gloss': 'lightGloss',
+                                'SpecularColor': 'lightSpecularColor'
+                            }[columnName];
+                            value = defaultConfig[defaultKey] || '0';
+                            console.log(`⚠️ 直接映射未找到Light字段值，使用默认值: ${columnName} = ${value}`);
+                        }
+                    } else {
+                        // 非直接映射模式：使用用户配置的数据
+                        const lightConfig = getLightConfigData();
+                        value = lightConfig[configKey];
+                        console.log(`常规模式使用用户配置: ${columnName} = ${value}`);
+                    }
+
                     newRow[columnIndex] = value.toString();
-                    console.log(`Light配置: ${columnName} = ${value} (列索引: ${columnIndex})`);
+                    console.log(`Light配置应用: ${columnName} = ${value} (列索引: ${columnIndex})`);
                 } else {
                     console.warn(`Light sheet中找不到列: ${columnName}`);
                 }
@@ -4319,17 +6866,28 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
      * 应用FloodLight配置数据到新行
      * @param {Array} headerRow - 表头行
      * @param {Array} newRow - 新行数据
+     * @param {string} themeName - 主题名称（可选，用于直接映射模式）
+     * @param {boolean} isNewTheme - 是否为新建主题（可选，用于直接映射模式）
      */
-    function applyFloodLightConfigToRow(headerRow, newRow) {
+    function applyFloodLightConfigToRow(headerRow, newRow, themeName = '', isNewTheme = false) {
         console.log('=== 开始应用FloodLight配置数据到新行 ===');
+        console.log(`主题名称: ${themeName}, 是否新建主题: ${isNewTheme}`);
 
         try {
-            // 获取用户配置的FloodLight数据
-            const floodLightConfig = getFloodLightConfigData();
-            console.log('用户配置的FloodLight数据:', floodLightConfig);
+            // 检测映射模式
+            const isDirectMode = currentMappingMode === 'direct';
+            console.log(`当前映射模式: ${currentMappingMode}, 是否直接映射: ${isDirectMode}`);
 
-            // FloodLight字段映射
-            const floodLightFieldMapping = {
+            // 检查Status工作表中FloodLight状态
+            let floodLightStatusFromStatus = 0;
+            if (isDirectMode && sourceData && sourceData.workbook) {
+                const statusInfo = parseStatusSheet(sourceData);
+                floodLightStatusFromStatus = statusInfo.floodLightStatus;
+                console.log(`Status工作表FloodLight状态: ${floodLightStatusFromStatus}`);
+            }
+
+            // 定义UI配置字段（这些字段有对应的UI输入控件）
+            const uiConfiguredFields = {
                 'Color': 'Color',
                 'TippingPoint': 'TippingPoint',
                 'Strength': 'Strength',
@@ -4338,16 +6896,92 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 'LightStrength': 'LightStrength'
             };
 
-            // 应用FloodLight配置到新行
-            Object.entries(floodLightFieldMapping).forEach(([columnName, configKey]) => {
-                const columnIndex = headerRow.findIndex(col => col === columnName);
-                if (columnIndex !== -1) {
-                    const value = floodLightConfig[configKey];
-                    newRow[columnIndex] = value.toString();
-                    console.log(`FloodLight配置: ${columnName} = ${value} (列索引: ${columnIndex})`);
-                } else {
-                    console.warn(`FloodLight sheet中找不到列: ${columnName}`);
+            // 系统字段（跳过处理）
+            const systemFields = ['id', 'notes'];
+
+            // 动态处理所有字段
+            headerRow.forEach((columnName, columnIndex) => {
+                // 跳过系统字段
+                if (systemFields.includes(columnName)) {
+                    console.log(`跳过系统字段: ${columnName}`);
+                    return;
                 }
+
+                let value = '';
+
+                // 判断是否为UI配置字段
+                if (uiConfiguredFields[columnName]) {
+                    // UI配置字段：使用现有逻辑
+                    const configKey = uiConfiguredFields[columnName];
+                    console.log(`处理UI配置字段: ${columnName} -> ${configKey}`);
+
+                    if (isDirectMode && themeName) {
+                        // 特殊处理IsOn字段：如果Status工作表中FloodLight状态为1，则自动设置为1
+                        if (columnName === 'IsOn' && floodLightStatusFromStatus === 1) {
+                            value = '1';
+                            console.log(`✅ Status工作表FloodLight状态为1，自动设置IsOn: ${columnName} = ${value}`);
+                        } else {
+                            // 直接映射模式：使用条件读取逻辑
+                            console.log(`直接映射模式：查找UI配置字段 ${columnName}`);
+                            const directValue = findFloodLightValueDirect(columnName, isNewTheme, themeName);
+
+                            if (directValue !== null && directValue !== undefined && directValue !== '') {
+                                value = directValue;
+                                console.log(`✅ 直接映射找到UI配置字段值: ${columnName} = ${value}`);
+                            } else {
+                                // 使用UI配置的值
+                                const floodLightConfig = getFloodLightConfigData();
+                                value = floodLightConfig[configKey] || '0';
+                                console.log(`使用UI配置值: ${columnName} = ${value}`);
+                            }
+                        }
+                    } else {
+                        // 非直接映射模式：使用UI配置的数据
+                        const floodLightConfig = getFloodLightConfigData();
+                        value = floodLightConfig[configKey] || '0';
+                        console.log(`非直接映射模式，使用UI配置: ${columnName} = ${value}`);
+                    }
+                } else {
+                    // 非UI配置的字段：使用条件读取逻辑获取正确值
+                    console.log(`处理非UI配置字段: ${columnName}`);
+
+                    if (isDirectMode && themeName) {
+                        // 直接映射模式：使用条件读取逻辑
+                        const directValue = findFloodLightValueDirect(columnName, isNewTheme, themeName);
+
+                        if (directValue !== null && directValue !== undefined && directValue !== '') {
+                            value = directValue;
+                            console.log(`✅ 直接映射找到非UI字段值: ${columnName} = ${value}`);
+                        } else {
+                            // 🔧 修复：优化默认值处理逻辑
+                            if (!isNewTheme && themeName) {
+                                // 更新现有主题：从RSC_Theme获取现有值
+                                const rscValue = findFloodLightValueFromRSCThemeFloodLight(columnName, themeName);
+                                if (rscValue !== null && rscValue !== undefined && rscValue !== '') {
+                                    value = rscValue;
+                                    console.log(`从RSC_Theme获取现有值: ${columnName} = ${value}`);
+                                } else {
+                                    // 如果RSC_Theme也没有值，保持模板行的原有值
+                                    value = newRow[columnIndex] || '';
+                                    console.log(`保持模板行原有值: ${columnName} = ${value}`);
+                                }
+                            } else {
+                                // 新建主题：保持模板行的原有值，不强制设置为'0'
+                                value = newRow[columnIndex] || '';
+                                console.log(`新建主题保持模板行值: ${columnName} = ${value}`);
+                            }
+                        }
+                    } else {
+                        // 非直接映射模式：从RSC_Theme获取最后一个主题的值
+                        const defaultConfig = getLastThemeFloodLightConfig();
+                        value = defaultConfig[columnName] || newRow[columnIndex] || '';
+                        console.log(`非直接映射模式，使用默认配置: ${columnName} = ${value}`);
+                    }
+                }
+
+                // 应用值到新行
+                newRow[columnIndex] = value;
+                console.log(`  设置 ${columnName} (索引${columnIndex}) = ${value}`);
             });
 
             console.log('✅ FloodLight配置数据应用完成');
@@ -4360,17 +6994,28 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
      * 应用VolumetricFog配置数据到新行
      * @param {Array} headerRow - 表头行
      * @param {Array} newRow - 新行数据
+     * @param {string} themeName - 主题名称（可选，用于直接映射模式）
+     * @param {boolean} isNewTheme - 是否为新建主题（可选，用于直接映射模式）
      */
-    function applyVolumetricFogConfigToRow(headerRow, newRow) {
+    function applyVolumetricFogConfigToRow(headerRow, newRow, themeName = '', isNewTheme = false) {
         console.log('=== 开始应用VolumetricFog配置数据到新行 ===');
+        console.log(`主题名称: ${themeName}, 是否新建主题: ${isNewTheme}`);
 
         try {
-            // 获取用户配置的VolumetricFog数据
-            const volumetricFogConfig = getVolumetricFogConfigData();
-            console.log('用户配置的VolumetricFog数据:', volumetricFogConfig);
+            // 检查是否为直接映射模式
+            const isDirectMode = currentMappingMode === 'direct';
+            console.log(`当前映射模式: ${currentMappingMode}, 是否直接映射: ${isDirectMode}`);
 
-            // VolumetricFog字段映射
-            const volumetricFogFieldMapping = {
+            // 检查Status工作表中VolumetricFog状态
+            let volumetricFogStatusFromStatus = 0;
+            if (isDirectMode && sourceData && sourceData.workbook) {
+                const statusInfo = parseStatusSheet(sourceData);
+                volumetricFogStatusFromStatus = statusInfo.volumetricFogStatus;
+                console.log(`Status工作表VolumetricFog状态: ${volumetricFogStatusFromStatus}`);
+            }
+
+            // UI配置的字段（有UI界面配置）
+            const uiConfiguredFields = {
                 'Color': 'Color',
                 'X': 'X',
                 'Y': 'Y',
@@ -4380,16 +7025,88 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 'IsOn': 'IsOn'
             };
 
-            // 应用VolumetricFog配置到新行
-            Object.entries(volumetricFogFieldMapping).forEach(([columnName, configKey]) => {
-                const columnIndex = headerRow.findIndex(col => col === columnName);
-                if (columnIndex !== -1) {
-                    const configValue = volumetricFogConfig[configKey];
-                    newRow[columnIndex] = configValue;
-                    console.log(`  设置 ${columnName} (索引${columnIndex}) = ${configValue}`);
-                } else {
-                    console.warn(`  VolumetricFog表中找不到列: ${columnName}`);
+            // 跳过的系统字段
+            const systemFields = ['id', 'notes'];
+
+            // 动态处理所有字段
+            headerRow.forEach((columnName, columnIndex) => {
+                if (systemFields.includes(columnName)) {
+                    return; // 跳过系统字段
                 }
+
+                let value = '';
+
+                if (uiConfiguredFields[columnName]) {
+                    // UI配置字段：使用现有逻辑
+                    const configKey = uiConfiguredFields[columnName];
+
+                    if (isDirectMode && themeName) {
+                        // 特殊处理IsOn字段：如果Status工作表中VolumetricFog状态为1，则自动设置为1
+                        if (columnName === 'IsOn' && volumetricFogStatusFromStatus === 1) {
+                            value = '1';
+                            console.log(`✅ Status工作表VolumetricFog状态为1，自动设置IsOn: ${columnName} = ${value}`);
+                        } else {
+                            // 直接映射模式：使用条件读取逻辑
+                            console.log(`直接映射模式：查找UI配置字段 ${columnName}`);
+                            const directValue = findVolumetricFogValueDirect(columnName, isNewTheme, themeName);
+
+                            if (directValue !== null && directValue !== undefined && directValue !== '') {
+                                value = directValue;
+                                console.log(`✅ 直接映射找到UI配置字段值: ${columnName} = ${value}`);
+                            } else {
+                                // 使用UI配置的值
+                                const volumetricFogConfig = getVolumetricFogConfigData();
+                                value = volumetricFogConfig[configKey] || '0';
+                                console.log(`使用UI配置值: ${columnName} = ${value}`);
+                            }
+                        }
+                    } else {
+                        // 非直接映射模式：使用UI配置
+                        const volumetricFogConfig = getVolumetricFogConfigData();
+                        value = volumetricFogConfig[configKey] || '0';
+                        console.log(`非直接映射模式，使用UI配置: ${columnName} = ${value}`);
+                    }
+                } else {
+                    // 非UI配置的字段：使用条件读取逻辑获取正确值
+                    console.log(`处理非UI配置字段: ${columnName}`);
+
+                    if (isDirectMode && themeName) {
+                        // 直接映射模式：使用条件读取逻辑
+                        const directValue = findVolumetricFogValueDirect(columnName, isNewTheme, themeName);
+
+                        if (directValue !== null && directValue !== undefined && directValue !== '') {
+                            value = directValue;
+                            console.log(`✅ 直接映射找到非UI字段值: ${columnName} = ${value}`);
+                        } else {
+                            // 🔧 修复：优化默认值处理逻辑
+                            if (!isNewTheme && themeName) {
+                                // 更新现有主题：从RSC_Theme获取现有值
+                                const rscValue = findVolumetricFogValueFromRSCThemeVolumetricFog(columnName, themeName);
+                                if (rscValue !== null && rscValue !== undefined && rscValue !== '') {
+                                    value = rscValue;
+                                    console.log(`从RSC_Theme获取现有值: ${columnName} = ${value}`);
+                                } else {
+                                    // 如果RSC_Theme也没有值，保持模板行的原有值
+                                    value = newRow[columnIndex] || '';
+                                    console.log(`保持模板行原有值: ${columnName} = ${value}`);
+                                }
+                            } else {
+                                // 新建主题：保持模板行的原有值，不强制设置为'0'
+                                value = newRow[columnIndex] || '';
+                                console.log(`新建主题保持模板行值: ${columnName} = ${value}`);
+                            }
+                        }
+                    } else {
+                        // 非直接映射模式：从RSC_Theme获取最后一个主题的值
+                        const defaultConfig = getLastThemeVolumetricFogConfig();
+                        value = defaultConfig[columnName] || newRow[columnIndex] || '';
+                        console.log(`非直接映射模式，使用默认配置: ${columnName} = ${value}`);
+                    }
+                }
+
+                // 应用值到新行
+                newRow[columnIndex] = value;
+                console.log(`  设置 ${columnName} (索引${columnIndex}) = ${value}`);
             });
 
             console.log('✅ VolumetricFog配置数据应用完成');
@@ -4402,17 +7119,20 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
      * 应用ColorInfo配置数据到新行
      * @param {Array} headerRow - 表头行
      * @param {Array} newRow - 新行数据
+     * @param {string} themeName - 主题名称（可选，用于直接映射模式）
+     * @param {boolean} isNewTheme - 是否为新建主题（可选，用于直接映射模式）
      */
-    function applyColorInfoConfigToRow(headerRow, newRow) {
+    function applyColorInfoConfigToRow(headerRow, newRow, themeName = '', isNewTheme = false) {
         console.log('=== 开始应用ColorInfo配置数据到新行 ===');
+        console.log(`主题名称: ${themeName}, 是否新建主题: ${isNewTheme}`);
 
         try {
-            // 获取用户配置的ColorInfo数据
-            const colorInfoConfig = getColorInfoConfigData();
-            console.log('用户配置的ColorInfo数据:', colorInfoConfig);
+            // 检查是否为直接映射模式
+            const isDirectMode = currentMappingMode === 'direct';
+            console.log(`当前映射模式: ${currentMappingMode}, 是否直接映射: ${isDirectMode}`);
 
-            // ColorInfo字段映射
-            const colorInfoFieldMapping = {
+            // UI配置的ColorInfo字段映射（这些字段有UI界面配置）
+            const uiConfiguredFields = {
                 'PickupDiffR': 'PickupDiffR',
                 'PickupDiffG': 'PickupDiffG',
                 'PickupDiffB': 'PickupDiffB',
@@ -4429,15 +7149,83 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 'FogEnd': 'FogEnd'
             };
 
-            // 应用ColorInfo配置到新行
-            Object.entries(colorInfoFieldMapping).forEach(([columnName, configKey]) => {
-                const columnIndex = headerRow.findIndex(col => col === columnName);
-                if (columnIndex !== -1) {
-                    const value = colorInfoConfig[configKey];
-                    newRow[columnIndex] = value.toString();
-                    console.log(`ColorInfo配置: ${columnName} = ${value} (列索引: ${columnIndex})`);
+            // 跳过的系统字段（不需要处理的字段）
+            const systemFields = ['id', 'notes'];
+
+            // 处理所有ColorInfo字段
+            headerRow.forEach((columnName, columnIndex) => {
+                // 跳过系统字段
+                if (systemFields.includes(columnName)) {
+                    console.log(`跳过系统字段: ${columnName}`);
+                    return;
+                }
+
+                let value;
+
+                if (uiConfiguredFields[columnName]) {
+                    // UI配置的字段：使用现有逻辑
+                    const configKey = uiConfiguredFields[columnName];
+
+                    if (isDirectMode && themeName) {
+                        // 直接映射模式：使用条件读取逻辑
+                        console.log(`直接映射模式：查找UI配置字段 ${columnName}`);
+                        const directValue = findColorInfoValueDirect(columnName, isNewTheme, themeName);
+
+                        if (directValue !== null && directValue !== undefined && directValue !== '') {
+                            value = directValue;
+                            console.log(`✅ 直接映射找到UI配置字段值: ${columnName} = ${value}`);
+                        } else {
+                            // 使用默认值（从上一个主题获取）
+                            const defaultConfig = getLastThemeColorInfoConfig();
+                            value = defaultConfig[configKey] || '0';
+                            console.log(`⚠️ 直接映射未找到UI配置字段值，使用默认值: ${columnName} = ${value}`);
+                        }
+                    } else {
+                        // 非直接映射模式：使用用户配置的数据
+                        const colorInfoConfig = getColorInfoConfigData();
+                        value = colorInfoConfig[configKey];
+                        console.log(`常规模式使用用户配置: ${columnName} = ${value}`);
+                    }
                 } else {
-                    console.warn(`ColorInfo sheet中找不到列: ${columnName}`);
+                    // 非UI配置的字段：使用条件读取逻辑获取正确值
+                    console.log(`处理非UI配置字段: ${columnName}`);
+
+                    if (isDirectMode && themeName) {
+                        // 直接映射模式：使用条件读取逻辑
+                        const directValue = findColorInfoValueDirect(columnName, isNewTheme, themeName);
+
+                        if (directValue !== null && directValue !== undefined && directValue !== '') {
+                            value = directValue;
+                            console.log(`✅ 直接映射找到非UI字段值: ${columnName} = ${value}`);
+                        } else {
+                            // 从RSC_Theme获取默认值
+                            if (!isNewTheme && themeName) {
+                                const rscValue = findColorInfoValueFromRSCThemeColorInfo(columnName, themeName);
+                                if (rscValue !== null && rscValue !== undefined && rscValue !== '') {
+                                    value = rscValue;
+                                    console.log(`✅ 从RSC_Theme获取非UI字段默认值: ${columnName} = ${value}`);
+                                } else {
+                                    value = '0'; // 最终默认值
+                                    console.log(`⚠️ 使用最终默认值: ${columnName} = ${value}`);
+                                }
+                            } else {
+                                value = '0'; // 新建主题的默认值
+                                console.log(`⚠️ 新建主题使用默认值: ${columnName} = ${value}`);
+                            }
+                        }
+                    } else {
+                        // 非直接映射模式：从RSC_Theme获取最后一个主题的值
+                        const defaultConfig = getLastThemeColorInfoConfig();
+                        // 尝试从默认配置中获取，如果没有则使用0
+                        value = defaultConfig[columnName] || '0';
+                        console.log(`非直接映射模式，非UI字段使用默认配置: ${columnName} = ${value}`);
+                    }
+                }
+
+                // 应用值到新行
+                if (value !== undefined && value !== null) {
+                    newRow[columnIndex] = value.toString();
+                    console.log(`ColorInfo配置应用: ${columnName} = ${value} (列索引: ${columnIndex})`);
                 }
             });
 
@@ -5070,12 +7858,27 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
      * @param {Array} headerRow - 表头行
      * @param {Array} newRow - 新行数据
      */
-    function applyUGCFieldSettings(sheetName, headerRow, newRow) {
-        const ugcConfig = getUGCConfigData();
-        console.log(`应用UGC字段设置到Sheet ${sheetName}:`, ugcConfig);
+    function applyUGCFieldSettings(sheetName, headerRow, newRow, themeName = '', isNewTheme = false) {
+        console.log(`\n=== 应用UGC字段设置到Sheet ${sheetName} (主题: ${themeName}, 新主题: ${isNewTheme}) ===`);
 
-        // 定义每个sheet对应的字段映射
-        const sheetFieldMapping = {
+        // 检查是否为直接映射模式
+        const isDirectMode = currentMappingMode === 'direct';
+        console.log(`当前映射模式: ${currentMappingMode}, 直接映射: ${isDirectMode}`);
+
+        // 定义条件读取函数映射
+        const conditionalReadFunctions = {
+            'Custom_Ground_Color': findCustomGroundColorValueDirect,
+            'Custom_Fragile_Color': findCustomFragileColorValueDirect,
+            'Custom_Fragile_Active_Color': findCustomFragileActiveColorValueDirect,
+            'Custom_Jump_Color': findCustomJumpColorValueDirect,
+            'Custom_Jump_Active_Color': findCustomJumpActiveColorValueDirect
+        };
+
+        // 获取UI配置数据作为回退
+        const ugcConfig = getUGCConfigData();
+
+        // 定义UI配置字段映射（仅作为回退）
+        const uiConfigMapping = {
             'Custom_Ground_Color': {
                 '_PatternUpIndex': ugcConfig.groundPatternIndex,
                 '_FrameIndex': ugcConfig.groundFrameIndex
@@ -5102,22 +7905,62 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             }
         };
 
-        const fieldMapping = sheetFieldMapping[sheetName];
-        if (!fieldMapping) {
-            console.log(`Sheet ${sheetName} 不需要UGC字段设置`);
-            return;
-        }
+        console.log(`\n📊 开始处理Sheet ${sheetName} 的所有字段 (共${headerRow.length}个字段)`);
+        console.log(`表头:`, headerRow);
 
-        // 应用字段设置
-        Object.entries(fieldMapping).forEach(([columnName, value]) => {
-            const columnIndex = headerRow.findIndex(col => col === columnName);
-            if (columnIndex !== -1) {
-                newRow[columnIndex] = value.toString();
-                console.log(`Sheet ${sheetName} 设置 ${columnName} = ${value} (列索引: ${columnIndex})`);
-            } else {
-                console.warn(`Sheet ${sheetName} 中找不到列 ${columnName}`);
+        // 遍历工作表中的所有字段（动态字段处理）
+        headerRow.forEach((columnName, columnIndex) => {
+            // 跳过空列名
+            if (!columnName || columnName.toString().trim() === '') {
+                return;
             }
+
+            // 跳过系统字段（id、LevelName等已在其他地方处理）
+            const systemFields = ['id', 'LevelName', 'levelname', 'LevelName_ID', 'levelname_id',
+                                  'Level_id', 'level_id', 'LevelId', 'Level_show_id', 'Level_show_bg_ID'];
+            if (systemFields.some(sf => columnName.toLowerCase().includes(sf.toLowerCase()))) {
+                console.log(`⏭️ 跳过系统字段: ${columnName}`);
+                return;
+            }
+
+            let finalValue = newRow[columnIndex]; // 默认保留模板行的值
+
+            // 如果是直接映射模式且有条件读取函数，尝试从源数据读取
+            if (isDirectMode && themeName && conditionalReadFunctions[sheetName]) {
+                const conditionalReadFunc = conditionalReadFunctions[sheetName];
+                const directValue = conditionalReadFunc(columnName, isNewTheme, themeName);
+
+                if (directValue !== null && directValue !== undefined && directValue !== '') {
+                    finalValue = directValue;
+                    console.log(`✅ [源数据读取] Sheet ${sheetName} 字段 ${columnName}: ${finalValue}`);
+                } else {
+                    // 条件读取返回空，检查是否有UI配置值
+                    const uiConfig = uiConfigMapping[sheetName];
+                    if (uiConfig && uiConfig[columnName] !== undefined) {
+                        finalValue = uiConfig[columnName];
+                        console.log(`📋 [UI配置] Sheet ${sheetName} 字段 ${columnName}: ${finalValue}`);
+                    } else {
+                        // 保留模板行的值
+                        console.log(`🔄 [保留模板] Sheet ${sheetName} 字段 ${columnName}: ${finalValue}`);
+                    }
+                }
+            } else {
+                // 非直接映射模式，使用UI配置或保留模板值
+                const uiConfig = uiConfigMapping[sheetName];
+                if (uiConfig && uiConfig[columnName] !== undefined) {
+                    finalValue = uiConfig[columnName];
+                    console.log(`📋 [UI配置] Sheet ${sheetName} 字段 ${columnName}: ${finalValue}`);
+                } else {
+                    console.log(`🔄 [保留模板] Sheet ${sheetName} 字段 ${columnName}: ${finalValue}`);
+                }
+            }
+
+            // 设置最终值
+            newRow[columnIndex] = finalValue !== null && finalValue !== undefined ? finalValue.toString() : '';
         });
+
+        console.log(`✅ Sheet ${sheetName} 所有字段处理完成`);
+        console.log(`最终行数据:`, newRow);
     }
 
     /**
@@ -5175,37 +8018,13 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             const workbook = ugcThemeData.workbook;
             const processedSheets = [];
 
-            // 定义需要更新的sheet和字段映射
-            const sheetFieldMapping = {
-                'Custom_Ground_Color': {
-                    '_PatternUpIndex': ugcConfig.groundPatternIndex,
-                    '_FrameIndex': ugcConfig.groundFrameIndex
-                },
-                'Custom_Fragile_Color': {
-                    '_PatternUpIndex': ugcConfig.fragilePatternIndex,
-                    '_FrameIndex': ugcConfig.fragileFrameIndex,
-                    '_GlassAlpha': ugcConfig.fragileGlassAlpha,
-                    '_PatternAlpha': ugcConfig.fragilePatternAlpha
-                },
-                'Custom_Fragile_Active_Color': {
-                    '_PatternUpIndex': ugcConfig.fragileActivePatternIndex,
-                    '_FrameIndex': ugcConfig.fragileActiveFrameIndex,
-                    '_GlassAlpha': ugcConfig.fragileActiveGlassAlpha,
-                    '_PatternAlpha': ugcConfig.fragileActivePatternAlpha
-                },
-                'Custom_Jump_Color': {
-                    '_PatternUpIndex': ugcConfig.jumpPatternIndex,
-                    '_FrameIndex': ugcConfig.jumpFrameIndex
-                },
-                'Custom_Jump_Active_Color': {
-                    '_PatternUpIndex': ugcConfig.jumpActivePatternIndex,
-                    '_FrameIndex': ugcConfig.jumpActiveFrameIndex
-                }
-            };
+            // 获取需要处理的UGC工作表列表（根据Status状态）
+            const activeUGCSheets = getActiveUGCSheetsByStatus();
+            console.log(`根据Status状态，需要处理的UGC工作表: [${activeUGCSheets.join(', ')}]`);
 
-            // 第三步：更新每个相关的sheet
-            Object.entries(sheetFieldMapping).forEach(([sheetName, fieldMapping]) => {
-                console.log(`\n--- 更新Sheet: ${sheetName} ---`);
+            // 第三步：更新每个相关的sheet（仅处理Status状态允许的工作表）
+            activeUGCSheets.forEach(sheetName => {
+                console.log(`\n--- ✅ 更新Sheet: ${sheetName} (Status状态允许) ---`);
 
                 const worksheet = workbook.Sheets[sheetName];
                 if (!worksheet) {
@@ -5227,19 +8046,110 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 const headerRow = data[0];
                 const targetRow = data[targetRowNumber];
 
-                console.log(`Sheet ${sheetName} 更新行 ${targetRowNumber}:`, targetRow);
+                console.log(`Sheet ${sheetName} 更新行 ${targetRowNumber} (共${headerRow.length}个字段)`);
+                console.log(`表头:`, headerRow);
+                console.log(`更新前的行数据:`, targetRow);
 
-                // 更新字段值
-                Object.entries(fieldMapping).forEach(([columnName, value]) => {
-                    const columnIndex = headerRow.findIndex(col => col === columnName);
-                    if (columnIndex !== -1) {
-                        const oldValue = targetRow[columnIndex];
-                        targetRow[columnIndex] = value.toString();
-                        console.log(`Sheet ${sheetName} 更新 ${columnName}: ${oldValue} -> ${value}`);
-                    } else {
-                        console.warn(`Sheet ${sheetName} 中找不到列 ${columnName}`);
+                // 检查是否为直接映射模式
+                const isDirectMode = currentMappingMode === 'direct';
+                console.log(`当前映射模式: ${currentMappingMode}, 直接映射: ${isDirectMode}`);
+
+                // 定义条件读取函数映射
+                const conditionalReadFunctions = {
+                    'Custom_Ground_Color': findCustomGroundColorValueDirect,
+                    'Custom_Fragile_Color': findCustomFragileColorValueDirect,
+                    'Custom_Fragile_Active_Color': findCustomFragileActiveColorValueDirect,
+                    'Custom_Jump_Color': findCustomJumpColorValueDirect,
+                    'Custom_Jump_Active_Color': findCustomJumpActiveColorValueDirect
+                };
+
+                // 定义UI配置字段映射（仅作为回退）
+                const uiConfigMapping = {
+                    'Custom_Ground_Color': {
+                        '_PatternUpIndex': ugcConfig.groundPatternIndex,
+                        '_FrameIndex': ugcConfig.groundFrameIndex
+                    },
+                    'Custom_Fragile_Color': {
+                        '_PatternUpIndex': ugcConfig.fragilePatternIndex,
+                        '_FrameIndex': ugcConfig.fragileFrameIndex,
+                        '_GlassAlpha': ugcConfig.fragileGlassAlpha,
+                        '_PatternAlpha': ugcConfig.fragilePatternAlpha
+                    },
+                    'Custom_Fragile_Active_Color': {
+                        '_PatternUpIndex': ugcConfig.fragileActivePatternIndex,
+                        '_FrameIndex': ugcConfig.fragileActiveFrameIndex,
+                        '_GlassAlpha': ugcConfig.fragileActiveGlassAlpha,
+                        '_PatternAlpha': ugcConfig.fragileActivePatternAlpha
+                    },
+                    'Custom_Jump_Color': {
+                        '_PatternUpIndex': ugcConfig.jumpPatternIndex,
+                        '_FrameIndex': ugcConfig.jumpFrameIndex
+                    },
+                    'Custom_Jump_Active_Color': {
+                        '_PatternUpIndex': ugcConfig.jumpActivePatternIndex,
+                        '_FrameIndex': ugcConfig.jumpActiveFrameIndex
                     }
+                };
+
+                const updatedFields = [];
+
+                // 遍历工作表中的所有字段（动态字段处理）
+                headerRow.forEach((columnName, columnIndex) => {
+                    // 跳过空列名
+                    if (!columnName || columnName.toString().trim() === '') {
+                        return;
+                    }
+
+                    // 跳过系统字段（id、LevelName等已在其他地方处理）
+                    const systemFields = ['id', 'LevelName', 'levelname', 'LevelName_ID', 'levelname_id',
+                                          'Level_id', 'level_id', 'LevelId', 'Level_show_id', 'Level_show_bg_ID'];
+                    if (systemFields.some(sf => columnName.toLowerCase().includes(sf.toLowerCase()))) {
+                        console.log(`⏭️ 跳过系统字段: ${columnName}`);
+                        return;
+                    }
+
+                    const oldValue = targetRow[columnIndex];
+                    let finalValue = oldValue; // 默认保留原值
+
+                    // 如果是直接映射模式且有条件读取函数，尝试从源数据读取
+                    if (isDirectMode && themeName && conditionalReadFunctions[sheetName]) {
+                        const conditionalReadFunc = conditionalReadFunctions[sheetName];
+                        const directValue = conditionalReadFunc(columnName, false, themeName); // isNewTheme=false
+
+                        if (directValue !== null && directValue !== undefined && directValue !== '') {
+                            finalValue = directValue;
+                            console.log(`✅ [源数据读取] Sheet ${sheetName} 字段 ${columnName}: ${oldValue} -> ${finalValue}`);
+                            updatedFields.push(columnName);
+                        } else {
+                            // 条件读取返回空，检查是否有UI配置值
+                            const uiConfig = uiConfigMapping[sheetName];
+                            if (uiConfig && uiConfig[columnName] !== undefined) {
+                                finalValue = uiConfig[columnName];
+                                console.log(`📋 [UI配置] Sheet ${sheetName} 字段 ${columnName}: ${oldValue} -> ${finalValue}`);
+                                updatedFields.push(columnName);
+                            } else {
+                                // 保留原值
+                                console.log(`🔄 [保留原值] Sheet ${sheetName} 字段 ${columnName}: ${finalValue}`);
+                            }
+                        }
+                    } else {
+                        // 非直接映射模式，使用UI配置或保留原值
+                        const uiConfig = uiConfigMapping[sheetName];
+                        if (uiConfig && uiConfig[columnName] !== undefined) {
+                            finalValue = uiConfig[columnName];
+                            console.log(`📋 [UI配置] Sheet ${sheetName} 字段 ${columnName}: ${oldValue} -> ${finalValue}`);
+                            updatedFields.push(columnName);
+                        } else {
+                            console.log(`🔄 [保留原值] Sheet ${sheetName} 字段 ${columnName}: ${finalValue}`);
+                        }
+                    }
+
+                    // 设置最终值
+                    targetRow[columnIndex] = finalValue !== null && finalValue !== undefined ? finalValue.toString() : '';
                 });
+
+                console.log(`✅ Sheet ${sheetName} 所有字段处理完成，更新了 ${updatedFields.length} 个字段`);
+                console.log(`更新后的行数据:`, targetRow);
 
                 // 更新worksheet
                 const newWorksheet = XLSX.utils.aoa_to_sheet(data);
@@ -5248,7 +8158,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 processedSheets.push({
                     sheetName: sheetName,
                     updatedRowIndex: targetRowNumber,
-                    updatedFields: Object.keys(fieldMapping)
+                    updatedFields: updatedFields
                 });
             });
 
@@ -5322,9 +8232,31 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
             const processedSheets = [];
 
-            // 对每个sheet进行处理
+            // 🔧 定义总是需要处理的工作表（新建主题时，这些表总是复制上一行）
+            const alwaysProcessSheets = ['Custom_Enemy_Color', 'Custom_Mover_Color', 'Custom_Mover_Auto_Color'];
+
+            // 获取需要处理的UGC工作表列表（根据Status状态）
+            const activeUGCSheets = getActiveUGCSheetsByStatus();
+            console.log(`根据Status状态，需要处理的UGC工作表: [${activeUGCSheets.join(', ')}]`);
+            console.log(`总是处理的工作表（新建主题）: [${alwaysProcessSheets.join(', ')}]`);
+
+            // 对每个需要处理的sheet进行处理
             for (const sheetName of sheetNames) {
-                console.log(`处理sheet: ${sheetName}`);
+                // 🔧 检查当前工作表是否需要处理
+                const isActiveUGCSheet = activeUGCSheets.includes(sheetName);
+                const isAlwaysProcessSheet = alwaysProcessSheets.includes(sheetName);
+
+                if (!isActiveUGCSheet && !isAlwaysProcessSheet) {
+                    console.log(`⚠️ Sheet ${sheetName} 不在需要处理的列表中，跳过处理`);
+                    continue;
+                }
+
+                if (isAlwaysProcessSheet) {
+                    console.log(`✅ 处理sheet: ${sheetName} (总是处理的工作表)`);
+                } else {
+                    console.log(`✅ 处理sheet: ${sheetName} (Status状态允许)`);
+                }
+
                 const worksheet = workbook.Sheets[sheetName];
                 const data = XLSX.utils.sheet_to_json(worksheet, {
                     header: 1,
@@ -5356,6 +8288,27 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 const lastRow = data[data.length - 1];
                 const newRow = [...lastRow]; // 复制上一行
                 newRow[idColumnIndex] = newId.toString(); // 设置新的ID
+
+                // 🔧 检查是否为"总是处理"的工作表（只需简单复制上一行）
+                if (isAlwaysProcessSheet) {
+                    console.log(`Sheet ${sheetName} 是总是处理的工作表，只复制上一行数据，id=${newId}`);
+
+                    // 添加新行到数据
+                    data.push(newRow);
+
+                    // 更新工作表
+                    const newWorksheet = XLSX.utils.aoa_to_sheet(data);
+                    workbook.Sheets[sheetName] = newWorksheet;
+
+                    processedSheets.push({
+                        sheetName: sheetName,
+                        newId: newId,
+                        action: 'simple_copy'
+                    });
+
+                    console.log(`✅ Sheet ${sheetName} 处理完成（简单复制模式）`);
+                    continue; // 跳过后续复杂处理
+                }
 
                 // 获取智能多语言配置
                 const smartConfig = getSmartMultiLanguageConfig(themeName);
@@ -5520,8 +8473,8 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                     console.warn(`Sheet ${sheetName} 中找不到Level_id相关列`);
                 }
 
-                // 处理UGC特定字段设置
-                applyUGCFieldSettings(sheetName, headerRow, newRow);
+                // 处理UGC特定字段设置（传入themeName和isNewTheme以支持条件读取）
+                applyUGCFieldSettings(sheetName, headerRow, newRow, themeName, true);
 
                 // 设置L列和M列的主题名称
                 const lColumnIndex = 11; // L列通常是第12列（索引11）
@@ -5843,12 +8796,53 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         workbook.Sheets[originalSheetName] = newWorksheet;
         console.log(`✅ 主工作表 "${originalSheetName}" 已更新`);
 
+        // 🔧 关键修复：确保其他工作表不被意外修改
+        // 问题：rscAllSheetsData包含了所有工作表的数据，如果这些数据在之前被修改了，
+        // 那么在保存时会把修改后的数据写回到Excel文件，导致不应该被处理的工作表也被修改了
+        // 解决方案：只更新主工作表和targetSheets中的工作表，其他工作表从rscOriginalSheetsData中重新读取
+        console.log('=== 🔧 开始重置非目标工作表数据 ===');
+
+        // 获取需要处理的目标工作表列表
+        const targetSheets = getActiveSheetsByStatus();
+        console.log('🎯 根据Status状态确定的目标工作表（generateUpdatedWorkbook）:', targetSheets);
+
+        // 定义允许修改的工作表列表（主工作表 + 目标工作表）
+        const allowedSheets = [originalSheetName, ...targetSheets];
+        console.log('✅ 允许修改的工作表列表:', allowedSheets);
+
+        // 遍历所有工作表，重置非目标工作表的数据
+        workbook.SheetNames.forEach(sheetName => {
+            if (!allowedSheets.includes(sheetName)) {
+                // 这个工作表不在允许修改的列表中，需要从原始数据中重新读取
+                console.log(`🔄 重置非目标工作表: ${sheetName}`);
+
+                // 🔧 从rscOriginalSheetsData（原始备份数据）中读取原始数据
+                if (rscOriginalSheetsData && rscOriginalSheetsData[sheetName]) {
+                    const originalSheetData = rscOriginalSheetsData[sheetName];
+
+                    // 重新创建工作表（使用原始备份数据）
+                    const resetWorksheet = XLSX.utils.aoa_to_sheet(originalSheetData);
+
+                    // 替换工作表（使用原始数据）
+                    workbook.Sheets[sheetName] = resetWorksheet;
+
+                    // 同时更新rscAllSheetsData，确保内存数据一致
+                    if (rscAllSheetsData) {
+                        rscAllSheetsData[sheetName] = JSON.parse(JSON.stringify(originalSheetData));
+                    }
+
+                    console.log(`✅ 已重置工作表 "${sheetName}" 为原始数据，行数: ${originalSheetData.length}`);
+                } else {
+                    console.warn(`⚠️ 无法找到工作表 "${sheetName}" 的原始备份数据，跳过重置`);
+                }
+            }
+        });
+
         // 处理目标工作表（严格限制：仅限Light、ColorInfo）
         // 重要约束：不修改RSC_Theme.xls文件中的其他工作表，保持零影响原则
         console.log('=== 开始处理目标工作表 ===');
         console.log(`主工作表名称: ${originalSheetName}`);
 
-        const targetSheets = ['Light', 'ColorInfo', 'FloodLight', 'VolumetricFog'];
         if (rscAllSheetsData) {
             console.log('rscAllSheetsData可用工作表:', Object.keys(rscAllSheetsData));
 
@@ -7332,6 +10326,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         ugcThemeData = null;
         processedResult = null;
         rscAllSheetsData = null;
+        rscOriginalSheetsData = null; // 🔧 清理原始数据备份
         ugcAllSheetsData = null;
 
         // 重置UI状态
@@ -7577,6 +10572,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
             // 存储所有Sheet数据
             rscAllSheetsData = {};
+            rscOriginalSheetsData = {}; // 🔧 同时保存原始数据的深拷贝
             workbook.SheetNames.forEach(sheetName => {
                 const worksheet = workbook.Sheets[sheetName];
                 const sheetData = XLSX.utils.sheet_to_json(worksheet, {
@@ -7585,6 +10581,9 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                     raw: false
                 });
                 rscAllSheetsData[sheetName] = sheetData;
+
+                // 🔧 深拷贝原始数据（用于后续重置非目标工作表）
+                rscOriginalSheetsData[sheetName] = JSON.parse(JSON.stringify(sheetData));
             });
 
             // 显示成功状态
@@ -8015,7 +11014,10 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
             // 同步目标工作表（严格限制：仅限Light、ColorInfo、FloodLight、VolumetricFog）
             // 重要约束：不同步其他工作表，保持零影响原则
-            const targetSheets = ['Light', 'ColorInfo', 'FloodLight', 'VolumetricFog'];
+            // 🔧 修复：根据Status工作表状态获取需要处理的工作表列表
+            const targetSheets = getActiveSheetsByStatus();
+            console.log('🎯 根据Status状态确定的目标工作表（syncMemoryDataState）:', targetSheets);
+
             targetSheets.forEach(sheetName => {
                 if (sheetName !== mainSheetName && workbook.Sheets[sheetName]) {
                     const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
@@ -8155,7 +11157,23 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         updateFileSelectionStatus: updateFileSelectionStatus,
         hideFileSelectionStatus: hideFileSelectionStatus,
         formatFileSize: formatFileSize,
-        getCurrentTimeString: getCurrentTimeString
+        getCurrentTimeString: getCurrentTimeString,
+
+        // 测试功能（用于验证修改）
+        detectMappingMode: detectMappingMode,
+        parseStatusSheet: parseStatusSheet,
+        findLightValueDirect: findLightValueDirect,
+        findLightValueFromSourceLight: findLightValueFromSourceLight,
+        findLightValueFromRSCThemeLight: findLightValueFromRSCThemeLight,
+        loadExistingLightConfig: loadExistingLightConfig,
+        findColorInfoValueDirect: findColorInfoValueDirect,
+        findColorInfoValueFromSourceColorInfo: findColorInfoValueFromSourceColorInfo,
+        findColorInfoValueFromRSCThemeColorInfo: findColorInfoValueFromRSCThemeColorInfo,
+        loadExistingColorInfoConfig: loadExistingColorInfoConfig,
+        findVolumetricFogValueDirect: findVolumetricFogValueDirect,
+        findVolumetricFogValueFromSourceVolumetricFog: findVolumetricFogValueFromSourceVolumetricFog,
+        findVolumetricFogValueFromRSCThemeVolumetricFog: findVolumetricFogValueFromRSCThemeVolumetricFog,
+        loadExistingVolumetricFogConfig: loadExistingVolumetricFogConfig
     };
 
 
@@ -8605,6 +11623,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
             // 存储所有Sheet数据
             rscAllSheetsData = {};
+            rscOriginalSheetsData = {}; // 🔧 同时保存原始数据的深拷贝
             fileData.workbook.SheetNames.forEach(sheetName => {
                 const sheet = fileData.workbook.Sheets[sheetName];
                 const sheetData = XLSX.utils.sheet_to_json(sheet, {
@@ -8613,6 +11632,9 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                     raw: false
                 });
                 rscAllSheetsData[sheetName] = sheetData;
+
+                // 🔧 深拷贝原始数据（用于后续重置非目标工作表）
+                rscOriginalSheetsData[sheetName] = JSON.parse(JSON.stringify(sheetData));
             });
 
             // 更新文件状态显示
@@ -8707,9 +11729,68 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
     /**
      * 加载现有主题的Light配置
+     * @param {string} themeName - 主题名称
+     * @param {boolean} isNewTheme - 是否为新建主题（默认false）
      */
-    function loadExistingLightConfig(themeName) {
-        console.log('加载现有主题的Light配置:', themeName);
+    function loadExistingLightConfig(themeName, isNewTheme = false) {
+        console.log('加载Light配置:', themeName);
+        console.log('是否新建主题:', isNewTheme);
+        console.log('当前映射模式:', currentMappingMode);
+
+        // 检查是否为直接映射模式
+        const isDirectMode = currentMappingMode === 'direct';
+
+        if (isDirectMode) {
+            console.log('直接映射模式：优先从源数据Light工作表读取配置显示');
+
+            // Light字段映射
+            const lightFieldMapping = {
+                'Max': 'lightMax',
+                'Dark': 'lightDark',
+                'Min': 'lightMin',
+                'SpecularLevel': 'lightSpecularLevel',
+                'Gloss': 'lightGloss',
+                'SpecularColor': 'lightSpecularColor'
+            };
+
+            let hasSourceData = false;
+
+            // 尝试从源数据Light工作表读取每个字段
+            Object.entries(lightFieldMapping).forEach(([lightColumn, inputId]) => {
+                // 🔧 使用条件读取逻辑获取Light字段值，传递正确的isNewTheme参数
+                const directValue = findLightValueDirect(lightColumn, isNewTheme, themeName);
+
+                const input = document.getElementById(inputId);
+                if (input) {
+                    if (directValue !== null && directValue !== undefined && directValue !== '') {
+                        input.value = directValue;
+                        hasSourceData = true;
+                        console.log(`✅ 直接映射模式从条件读取获取Light配置: ${lightColumn} = ${directValue}`);
+
+                        // 更新颜色预览
+                        if (inputId === 'lightSpecularColor' && window.App && window.App.ColorPicker) {
+                            window.App.ColorPicker.updateColorPreview(inputId, directValue);
+                        }
+                    } else {
+                        // 如果条件读取失败，使用默认值
+                        const lightDefaults = getLastThemeLightConfig();
+                        const defaultValue = lightDefaults[inputId] || '';
+                        input.value = defaultValue;
+                        console.log(`⚠️ 直接映射模式Light字段条件读取失败，使用默认值: ${lightColumn} = ${defaultValue}`);
+                    }
+                }
+            });
+
+            if (hasSourceData) {
+                console.log('✅ 直接映射模式：成功从源数据加载Light配置');
+                return;
+            } else {
+                console.log('⚠️ 直接映射模式：未能从源数据获取Light配置，回退到RSC_Theme读取');
+            }
+        }
+
+        // 非直接映射模式或直接映射模式回退：从RSC_Theme读取
+        console.log('从RSC_Theme Light工作表读取配置');
 
         if (!rscAllSheetsData || !rscAllSheetsData['Light']) {
             console.log('RSC_Theme Light数据未加载，使用默认值');
@@ -8770,11 +11851,110 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
     }
 
     /**
-     * 加载现有主题的FloodLight配置
+     * 获取最后一个主题的FloodLight配置（用于非直接映射模式的默认值）
+     * @returns {Object} FloodLight配置对象
      */
-    function loadExistingFloodLightConfig(themeName) {
-        console.log('加载现有主题的FloodLight配置:', themeName);
+    function getLastThemeFloodLightConfig() {
+        console.log('=== 获取最后一个主题的FloodLight配置 ===');
 
+        try {
+            if (!rscAllSheetsData || !rscAllSheetsData['FloodLight']) {
+                console.log('RSC_Theme FloodLight数据未加载');
+                return {};
+            }
+
+            const floodLightData = rscAllSheetsData['FloodLight'];
+            if (!floodLightData || floodLightData.length < 2) {
+                console.log('FloodLight工作表数据不足');
+                return {};
+            }
+
+            const headerRow = floodLightData[0];
+            const lastDataRow = floodLightData[floodLightData.length - 1];
+
+            const config = {};
+            headerRow.forEach((columnName, index) => {
+                if (columnName && columnName !== 'id' && columnName !== 'notes') {
+                    config[columnName] = lastDataRow[index] || '';
+                }
+            });
+
+            console.log('最后一个主题的FloodLight配置:', config);
+            return config;
+
+        } catch (error) {
+            console.error('获取最后一个主题的FloodLight配置时出错:', error);
+            return {};
+        }
+    }
+
+    /**
+     * 加载现有主题的FloodLight配置
+     * @param {string} themeName - 主题名称
+     * @param {boolean} isNewTheme - 是否为新建主题（默认false）
+     */
+    function loadExistingFloodLightConfig(themeName, isNewTheme = false) {
+        console.log('加载FloodLight配置:', themeName);
+        console.log('是否新建主题:', isNewTheme);
+
+        // 检测映射模式
+        const isDirectMode = currentMappingMode === 'direct';
+        console.log(`当前映射模式: ${currentMappingMode}, 是否直接映射: ${isDirectMode}`);
+
+        // FloodLight字段映射
+        const floodLightFieldMapping = {
+            'Color': 'floodlightColor',
+            'TippingPoint': 'floodlightTippingPoint',
+            'Strength': 'floodlightStrength',
+            'IsOn': 'floodlightIsOn',
+            'JumpActiveIsLightOn': 'floodlightJumpActiveIsLightOn',
+            'LightStrength': 'floodlightLightStrength'
+        };
+
+        if (isDirectMode && sourceData && sourceData.workbook) {
+            // 直接映射模式：优先使用条件读取逻辑
+            console.log('直接映射模式：使用条件读取逻辑加载FloodLight配置');
+
+            Object.entries(floodLightFieldMapping).forEach(([columnName, fieldId]) => {
+                const input = document.getElementById(fieldId);
+                if (!input) {
+                    console.warn(`未找到UI元素: ${fieldId}`);
+                    return;
+                }
+
+                // 🔧 使用条件读取逻辑获取字段值，传递正确的isNewTheme参数
+                const value = findFloodLightValueDirect(columnName, isNewTheme, themeName);
+
+                if (value !== null && value !== undefined && value !== '') {
+                    if (fieldId === 'floodlightTippingPoint' || fieldId === 'floodlightStrength') {
+                        // 将存储的整数值转换为小数显示（除以10）
+                        const numValue = parseInt(value) || 0;
+                        input.value = (numValue / 10).toFixed(1);
+                        console.log(`✅ 直接映射加载: ${columnName} = ${input.value} (原始值: ${value})`);
+                    } else if (fieldId === 'floodlightIsOn' || fieldId === 'floodlightJumpActiveIsLightOn') {
+                        // 处理checkbox
+                        input.checked = value === 1 || value === '1' || value === true;
+                        console.log(`✅ 直接映射加载: ${columnName} = ${input.checked}`);
+                    } else {
+                        // 颜色值
+                        input.value = value.toString();
+                        console.log(`✅ 直接映射加载: ${columnName} = ${value}`);
+
+                        // 更新颜色预览
+                        if (fieldId === 'floodlightColor') {
+                            updateFloodLightColorPreview();
+                        }
+                    }
+                } else {
+                    console.log(`⚠️ 直接映射未找到字段值: ${columnName}，保持UI默认值`);
+                }
+            });
+
+            console.log('✅ 直接映射模式FloodLight配置加载完成');
+            return;
+        }
+
+        // 非直接映射模式：使用原有逻辑从RSC_Theme加载
         if (!rscAllSheetsData || !rscAllSheetsData['FloodLight']) {
             console.log('RSC_Theme FloodLight数据未加载，使用默认值');
             resetFloodLightConfigToDefaults();
@@ -8807,13 +11987,6 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
         // 加载FloodLight配置值
         const floodLightRow = floodLightData[floodLightThemeRowIndex];
-        const floodLightFieldMapping = {
-            'Color': 'floodlightColor',
-            'TippingPoint': 'floodlightTippingPoint',
-            'Strength': 'floodlightStrength',
-            'IsOn': 'floodlightIsOn',
-            'JumpActiveIsLightOn': 'floodlightJumpActiveIsLightOn'
-        };
 
         Object.entries(floodLightFieldMapping).forEach(([columnName, fieldId]) => {
             const columnIndex = floodLightHeaderRow.findIndex(col => col === columnName);
@@ -8849,10 +12022,95 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
     /**
      * 加载现有主题的VolumetricFog配置
+     * @param {string} themeName - 主题名称
+     * @param {boolean} isNewTheme - 是否为新建主题（默认false）
      */
-    function loadExistingVolumetricFogConfig(themeName) {
-        console.log('加载现有主题的VolumetricFog配置:', themeName);
+    function loadExistingVolumetricFogConfig(themeName, isNewTheme = false) {
+        console.log('加载VolumetricFog配置:', themeName);
+        console.log('是否新建主题:', isNewTheme);
+        console.log('当前映射模式:', currentMappingMode);
 
+        // 检查是否为直接映射模式
+        const isDirectMode = currentMappingMode === 'direct';
+
+        if (isDirectMode) {
+            // 直接映射模式：使用条件读取逻辑显示源数据VolumetricFog配置
+            console.log('直接映射模式：尝试从源数据VolumetricFog工作表加载配置');
+
+            // 检查Status工作表中VolumetricFog状态
+            let volumetricFogStatusFromStatus = 0;
+            if (sourceData && sourceData.workbook) {
+                const statusInfo = parseStatusSheet(sourceData);
+                volumetricFogStatusFromStatus = statusInfo.volumetricFogStatus;
+                console.log(`Status工作表VolumetricFog状态: ${volumetricFogStatusFromStatus}`);
+            }
+
+            // VolumetricFog字段映射
+            const volumetricFogFieldMapping = {
+                'Color': 'volumetricfogColor',
+                'X': 'volumetricfogX',
+                'Y': 'volumetricfogY',
+                'Z': 'volumetricfogZ',
+                'Density': 'volumetricfogDensity',
+                'Rotate': 'volumetricfogRotate',
+                'IsOn': 'volumetricfogIsOn'
+            };
+
+            let hasSourceData = false;
+
+            // 尝试从源数据VolumetricFog工作表读取每个字段
+            Object.entries(volumetricFogFieldMapping).forEach(([columnName, inputId]) => {
+                const input = document.getElementById(inputId);
+                if (!input) return;
+
+                // 特殊处理IsOn字段：如果Status工作表中VolumetricFog状态为1，则自动勾选
+                if (inputId === 'volumetricfogIsOn') {
+                    if (volumetricFogStatusFromStatus === 1) {
+                        input.checked = true;
+                        hasSourceData = true;
+                        console.log(`✅ Status工作表VolumetricFog状态为1，自动勾选IsOn: ${columnName} = true`);
+                        return; // 跳过后续的条件读取逻辑
+                    }
+                }
+
+                // 🔧 使用条件读取逻辑获取VolumetricFog字段值，传递正确的isNewTheme参数
+                const directValue = findVolumetricFogValueDirect(columnName, isNewTheme, themeName);
+
+                if (directValue !== null && directValue !== undefined && directValue !== '') {
+                    hasSourceData = true;
+
+                    if (inputId === 'volumetricfogIsOn') {
+                        // 处理checkbox
+                        input.checked = directValue === 1 || directValue === '1' || directValue === true;
+                    } else if (inputId === 'volumetricfogDensity') {
+                        // Density字段需要÷10显示
+                        const displayValue = (parseFloat(directValue) / 10).toFixed(1);
+                        input.value = displayValue;
+                    } else {
+                        // 其他字段
+                        input.value = directValue.toString();
+
+                        // 更新颜色预览
+                        if (inputId === 'volumetricfogColor') {
+                            updateVolumetricFogColorPreview();
+                        }
+                    }
+
+                    console.log(`✅ 直接映射加载VolumetricFog字段: ${columnName} = ${directValue}`);
+                } else {
+                    console.log(`直接映射未找到VolumetricFog字段: ${columnName}，将使用RSC_Theme数据`);
+                }
+            });
+
+            if (hasSourceData) {
+                console.log('✅ 直接映射模式：成功从源数据VolumetricFog工作表加载配置');
+                return;
+            } else {
+                console.log('直接映射模式：源数据VolumetricFog工作表无可用数据，回退到RSC_Theme数据');
+            }
+        }
+
+        // 非直接映射模式或直接映射模式回退：从RSC_Theme加载
         if (!rscAllSheetsData || !rscAllSheetsData['VolumetricFog']) {
             console.log('RSC_Theme VolumetricFog数据未加载，使用默认值');
             resetVolumetricFogConfigToDefaults();
@@ -8934,9 +12192,78 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
     /**
      * 加载现有主题的ColorInfo配置
+     * @param {string} themeName - 主题名称
+     * @param {boolean} isNewTheme - 是否为新建主题（默认false）
      */
-    function loadExistingColorInfoConfig(themeName) {
-        console.log('加载现有主题的ColorInfo配置:', themeName);
+    function loadExistingColorInfoConfig(themeName, isNewTheme = false) {
+        console.log('加载ColorInfo配置:', themeName);
+        console.log('是否新建主题:', isNewTheme);
+        console.log('当前映射模式:', currentMappingMode);
+
+        // 检查是否为直接映射模式
+        const isDirectMode = currentMappingMode === 'direct';
+
+        if (isDirectMode) {
+            console.log('直接映射模式：优先从源数据ColorInfo工作表读取配置显示');
+
+            // ColorInfo字段映射
+            const colorInfoFieldMapping = {
+                'PickupDiffR': 'PickupDiffR',
+                'PickupDiffG': 'PickupDiffG',
+                'PickupDiffB': 'PickupDiffB',
+                'PickupReflR': 'PickupReflR',
+                'PickupReflG': 'PickupReflG',
+                'PickupReflB': 'PickupReflB',
+                'BallSpecR': 'BallSpecR',
+                'BallSpecG': 'BallSpecG',
+                'BallSpecB': 'BallSpecB',
+                'ForegroundFogR': 'ForegroundFogR',
+                'ForegroundFogG': 'ForegroundFogG',
+                'ForegroundFogB': 'ForegroundFogB',
+                'FogStart': 'FogStart',
+                'FogEnd': 'FogEnd'
+            };
+
+            let hasSourceData = false;
+
+            // 尝试从源数据ColorInfo工作表读取每个字段
+            Object.entries(colorInfoFieldMapping).forEach(([columnName, inputId]) => {
+                // 🔧 使用条件读取逻辑获取ColorInfo字段值，传递正确的isNewTheme参数
+                const directValue = findColorInfoValueDirect(columnName, isNewTheme, themeName);
+
+                const input = document.getElementById(inputId);
+                if (input) {
+                    if (directValue !== null && directValue !== undefined && directValue !== '') {
+                        input.value = directValue;
+                        hasSourceData = true;
+                        console.log(`✅ 直接映射模式从条件读取获取ColorInfo配置: ${columnName} = ${directValue}`);
+                    } else {
+                        // 如果条件读取失败，使用默认值
+                        const colorInfoDefaults = getLastThemeColorInfoConfig();
+                        const defaultValue = colorInfoDefaults[inputId] || '0';
+                        input.value = defaultValue;
+                        console.log(`⚠️ 直接映射模式ColorInfo字段条件读取失败，使用默认值: ${columnName} = ${defaultValue}`);
+                    }
+                }
+            });
+
+            if (hasSourceData) {
+                console.log('✅ 直接映射模式：成功从源数据加载ColorInfo配置');
+
+                // 更新颜色预览
+                updateRgbColorPreview('PickupDiffR');
+                updateRgbColorPreview('PickupReflR');
+                updateRgbColorPreview('BallSpecR');
+                updateRgbColorPreview('ForegroundFogR');
+
+                return;
+            } else {
+                console.log('⚠️ 直接映射模式：未能从源数据获取ColorInfo配置，回退到RSC_Theme读取');
+            }
+        }
+
+        // 非直接映射模式或直接映射模式回退：从RSC_Theme读取
+        console.log('从RSC_Theme ColorInfo工作表读取配置');
 
         if (!rscAllSheetsData || !rscAllSheetsData['ColorInfo']) {
             console.log('RSC_Theme ColorInfo数据未加载，使用默认值');

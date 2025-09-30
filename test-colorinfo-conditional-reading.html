@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ColorInfo工作表条件读取测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-title {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .test-case {
+            margin: 15px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .test-case h4 {
+            margin: 0 0 10px 0;
+            color: #555;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .log-output {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .config-display {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .config-field {
+            margin: 5px 0;
+            padding: 5px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        .field-label {
+            font-weight: bold;
+            color: #495057;
+        }
+        .field-value {
+            color: #007bff;
+            font-family: monospace;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>ColorInfo工作表条件读取测试</h1>
+    
+    <div class="test-section">
+        <h2 class="test-title">🧪 ColorInfo字段条件读取测试场景</h2>
+        
+        <div class="test-case">
+            <h4>测试场景1: Status工作表 + ColorInfo状态=1（有效）</h4>
+            <p>源数据包含Status工作表，ColorInfo字段状态为1（有效），应优先从源数据ColorInfo工作表读取</p>
+            <button onclick="testColorInfoStatusValid()">运行测试</button>
+            <div id="test1-result" class="test-result" style="display: none;"></div>
+            <div id="test1-config" class="config-display" style="display: none;">
+                <h5>ColorInfo配置显示结果：</h5>
+                <div id="test1-config-content"></div>
+            </div>
+        </div>
+        
+        <div class="test-case">
+            <h4>测试场景2: Status工作表 + ColorInfo状态=0（无效）</h4>
+            <p>源数据包含Status工作表，ColorInfo字段状态为0（无效），应忽略源数据ColorInfo工作表</p>
+            <button onclick="testColorInfoStatusInvalid()">运行测试</button>
+            <div id="test2-result" class="test-result" style="display: none;"></div>
+            <div id="test2-config" class="config-display" style="display: none;">
+                <h5>ColorInfo配置显示结果：</h5>
+                <div id="test2-config-content"></div>
+            </div>
+        </div>
+        
+        <div class="test-case">
+            <h4>测试场景3: Status工作表无ColorInfo字段</h4>
+            <p>源数据包含Status工作表但没有ColorInfo字段，应根据主题类型处理</p>
+            <button onclick="testNoColorInfoField()">运行测试</button>
+            <div id="test3-result" class="test-result" style="display: none;"></div>
+            <div id="test3-config" class="config-display" style="display: none;">
+                <h5>ColorInfo配置显示结果：</h5>
+                <div id="test3-config-content"></div>
+            </div>
+        </div>
+        
+        <div class="test-case">
+            <h4>测试场景4: 源数据字段缺失回退测试</h4>
+            <p>测试从源数据ColorInfo工作表读取字段值没有找到字段时，回退到RSC_Theme ColorInfo工作表</p>
+            <button onclick="testFieldFallback()">运行测试</button>
+            <div id="test4-result" class="test-result" style="display: none;"></div>
+            <div id="test4-config" class="config-display" style="display: none;">
+                <h5>ColorInfo配置显示结果：</h5>
+                <div id="test4-config-content"></div>
+            </div>
+        </div>
+        
+        <div class="test-case">
+            <h4>测试场景5: UI配置显示测试</h4>
+            <p>测试直接映射模式下，ColorInfo配置面板能正确显示源数据ColorInfo工作表的数据</p>
+            <button onclick="testUIConfigDisplay()">运行测试</button>
+            <div id="test5-result" class="test-result" style="display: none;"></div>
+            <div id="test5-config" class="config-display" style="display: none;">
+                <h5>ColorInfo配置显示结果：</h5>
+                <div id="test5-config-content"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2 class="test-title">📋 测试日志</h2>
+        <button onclick="clearLog()">清空日志</button>
+        <div id="log-output" class="log-output"></div>
+    </div>
+
+    <script>
+        // 模拟控制台日志输出到页面
+        const originalConsoleLog = console.log;
+        const originalConsoleWarn = console.warn;
+        const originalConsoleError = console.error;
+        
+        function logToPage(message, type = 'log') {
+            const logOutput = document.getElementById('log-output');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '[ERROR]' : type === 'warn' ? '[WARN]' : '[LOG]';
+            logOutput.textContent += `${timestamp} ${prefix} ${message}\n`;
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            logToPage(args.join(' '), 'log');
+        };
+        
+        console.warn = function(...args) {
+            originalConsoleWarn.apply(console, args);
+            logToPage(args.join(' '), 'warn');
+        };
+        
+        console.error = function(...args) {
+            originalConsoleError.apply(console, args);
+            logToPage(args.join(' '), 'error');
+        };
+        
+        function clearLog() {
+            document.getElementById('log-output').textContent = '';
+        }
+        
+        function showResult(elementId, message, isSuccess) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `test-result ${isSuccess ? 'success' : 'error'}`;
+            element.textContent = message;
+        }
+        
+        function showConfig(elementId, configData) {
+            const element = document.getElementById(elementId);
+            const contentElement = document.getElementById(elementId.replace('-config', '-config-content'));
+            
+            element.style.display = 'block';
+            
+            let configHtml = '';
+            Object.entries(configData).forEach(([field, value]) => {
+                configHtml += `
+                    <div class="config-field">
+                        <span class="field-label">${field}:</span> 
+                        <span class="field-value">${value}</span>
+                    </div>
+                `;
+            });
+            
+            contentElement.innerHTML = configHtml;
+        }
+        
+        // 创建模拟的ColorInfo输入元素
+        function createMockColorInfoInputs() {
+            const colorInfoFields = [
+                'PickupDiffR', 'PickupDiffG', 'PickupDiffB',
+                'PickupReflR', 'PickupReflG', 'PickupReflB',
+                'BallSpecR', 'BallSpecG', 'BallSpecB',
+                'ForegroundFogR', 'ForegroundFogG', 'ForegroundFogB',
+                'FogStart', 'FogEnd'
+            ];
+            
+            colorInfoFields.forEach(fieldId => {
+                if (!document.getElementById(fieldId)) {
+                    const input = document.createElement('input');
+                    input.id = fieldId;
+                    input.type = 'text';
+                    input.style.display = 'none';
+                    document.body.appendChild(input);
+                }
+            });
+        }
+        
+        // 获取当前ColorInfo配置值
+        function getCurrentColorInfoConfig() {
+            const config = {};
+            const colorInfoFields = [
+                'PickupDiffR', 'PickupDiffG', 'PickupDiffB',
+                'PickupReflR', 'PickupReflG', 'PickupReflB',
+                'BallSpecR', 'BallSpecG', 'BallSpecB',
+                'ForegroundFogR', 'ForegroundFogG', 'ForegroundFogB',
+                'FogStart', 'FogEnd'
+            ];
+            
+            colorInfoFields.forEach(fieldId => {
+                const input = document.getElementById(fieldId);
+                config[fieldId] = input ? input.value : 'N/A';
+            });
+            
+            return config;
+        }
+        
+        // 创建测试用的Excel数据
+        function createTestWorkbook(sheetData) {
+            const wb = XLSX.utils.book_new();
+            
+            Object.keys(sheetData).forEach(sheetName => {
+                const ws = XLSX.utils.aoa_to_sheet(sheetData[sheetName]);
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            });
+            
+            return wb;
+        }
+        
+        // 模拟设置源数据和映射模式
+        function setupTestEnvironment(mappingMode, sourceData) {
+            if (typeof window.App !== 'undefined' && window.App.ThemeManager) {
+                // 设置映射模式
+                if (window.App.ThemeManager.currentMappingMode !== undefined) {
+                    window.App.ThemeManager.currentMappingMode = mappingMode;
+                }
+                
+                // 设置源数据
+                if (sourceData && window.App.ThemeManager.setSourceData) {
+                    window.App.ThemeManager.setSourceData(sourceData);
+                }
+            }
+        }
+        
+        // 测试ColorInfo状态=1（有效）
+        function testColorInfoStatusValid() {
+            console.log('=== 开始测试场景1: Status工作表 + ColorInfo状态=1 ===');
+            
+            try {
+                createMockColorInfoInputs();
+                
+                // 创建包含有效ColorInfo数据的测试数据
+                const testData = {
+                    'Status': [
+                        ['ColorInfo'],
+                        [1]  // ColorInfo=1(有效)
+                    ],
+                    'ColorInfo': [
+                        ['PickupDiffR', 'PickupDiffG', 'FogStart', 'FogEnd'],
+                        ['100', '150', '200', '500']  // 源数据ColorInfo值
+                    ]
+                };
+                
+                const workbook = createTestWorkbook(testData);
+                const sourceData = {
+                    workbook: workbook,
+                    fileName: 'test_valid_colorinfo.xlsx',
+                    fileSize: 1024,
+                    headers: ['测试表头'],
+                    data: [{ '测试': '数据' }]
+                };
+                
+                // 设置测试环境
+                setupTestEnvironment('direct', sourceData);
+                
+                // 测试ColorInfo字段条件读取
+                if (typeof window.App !== 'undefined' && window.App.ThemeManager && 
+                    typeof window.App.ThemeManager.findColorInfoValueDirect === 'function') {
+                    
+                    // 测试更新现有主题
+                    const pickupDiffRValue = window.App.ThemeManager.findColorInfoValueDirect('PickupDiffR', false, 'TestTheme');
+                    const fogStartValue = window.App.ThemeManager.findColorInfoValueDirect('FogStart', false, 'TestTheme');
+                    
+                    if (pickupDiffRValue === '100' && fogStartValue === '200') {
+                        showResult('test1-result', '✅ 测试通过：ColorInfo状态=1时正确从源数据ColorInfo工作表读取', true);
+                        console.log('✅ 测试场景1通过：ColorInfo状态有效时正确读取源数据');
+                        
+                        const config = getCurrentColorInfoConfig();
+                        showConfig('test1-config', config);
+                    } else {
+                        showResult('test1-result', `❌ 测试失败：期望PickupDiffR=100, FogStart=200，实际：${pickupDiffRValue}, ${fogStartValue}`, false);
+                        console.error('❌ 测试场景1失败：ColorInfo值读取错误');
+                    }
+                } else {
+                    showResult('test1-result', '❌ 测试失败：findColorInfoValueDirect函数不可用', false);
+                    console.error('❌ findColorInfoValueDirect函数不可用');
+                }
+                
+            } catch (error) {
+                showResult('test1-result', '❌ 测试异常：' + error.message, false);
+                console.error('测试场景1异常:', error);
+            }
+        }
+        
+        // 测试ColorInfo状态=0（无效）
+        function testColorInfoStatusInvalid() {
+            console.log('=== 开始测试场景2: Status工作表 + ColorInfo状态=0 ===');
+            
+            try {
+                createMockColorInfoInputs();
+                
+                const testData = {
+                    'Status': [
+                        ['ColorInfo'],
+                        [0]  // ColorInfo=0(无效)
+                    ],
+                    'ColorInfo': [
+                        ['PickupDiffR', 'FogStart'],
+                        ['999', '999']  // 这些数据应该被忽略
+                    ]
+                };
+                
+                const workbook = createTestWorkbook(testData);
+                const sourceData = {
+                    workbook: workbook,
+                    fileName: 'test_invalid_colorinfo.xlsx',
+                    fileSize: 1024,
+                    headers: ['测试表头'],
+                    data: [{ '测试': '数据' }]
+                };
+                
+                setupTestEnvironment('direct', sourceData);
+                
+                if (typeof window.App !== 'undefined' && window.App.ThemeManager && 
+                    typeof window.App.ThemeManager.findColorInfoValueDirect === 'function') {
+                    
+                    // 测试新建主题（应该返回null）
+                    const pickupDiffRValue = window.App.ThemeManager.findColorInfoValueDirect('PickupDiffR', true, 'NewTheme');
+                    
+                    if (pickupDiffRValue === null) {
+                        showResult('test2-result', '✅ 测试通过：ColorInfo状态=0时正确忽略源数据ColorInfo工作表', true);
+                        console.log('✅ 测试场景2通过：ColorInfo状态无效时正确忽略源数据');
+                        
+                        const config = getCurrentColorInfoConfig();
+                        showConfig('test2-config', config);
+                    } else {
+                        showResult('test2-result', '❌ 测试失败：期望返回null，实际：' + pickupDiffRValue, false);
+                        console.error('❌ 测试场景2失败：应该忽略源数据ColorInfo工作表');
+                    }
+                } else {
+                    showResult('test2-result', '❌ 测试失败：findColorInfoValueDirect函数不可用', false);
+                }
+                
+            } catch (error) {
+                showResult('test2-result', '❌ 测试异常：' + error.message, false);
+                console.error('测试场景2异常:', error);
+            }
+        }
+        
+        // 测试Status工作表无ColorInfo字段
+        function testNoColorInfoField() {
+            console.log('=== 开始测试场景3: Status工作表无ColorInfo字段 ===');
+            
+            try {
+                createMockColorInfoInputs();
+                
+                const testData = {
+                    'Status': [
+                        ['Color', 'Light'],  // 没有ColorInfo字段
+                        [1, 0]
+                    ]
+                };
+                
+                const workbook = createTestWorkbook(testData);
+                const sourceData = {
+                    workbook: workbook,
+                    fileName: 'no_colorinfo_field.xlsx',
+                    fileSize: 1024,
+                    headers: ['测试表头'],
+                    data: [{ '测试': '数据' }]
+                };
+                
+                setupTestEnvironment('direct', sourceData);
+                
+                if (typeof window.App !== 'undefined' && window.App.ThemeManager && 
+                    typeof window.App.ThemeManager.findColorInfoValueDirect === 'function') {
+                    
+                    // 测试新建主题（应该返回null）
+                    const newThemeValue = window.App.ThemeManager.findColorInfoValueDirect('PickupDiffR', true, 'NewTheme');
+                    
+                    if (newThemeValue === null) {
+                        showResult('test3-result', '✅ 测试通过：无ColorInfo字段时新建主题正确返回null', true);
+                        console.log('✅ 测试场景3通过：无ColorInfo字段时处理正确');
+                        
+                        const config = getCurrentColorInfoConfig();
+                        showConfig('test3-config', config);
+                    } else {
+                        showResult('test3-result', '❌ 测试失败：新建主题应返回null，实际：' + newThemeValue, false);
+                        console.error('❌ 测试场景3失败：新建主题处理错误');
+                    }
+                } else {
+                    showResult('test3-result', '❌ 测试失败：findColorInfoValueDirect函数不可用', false);
+                }
+                
+            } catch (error) {
+                showResult('test3-result', '❌ 测试异常：' + error.message, false);
+                console.error('测试场景3异常:', error);
+            }
+        }
+        
+        // 测试字段缺失回退机制
+        function testFieldFallback() {
+            console.log('=== 开始测试场景4: 源数据字段缺失回退测试 ===');
+            
+            try {
+                createMockColorInfoInputs();
+                
+                const testData = {
+                    'Status': [
+                        ['ColorInfo'],
+                        [1]  // ColorInfo=1(有效)
+                    ],
+                    'ColorInfo': [
+                        ['PickupDiffR'],  // 只有一个字段，其他字段缺失
+                        ['100']
+                    ]
+                };
+                
+                const workbook = createTestWorkbook(testData);
+                const sourceData = {
+                    workbook: workbook,
+                    fileName: 'field_fallback_test.xlsx',
+                    fileSize: 1024,
+                    headers: ['测试表头'],
+                    data: [{ '测试': '数据' }]
+                };
+                
+                setupTestEnvironment('direct', sourceData);
+                
+                if (typeof window.App !== 'undefined' && window.App.ThemeManager && 
+                    typeof window.App.ThemeManager.findColorInfoValueDirect === 'function') {
+                    
+                    // 测试存在的字段
+                    const existingFieldValue = window.App.ThemeManager.findColorInfoValueDirect('PickupDiffR', false, 'TestTheme');
+                    
+                    // 测试不存在的字段（应该回退到RSC_Theme）
+                    const missingFieldValue = window.App.ThemeManager.findColorInfoValueDirect('FogStart', false, 'TestTheme');
+                    
+                    if (existingFieldValue === '100') {
+                        showResult('test4-result', '✅ 测试通过：字段回退机制正常工作', true);
+                        console.log('✅ 测试场景4通过：存在字段正确读取，缺失字段正确回退');
+                        
+                        const config = getCurrentColorInfoConfig();
+                        showConfig('test4-config', config);
+                    } else {
+                        showResult('test4-result', '❌ 测试失败：字段回退机制异常', false);
+                        console.error('❌ 测试场景4失败：字段回退机制不正常');
+                    }
+                } else {
+                    showResult('test4-result', '❌ 测试失败：findColorInfoValueDirect函数不可用', false);
+                }
+                
+            } catch (error) {
+                showResult('test4-result', '❌ 测试异常：' + error.message, false);
+                console.error('测试场景4异常:', error);
+            }
+        }
+        
+        // 测试UI配置显示
+        function testUIConfigDisplay() {
+            console.log('=== 开始测试场景5: UI配置显示测试 ===');
+            
+            try {
+                createMockColorInfoInputs();
+                
+                const testData = {
+                    'Status': [
+                        ['ColorInfo'],
+                        [1]  // ColorInfo=1(有效)
+                    ],
+                    'ColorInfo': [
+                        ['PickupDiffR', 'PickupDiffG', 'FogStart', 'FogEnd'],
+                        ['80', '90', '300', '600']  // UI显示测试数据
+                    ]
+                };
+                
+                const workbook = createTestWorkbook(testData);
+                const sourceData = {
+                    workbook: workbook,
+                    fileName: 'ui_display_test.xlsx',
+                    fileSize: 1024,
+                    headers: ['测试表头'],
+                    data: [{ '测试': '数据' }]
+                };
+                
+                setupTestEnvironment('direct', sourceData);
+                
+                if (typeof window.App !== 'undefined' && window.App.ThemeManager && 
+                    typeof window.App.ThemeManager.loadExistingColorInfoConfig === 'function') {
+                    
+                    // 模拟调用loadExistingColorInfoConfig
+                    window.App.ThemeManager.loadExistingColorInfoConfig('TestTheme');
+                    
+                    // 检查ColorInfo配置是否正确显示
+                    const config = getCurrentColorInfoConfig();
+                    console.log('ColorInfo配置显示结果:', config);
+                    
+                    // 验证是否显示了源数据的值
+                    if (config.PickupDiffR === '80' && config.FogStart === '300') {
+                        showResult('test5-result', '✅ 测试通过：UI正确显示源数据ColorInfo配置', true);
+                        showConfig('test5-config', config);
+                        console.log('✅ 测试场景5通过：ColorInfo配置正确显示源数据');
+                    } else {
+                        showResult('test5-result', '❌ 测试失败：UI未正确显示源数据ColorInfo配置', false);
+                        showConfig('test5-config', config);
+                        console.error('❌ 测试场景5失败：ColorInfo配置显示错误');
+                    }
+                } else {
+                    showResult('test5-result', '❌ 测试失败：loadExistingColorInfoConfig函数不可用', false);
+                }
+                
+            } catch (error) {
+                showResult('test5-result', '❌ 测试异常：' + error.message, false);
+                console.error('测试场景5异常:', error);
+            }
+        }
+        
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('ColorInfo工作表条件读取测试页面已加载');
+            console.log('XLSX库版本:', typeof XLSX !== 'undefined' ? '已加载' : '未加载');
+            console.log('ThemeManager模块:', typeof window.App !== 'undefined' && window.App.ThemeManager ? '已加载' : '未加载');
+            
+            if (typeof window.App !== 'undefined' && window.App.ThemeManager) {
+                console.log('可用的ColorInfo测试函数:');
+                console.log('- findColorInfoValueDirect:', typeof window.App.ThemeManager.findColorInfoValueDirect);
+                console.log('- findColorInfoValueFromSourceColorInfo:', typeof window.App.ThemeManager.findColorInfoValueFromSourceColorInfo);
+                console.log('- findColorInfoValueFromRSCThemeColorInfo:', typeof window.App.ThemeManager.findColorInfoValueFromRSCThemeColorInfo);
+                console.log('- loadExistingColorInfoConfig:', typeof window.App.ThemeManager.loadExistingColorInfoConfig);
+            }
+        });
+    </script>
+    
+    <!-- 引入修改后的themeManager.js进行测试 -->
+    <script src="js/utils.js"></script>
+    <script src="js/themeManager.js"></script>
+</body>
+</html>

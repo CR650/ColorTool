@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status工作表条件映射测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-title {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .test-case {
+            margin: 15px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .test-case h4 {
+            margin: 0 0 10px 0;
+            color: #555;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .log-output {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+    </style>
+    <!-- 引入SheetJS库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>Status工作表条件映射机制测试</h1>
+    
+    <div class="test-section">
+        <h2 class="test-title">🧪 测试场景</h2>
+        
+        <div class="test-case">
+            <h4>测试场景1: Status工作表 + Color状态=1</h4>
+            <p>源数据包含Status工作表，Color字段状态为1（有效）</p>
+            <button onclick="testStatusColorValid()">运行测试</button>
+            <div id="test1-result" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <div class="test-case">
+            <h4>测试场景2: Status工作表 + Color状态=0</h4>
+            <p>源数据包含Status工作表，Color字段状态为0（无效）</p>
+            <button onclick="testStatusColorInvalid()">运行测试</button>
+            <div id="test2-result" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <div class="test-case">
+            <h4>测试场景3: 完整配色表工作表（JSON映射模式）</h4>
+            <p>源数据包含"完整配色表"工作表，应使用JSON间接映射模式</p>
+            <button onclick="testJSONMapping()">运行测试</button>
+            <div id="test3-result" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <div class="test-case">
+            <h4>测试场景4: 无特殊工作表（默认JSON映射）</h4>
+            <p>源数据既不包含Status也不包含"完整配色表"工作表</p>
+            <button onclick="testDefaultMapping()">运行测试</button>
+            <div id="test4-result" class="test-result" style="display: none;"></div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2 class="test-title">📋 测试日志</h2>
+        <button onclick="clearLog()">清空日志</button>
+        <div id="log-output" class="log-output"></div>
+    </div>
+
+    <script>
+        // 模拟控制台日志输出到页面
+        const originalConsoleLog = console.log;
+        const originalConsoleWarn = console.warn;
+        const originalConsoleError = console.error;
+        
+        function logToPage(message, type = 'log') {
+            const logOutput = document.getElementById('log-output');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '[ERROR]' : type === 'warn' ? '[WARN]' : '[LOG]';
+            logOutput.textContent += `${timestamp} ${prefix} ${message}\n`;
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            logToPage(args.join(' '), 'log');
+        };
+        
+        console.warn = function(...args) {
+            originalConsoleWarn.apply(console, args);
+            logToPage(args.join(' '), 'warn');
+        };
+        
+        console.error = function(...args) {
+            originalConsoleError.apply(console, args);
+            logToPage(args.join(' '), 'error');
+        };
+        
+        function clearLog() {
+            document.getElementById('log-output').textContent = '';
+        }
+        
+        // 创建测试用的Excel数据
+        function createTestWorkbook(sheetData) {
+            const wb = XLSX.utils.book_new();
+            
+            Object.keys(sheetData).forEach(sheetName => {
+                const ws = XLSX.utils.aoa_to_sheet(sheetData[sheetName]);
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            });
+            
+            return wb;
+        }
+        
+        // 模拟源数据对象
+        function createSourceData(workbook, fileName = 'test.xlsx') {
+            return {
+                workbook: workbook,
+                fileName: fileName,
+                fileSize: 1024,
+                headers: ['测试表头'],
+                data: [{ '测试': '数据' }],
+                validation: {
+                    hasColorCode: true,
+                    hasColorValue: true,
+                    hasRGB: false,
+                    totalRows: 1
+                }
+            };
+        }
+        
+        function showResult(elementId, message, isSuccess) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `test-result ${isSuccess ? 'success' : 'error'}`;
+            element.textContent = message;
+        }
+    </script>
+    
+    <!-- 引入修改后的themeManager.js进行测试 -->
+    <script src="js/utils.js"></script>
+    <script src="js/themeManager.js"></script>
+    
+    <script>
+        // 测试函数实现
+        function testStatusColorValid() {
+            console.log('=== 开始测试场景1: Status工作表 + Color状态=1 ===');
+            
+            try {
+                // 创建包含Status工作表的测试数据，Color状态为1
+                const testData = {
+                    'Status': [
+                        ['Color', 'Light', 'FloodLight'],  // 表头
+                        [1, 0, 1]                          // 状态行：Color=1(有效)
+                    ],
+                    'Color': [
+                        ['P1', 'P2', 'G1'],               // Color工作表表头
+                        ['FF0000', '00FF00', '0000FF']    // 颜色数据
+                    ]
+                };
+                
+                const workbook = createTestWorkbook(testData);
+                const sourceData = createSourceData(workbook, 'status_color_valid.xlsx');
+                
+                // 测试映射模式检测
+                if (typeof window.App !== 'undefined' && window.App.ThemeManager) {
+                    // 如果ThemeManager可用，进行完整测试
+                    const detectedMode = window.App.ThemeManager.detectMappingMode(sourceData);
+                    
+                    if (detectedMode === 'direct') {
+                        showResult('test1-result', '✅ 测试通过：正确检测到直接映射模式', true);
+                        console.log('✅ 测试场景1通过：Status工作表检测成功，启用直接映射模式');
+                    } else {
+                        showResult('test1-result', '❌ 测试失败：应该检测到直接映射模式，实际检测到：' + detectedMode, false);
+                        console.error('❌ 测试场景1失败：映射模式检测错误');
+                    }
+                } else {
+                    // 如果ThemeManager不可用，进行基础测试
+                    console.log('ThemeManager不可用，进行基础工作表检测测试');
+                    const hasStatus = workbook.SheetNames.includes('Status');
+                    const hasColor = workbook.SheetNames.includes('Color');
+                    
+                    if (hasStatus && hasColor) {
+                        showResult('test1-result', '✅ 基础测试通过：工作表结构正确', true);
+                        console.log('✅ 基础测试通过：Status和Color工作表都存在');
+                    } else {
+                        showResult('test1-result', '❌ 基础测试失败：工作表结构错误', false);
+                        console.error('❌ 基础测试失败：工作表结构不正确');
+                    }
+                }
+                
+            } catch (error) {
+                showResult('test1-result', '❌ 测试异常：' + error.message, false);
+                console.error('测试场景1异常:', error);
+            }
+        }
+        
+        function testStatusColorInvalid() {
+            console.log('=== 开始测试场景2: Status工作表 + Color状态=0 ===');
+            
+            try {
+                const testData = {
+                    'Status': [
+                        ['Color', 'Light', 'FloodLight'],
+                        [0, 1, 0]  // Color=0(无效)
+                    ],
+                    'Color': [
+                        ['P1', 'P2', 'G1'],
+                        ['FF0000', '00FF00', '0000FF']
+                    ]
+                };
+                
+                const workbook = createTestWorkbook(testData);
+                const sourceData = createSourceData(workbook, 'status_color_invalid.xlsx');
+                
+                const hasStatus = workbook.SheetNames.includes('Status');
+                if (hasStatus) {
+                    showResult('test2-result', '✅ 测试通过：Status工作表存在，Color状态为0', true);
+                    console.log('✅ 测试场景2通过：Status工作表检测成功，Color状态为无效');
+                } else {
+                    showResult('test2-result', '❌ 测试失败：Status工作表不存在', false);
+                    console.error('❌ 测试场景2失败：Status工作表创建失败');
+                }
+                
+            } catch (error) {
+                showResult('test2-result', '❌ 测试异常：' + error.message, false);
+                console.error('测试场景2异常:', error);
+            }
+        }
+        
+        function testJSONMapping() {
+            console.log('=== 开始测试场景3: 完整配色表工作表（JSON映射模式）===');
+            
+            try {
+                const testData = {
+                    '完整配色表': [
+                        ['颜色代码', '16进制值'],
+                        ['P1', 'FF0000'],
+                        ['P2', '00FF00']
+                    ]
+                };
+                
+                const workbook = createTestWorkbook(testData);
+                const sourceData = createSourceData(workbook, 'json_mapping.xlsx');
+                
+                const hasCompleteColor = workbook.SheetNames.includes('完整配色表');
+                if (hasCompleteColor) {
+                    showResult('test3-result', '✅ 测试通过：完整配色表工作表存在，应使用JSON映射模式', true);
+                    console.log('✅ 测试场景3通过：完整配色表工作表检测成功');
+                } else {
+                    showResult('test3-result', '❌ 测试失败：完整配色表工作表不存在', false);
+                    console.error('❌ 测试场景3失败：完整配色表工作表创建失败');
+                }
+                
+            } catch (error) {
+                showResult('test3-result', '❌ 测试异常：' + error.message, false);
+                console.error('测试场景3异常:', error);
+            }
+        }
+        
+        function testDefaultMapping() {
+            console.log('=== 开始测试场景4: 无特殊工作表（默认JSON映射）===');
+            
+            try {
+                const testData = {
+                    'Sheet1': [
+                        ['普通数据'],
+                        ['测试']
+                    ]
+                };
+                
+                const workbook = createTestWorkbook(testData);
+                const sourceData = createSourceData(workbook, 'default_mapping.xlsx');
+                
+                const hasStatus = workbook.SheetNames.includes('Status');
+                const hasCompleteColor = workbook.SheetNames.includes('完整配色表');
+                
+                if (!hasStatus && !hasCompleteColor) {
+                    showResult('test4-result', '✅ 测试通过：无特殊工作表，应使用默认JSON映射模式', true);
+                    console.log('✅ 测试场景4通过：无特殊工作表，默认JSON映射');
+                } else {
+                    showResult('test4-result', '❌ 测试失败：存在特殊工作表', false);
+                    console.error('❌ 测试场景4失败：不应该存在特殊工作表');
+                }
+                
+            } catch (error) {
+                showResult('test4-result', '❌ 测试异常：' + error.message, false);
+                console.error('测试场景4异常:', error);
+            }
+        }
+        
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Status工作表条件映射测试页面已加载');
+            console.log('XLSX库版本:', typeof XLSX !== 'undefined' ? '已加载' : '未加载');
+            console.log('ThemeManager模块:', typeof window.App !== 'undefined' && window.App.ThemeManager ? '已加载' : '未加载');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Light配置显示修复测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-title {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .test-case {
+            margin: 15px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .test-case h4 {
+            margin: 0 0 10px 0;
+            color: #555;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .log-output {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .config-display {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .config-field {
+            margin: 5px 0;
+            padding: 5px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        .field-label {
+            font-weight: bold;
+            color: #495057;
+        }
+        .field-value {
+            color: #007bff;
+            font-family: monospace;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>Light配置显示修复测试</h1>
+    
+    <div class="test-section">
+        <h2 class="test-title">🔧 问题描述</h2>
+        <p><strong>问题</strong>：在直接映射模式下，更新现有主题时，RSC_Theme Light光照配置显示的数据不正确，没有显示源数据Light工作表中的数据。</p>
+        <p><strong>期望行为</strong>：在直接映射模式下，Light配置面板应该优先显示从源数据Light工作表读取的数据。</p>
+        <p><strong>修复方案</strong>：修改loadExistingLightConfig函数，在直接映射模式下使用findLightValueDirect函数读取数据显示。</p>
+    </div>
+    
+    <div class="test-section">
+        <h2 class="test-title">🧪 测试场景</h2>
+        
+        <div class="test-case">
+            <h4>测试场景1: 直接映射模式 + Light状态有效 + 更新现有主题</h4>
+            <p>模拟直接映射模式下，源数据包含有效的Light工作表，更新现有主题时Light配置显示</p>
+            <button onclick="testDirectModeValidLight()">运行测试</button>
+            <div id="test1-result" class="test-result" style="display: none;"></div>
+            <div id="test1-config" class="config-display" style="display: none;">
+                <h5>Light配置显示结果：</h5>
+                <div id="test1-config-content"></div>
+            </div>
+        </div>
+        
+        <div class="test-case">
+            <h4>测试场景2: 直接映射模式 + Light状态无效 + 更新现有主题</h4>
+            <p>模拟直接映射模式下，Light状态为无效，应从RSC_Theme读取配置显示</p>
+            <button onclick="testDirectModeInvalidLight()">运行测试</button>
+            <div id="test2-result" class="test-result" style="display: none;"></div>
+            <div id="test2-config" class="config-display" style="display: none;">
+                <h5>Light配置显示结果：</h5>
+                <div id="test2-config-content"></div>
+            </div>
+        </div>
+        
+        <div class="test-case">
+            <h4>测试场景3: 非直接映射模式 + 更新现有主题</h4>
+            <p>模拟非直接映射模式下，应正常从RSC_Theme读取配置显示</p>
+            <button onclick="testNonDirectMode()">运行测试</button>
+            <div id="test3-result" class="test-result" style="display: none;"></div>
+            <div id="test3-config" class="config-display" style="display: none;">
+                <h5>Light配置显示结果：</h5>
+                <div id="test3-config-content"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2 class="test-title">📋 测试日志</h2>
+        <button onclick="clearLog()">清空日志</button>
+        <div id="log-output" class="log-output"></div>
+    </div>
+
+    <script>
+        // 模拟控制台日志输出到页面
+        const originalConsoleLog = console.log;
+        const originalConsoleWarn = console.warn;
+        const originalConsoleError = console.error;
+        
+        function logToPage(message, type = 'log') {
+            const logOutput = document.getElementById('log-output');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '[ERROR]' : type === 'warn' ? '[WARN]' : '[LOG]';
+            logOutput.textContent += `${timestamp} ${prefix} ${message}\n`;
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            logToPage(args.join(' '), 'log');
+        };
+        
+        console.warn = function(...args) {
+            originalConsoleWarn.apply(console, args);
+            logToPage(args.join(' '), 'warn');
+        };
+        
+        console.error = function(...args) {
+            originalConsoleError.apply(console, args);
+            logToPage(args.join(' '), 'error');
+        };
+        
+        function clearLog() {
+            document.getElementById('log-output').textContent = '';
+        }
+        
+        function showResult(elementId, message, isSuccess) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `test-result ${isSuccess ? 'success' : 'error'}`;
+            element.textContent = message;
+        }
+        
+        function showConfig(elementId, configData) {
+            const element = document.getElementById(elementId);
+            const contentElement = document.getElementById(elementId.replace('-config', '-config-content'));
+            
+            element.style.display = 'block';
+            
+            let configHtml = '';
+            Object.entries(configData).forEach(([field, value]) => {
+                configHtml += `
+                    <div class="config-field">
+                        <span class="field-label">${field}:</span> 
+                        <span class="field-value">${value}</span>
+                    </div>
+                `;
+            });
+            
+            contentElement.innerHTML = configHtml;
+        }
+        
+        // 创建模拟的Light输入元素
+        function createMockLightInputs() {
+            const lightFields = ['lightMax', 'lightDark', 'lightMin', 'lightSpecularLevel', 'lightGloss', 'lightSpecularColor'];
+            
+            lightFields.forEach(fieldId => {
+                if (!document.getElementById(fieldId)) {
+                    const input = document.createElement('input');
+                    input.id = fieldId;
+                    input.type = 'text';
+                    input.style.display = 'none';
+                    document.body.appendChild(input);
+                }
+            });
+        }
+        
+        // 获取当前Light配置值
+        function getCurrentLightConfig() {
+            const config = {};
+            const lightFields = {
+                'lightMax': 'Max',
+                'lightDark': 'Dark', 
+                'lightMin': 'Min',
+                'lightSpecularLevel': 'SpecularLevel',
+                'lightGloss': 'Gloss',
+                'lightSpecularColor': 'SpecularColor'
+            };
+            
+            Object.entries(lightFields).forEach(([inputId, displayName]) => {
+                const input = document.getElementById(inputId);
+                config[displayName] = input ? input.value : 'N/A';
+            });
+            
+            return config;
+        }
+        
+        // 创建测试用的Excel数据
+        function createTestWorkbook(sheetData) {
+            const wb = XLSX.utils.book_new();
+            
+            Object.keys(sheetData).forEach(sheetName => {
+                const ws = XLSX.utils.aoa_to_sheet(sheetData[sheetName]);
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            });
+            
+            return wb;
+        }
+        
+        // 模拟设置源数据和映射模式
+        function setupTestEnvironment(mappingMode, sourceData) {
+            if (typeof window.App !== 'undefined' && window.App.ThemeManager) {
+                // 设置映射模式
+                if (window.App.ThemeManager.currentMappingMode !== undefined) {
+                    window.App.ThemeManager.currentMappingMode = mappingMode;
+                }
+                
+                // 设置源数据
+                if (sourceData && window.App.ThemeManager.setSourceData) {
+                    window.App.ThemeManager.setSourceData(sourceData);
+                }
+            }
+        }
+        
+        // 测试直接映射模式 + Light状态有效
+        function testDirectModeValidLight() {
+            console.log('=== 开始测试场景1: 直接映射模式 + Light状态有效 ===');
+            
+            try {
+                createMockLightInputs();
+                
+                // 创建包含有效Light数据的测试数据
+                const testData = {
+                    'Status': [
+                        ['Light'],
+                        [1]  // Light=1(有效)
+                    ],
+                    'Light': [
+                        ['Max', 'Dark', 'Min', 'SpecularLevel', 'Gloss', 'SpecularColor'],
+                        ['25', '-8', '18', '250', '0.8', '#FF5500']  // 源数据Light值
+                    ]
+                };
+                
+                const workbook = createTestWorkbook(testData);
+                const sourceData = {
+                    workbook: workbook,
+                    fileName: 'test_valid_light.xlsx',
+                    fileSize: 1024,
+                    headers: ['测试表头'],
+                    data: [{ '测试': '数据' }]
+                };
+                
+                // 设置测试环境
+                setupTestEnvironment('direct', sourceData);
+                
+                // 模拟调用loadExistingLightConfig
+                if (typeof window.App !== 'undefined' && window.App.ThemeManager && 
+                    typeof window.App.ThemeManager.loadExistingLightConfig === 'function') {
+                    
+                    window.App.ThemeManager.loadExistingLightConfig('TestTheme');
+                    
+                    // 检查Light配置是否正确显示
+                    const config = getCurrentLightConfig();
+                    console.log('Light配置显示结果:', config);
+                    
+                    // 验证是否显示了源数据的值
+                    if (config.Max === '25' && config.Dark === '-8' && config.SpecularColor === '#FF5500') {
+                        showResult('test1-result', '✅ 测试通过：直接映射模式正确显示源数据Light配置', true);
+                        showConfig('test1-config', config);
+                        console.log('✅ 测试场景1通过：Light配置正确显示源数据');
+                    } else {
+                        showResult('test1-result', '❌ 测试失败：Light配置未正确显示源数据', false);
+                        showConfig('test1-config', config);
+                        console.error('❌ 测试场景1失败：Light配置显示错误');
+                    }
+                } else {
+                    showResult('test1-result', '❌ 测试失败：loadExistingLightConfig函数不可用', false);
+                }
+                
+            } catch (error) {
+                showResult('test1-result', '❌ 测试异常：' + error.message, false);
+                console.error('测试场景1异常:', error);
+            }
+        }
+        
+        // 测试直接映射模式 + Light状态无效
+        function testDirectModeInvalidLight() {
+            console.log('=== 开始测试场景2: 直接映射模式 + Light状态无效 ===');
+            
+            try {
+                createMockLightInputs();
+                
+                const testData = {
+                    'Status': [
+                        ['Light'],
+                        [0]  // Light=0(无效)
+                    ],
+                    'Light': [
+                        ['Max', 'Dark', 'Min'],
+                        ['999', '999', '999']  // 这些值应该被忽略
+                    ]
+                };
+                
+                const workbook = createTestWorkbook(testData);
+                const sourceData = {
+                    workbook: workbook,
+                    fileName: 'test_invalid_light.xlsx',
+                    fileSize: 1024,
+                    headers: ['测试表头'],
+                    data: [{ '测试': '数据' }]
+                };
+                
+                setupTestEnvironment('direct', sourceData);
+                
+                if (typeof window.App !== 'undefined' && window.App.ThemeManager && 
+                    typeof window.App.ThemeManager.loadExistingLightConfig === 'function') {
+                    
+                    window.App.ThemeManager.loadExistingLightConfig('TestTheme');
+                    
+                    const config = getCurrentLightConfig();
+                    console.log('Light配置显示结果:', config);
+                    
+                    // 验证没有显示源数据的999值
+                    if (config.Max !== '999' && config.Dark !== '999' && config.Min !== '999') {
+                        showResult('test2-result', '✅ 测试通过：Light状态无效时正确忽略源数据', true);
+                        showConfig('test2-config', config);
+                        console.log('✅ 测试场景2通过：正确忽略无效Light数据');
+                    } else {
+                        showResult('test2-result', '❌ 测试失败：应该忽略无效的Light源数据', false);
+                        showConfig('test2-config', config);
+                        console.error('❌ 测试场景2失败：未正确忽略无效数据');
+                    }
+                } else {
+                    showResult('test2-result', '❌ 测试失败：loadExistingLightConfig函数不可用', false);
+                }
+                
+            } catch (error) {
+                showResult('test2-result', '❌ 测试异常：' + error.message, false);
+                console.error('测试场景2异常:', error);
+            }
+        }
+        
+        // 测试非直接映射模式
+        function testNonDirectMode() {
+            console.log('=== 开始测试场景3: 非直接映射模式 ===');
+            
+            try {
+                createMockLightInputs();
+                
+                // 设置为JSON映射模式
+                setupTestEnvironment('json', null);
+                
+                if (typeof window.App !== 'undefined' && window.App.ThemeManager && 
+                    typeof window.App.ThemeManager.loadExistingLightConfig === 'function') {
+                    
+                    window.App.ThemeManager.loadExistingLightConfig('TestTheme');
+                    
+                    const config = getCurrentLightConfig();
+                    console.log('Light配置显示结果:', config);
+                    
+                    showResult('test3-result', '✅ 测试完成：非直接映射模式正常执行', true);
+                    showConfig('test3-config', config);
+                    console.log('✅ 测试场景3完成：非直接映射模式正常');
+                } else {
+                    showResult('test3-result', '❌ 测试失败：loadExistingLightConfig函数不可用', false);
+                }
+                
+            } catch (error) {
+                showResult('test3-result', '❌ 测试异常：' + error.message, false);
+                console.error('测试场景3异常:', error);
+            }
+        }
+        
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Light配置显示修复测试页面已加载');
+            console.log('XLSX库版本:', typeof XLSX !== 'undefined' ? '已加载' : '未加载');
+            console.log('ThemeManager模块:', typeof window.App !== 'undefined' && window.App.ThemeManager ? '已加载' : '未加载');
+            
+            if (typeof window.App !== 'undefined' && window.App.ThemeManager) {
+                console.log('可用的测试函数:');
+                console.log('- loadExistingLightConfig:', typeof window.App.ThemeManager.loadExistingLightConfig);
+                console.log('- findLightValueDirect:', typeof window.App.ThemeManager.findLightValueDirect);
+            }
+        });
+    </script>
+    
+    <!-- 引入修改后的themeManager.js进行测试 -->
+    <script src="js/utils.js"></script>
+    <script src="js/themeManager.js"></script>
+</body>
+</html>

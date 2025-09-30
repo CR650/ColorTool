@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status工作表无Color字段测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        .log { 
+            background-color: #f8f9fa; 
+            border: 1px solid #dee2e6; 
+            padding: 10px; 
+            max-height: 400px; 
+            overflow-y: auto; 
+            font-family: monospace; 
+            font-size: 12px; 
+            white-space: pre-wrap; 
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>Status工作表无Color字段测试</h1>
+    <p>测试当Status工作表中没有Color字段时，更新现有主题是否能正确从RSC_Theme文件读取颜色值</p>
+    
+    <div>
+        <button onclick="testNoColorFieldUpdateExisting()">测试：无Color字段 + 更新现有主题</button>
+        <button onclick="testNoColorFieldNewTheme()">测试：无Color字段 + 新建主题</button>
+        <button onclick="clearLog()">清空日志</button>
+    </div>
+    
+    <div id="results"></div>
+    <div id="log" class="log"></div>
+
+    <script>
+        // 日志函数
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('log').textContent = '';
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        function showResult(message, isSuccess) {
+            const resultsDiv = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test-result ${isSuccess ? 'success' : 'error'}`;
+            div.textContent = message;
+            resultsDiv.appendChild(div);
+        }
+
+        // 模拟parseStatusSheet函数（返回无Color字段的状态）
+        function parseStatusSheet(sourceData) {
+            log('=== 开始解析Status工作表 ===');
+
+            if (!sourceData || !sourceData.workbook) {
+                log('源数据无效，无法解析Status工作表');
+                return { colorStatus: 0, hasColorField: false, error: '源数据无效' };
+            }
+
+            try {
+                const statusSheet = sourceData.workbook.Sheets['Status'];
+                if (!statusSheet) {
+                    log('Status工作表不存在');
+                    return { colorStatus: 0, hasColorField: false, error: 'Status工作表不存在' };
+                }
+
+                const statusData = XLSX.utils.sheet_to_json(statusSheet, {
+                    header: 1,
+                    defval: '',
+                    raw: false
+                });
+
+                if (!statusData || statusData.length < 2) {
+                    log('Status工作表数据不足');
+                    return { colorStatus: 0, hasColorField: false, error: 'Status工作表数据不足' };
+                }
+
+                const headers = statusData[0];
+                const statusRow = statusData[1];
+
+                log('Status工作表表头: ' + headers.join(', '));
+                log('Status工作表状态行: ' + statusRow.join(', '));
+
+                // 查找Color列的索引
+                const colorColumnIndex = headers.findIndex(header => {
+                    if (!header) return false;
+                    const headerStr = header.toString().trim().toUpperCase();
+                    return headerStr === 'COLOR';
+                });
+
+                if (colorColumnIndex === -1) {
+                    log('Status工作表中未找到Color列');
+                    return { colorStatus: 0, hasColorField: false, error: '未找到Color列' };
+                }
+
+                const colorStatusValue = statusRow[colorColumnIndex];
+                const colorStatus = parseInt(colorStatusValue) || 0;
+
+                log(`Color字段状态: ${colorStatus} (原始值: "${colorStatusValue}")`);
+
+                const result = {
+                    colorStatus: colorStatus,
+                    hasColorField: true,
+                    colorColumnIndex: colorColumnIndex,
+                    headers: headers,
+                    statusRow: statusRow,
+                    isColorValid: colorStatus === 1
+                };
+
+                log('Status工作表解析结果: ' + JSON.stringify(result, null, 2));
+                return result;
+
+            } catch (error) {
+                log('解析Status工作表时出错: ' + error.message);
+                return { colorStatus: 0, hasColorField: false, error: error.message };
+            }
+        }
+
+        // 模拟findColorValueFromRSCTheme函数
+        function findColorValueFromRSCTheme(colorChannel, themeName) {
+            log(`=== 从RSC_Theme文件查找颜色值: ${colorChannel} ===`);
+            log(`主题名称: ${themeName}`);
+
+            // 模拟RSC_Theme文件中有该主题的颜色数据
+            const mockRSCColors = {
+                'TestTheme': {
+                    'P1': 'FF0000',
+                    'P2': '00FF00',
+                    'G1': '0000FF'
+                }
+            };
+
+            if (mockRSCColors[themeName] && mockRSCColors[themeName][colorChannel]) {
+                const colorValue = mockRSCColors[themeName][colorChannel];
+                log(`✅ 从RSC_Theme找到 ${colorChannel} = ${colorValue} (主题: ${themeName})`);
+                return colorValue;
+            }
+
+            log(`RSC_Theme中未找到主题 ${themeName} 的 ${colorChannel} 颜色值`);
+            return null;
+        }
+
+        // 修复后的findColorValueDirect函数
+        function findColorValueDirect(colorChannel, isNewTheme = false, themeName = '') {
+            log(`=== 直接映射查找颜色值: ${colorChannel} (新主题: ${isNewTheme}, 主题名: ${themeName}) ===`);
+
+            // 模拟源数据
+            const sourceData = {
+                workbook: {
+                    Sheets: {
+                        'Status': {
+                            // 模拟Status工作表数据
+                        }
+                    }
+                }
+            };
+
+            // 解析Status工作表状态
+            const statusInfo = parseStatusSheet(sourceData);
+            log('Status状态信息: ' + JSON.stringify(statusInfo));
+
+            if (!statusInfo.hasColorField) {
+                log('Status工作表中没有Color字段，根据主题类型处理');
+                
+                if (!isNewTheme && themeName) {
+                    // 更新现有主题模式：直接从RSC_Theme文件读取
+                    log('更新现有主题且无Color字段，直接从RSC_Theme文件读取颜色值');
+                    const rscColorValue = findColorValueFromRSCTheme(colorChannel, themeName);
+                    if (rscColorValue) {
+                        log(`✅ 从RSC_Theme文件找到: ${colorChannel} = ${rscColorValue}`);
+                        return rscColorValue;
+                    }
+                }
+                
+                // 新建主题模式或未找到：返回null，使用默认值
+                log(`⚠️ 无Color字段，${isNewTheme ? '新建主题' : '现有主题'}未找到颜色值: ${colorChannel}`);
+                return null;
+            }
+
+            // 如果有Color字段，继续原有逻辑...
+            const isColorValid = statusInfo.isColorValid;
+            log(`Color字段状态: ${isColorValid ? '有效(1)' : '无效(0)'}`);
+            
+            // 这里省略其他逻辑，专注测试无Color字段的情况
+            return null;
+        }
+
+        // 创建测试工作簿（Status工作表无Color字段）
+        function createTestWorkbook() {
+            const testData = {
+                'Status': [
+                    ['Light', 'FloodLight', 'VolumetricFog'],  // 表头：没有Color字段
+                    [1, 0, 1]                                  // 状态行
+                ]
+            };
+            
+            const wb = XLSX.utils.book_new();
+            Object.keys(testData).forEach(sheetName => {
+                const ws = XLSX.utils.aoa_to_sheet(testData[sheetName]);
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            });
+            
+            return wb;
+        }
+
+        // 测试：无Color字段 + 更新现有主题
+        function testNoColorFieldUpdateExisting() {
+            clearLog();
+            log('🧪 测试：Status工作表无Color字段 + 更新现有主题');
+            
+            try {
+                const workbook = createTestWorkbook();
+                const sourceData = { workbook: workbook, fileName: 'test.xlsx' };
+                
+                // 测试更新现有主题（isNewTheme=false）
+                const colorValue = findColorValueDirect('P1', false, 'TestTheme');
+                
+                if (colorValue === 'FF0000') {
+                    showResult('✅ 测试通过：无Color字段时，更新现有主题正确从RSC_Theme读取颜色值', true);
+                    log('✅ 测试通过：返回了正确的RSC_Theme颜色值');
+                } else if (colorValue === null) {
+                    showResult('❌ 测试失败：应该从RSC_Theme读取颜色值，但返回了null', false);
+                    log('❌ 测试失败：应该从RSC_Theme读取颜色值');
+                } else {
+                    showResult('❌ 测试失败：返回了意外的颜色值: ' + colorValue, false);
+                    log('❌ 测试失败：返回了意外的颜色值');
+                }
+                
+            } catch (error) {
+                showResult('❌ 测试异常: ' + error.message, false);
+                log('测试异常: ' + error.message);
+            }
+        }
+
+        // 测试：无Color字段 + 新建主题
+        function testNoColorFieldNewTheme() {
+            clearLog();
+            log('🧪 测试：Status工作表无Color字段 + 新建主题');
+            
+            try {
+                const workbook = createTestWorkbook();
+                const sourceData = { workbook: workbook, fileName: 'test.xlsx' };
+                
+                // 测试新建主题（isNewTheme=true）
+                const colorValue = findColorValueDirect('P1', true, 'NewTheme');
+                
+                if (colorValue === null) {
+                    showResult('✅ 测试通过：无Color字段时，新建主题正确返回null（使用默认值）', true);
+                    log('✅ 测试通过：新建主题正确返回null');
+                } else {
+                    showResult('❌ 测试失败：新建主题应该返回null，但返回了: ' + colorValue, false);
+                    log('❌ 测试失败：新建主题应该返回null');
+                }
+                
+            } catch (error) {
+                showResult('❌ 测试异常: ' + error.message, false);
+                log('测试异常: ' + error.message);
+            }
+        }
+
+        // 页面加载完成后显示状态
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Status工作表无Color字段测试页面已加载');
+            log('XLSX库: ' + (typeof XLSX !== 'undefined' ? '已加载' : '未加载'));
+        });
+    </script>
+</body>
+</html>

@@ -624,6 +624,35 @@ open http://localhost:8000
 
 ## 📋 版本历史
 
+### v1.6.4 (2025-09-30)
+**关键修复：新建主题模式下UI参数显示与保存数据一致性问题**
+
+#### 🔧 核心修复
+- **UI显示与保存数据一致性**：解决新建主题模式下UI参数显示与最终保存数据不一致的问题
+  - **UGC配置修复**：新建主题时从源数据正确读取Custom字段值，不再显示默认值（0或50）
+  - **FloodLight IsOn修复**：新建主题时根据源数据FloodLight状态正确勾选IsOn开关
+  - **Light/ColorInfo/VolumetricFog修复**：新建主题时正确传递isNewTheme参数给条件读取函数
+
+#### 🎯 技术改进
+- **条件读取逻辑优化**：所有loadExisting...Config函数支持isNewTheme参数
+  - `loadExistingUGCConfig(themeName, isNewTheme)`：新建主题时跳过RSC_Theme查找，直接从源数据读取
+  - `loadExistingLightConfig(themeName, isNewTheme)`：正确传递isNewTheme参数给条件读取函数
+  - `loadExistingColorInfoConfig(themeName, isNewTheme)`：正确传递isNewTheme参数给条件读取函数
+  - `loadExistingFloodLightConfig(themeName, isNewTheme)`：正确传递isNewTheme参数给条件读取函数
+  - `loadExistingVolumetricFogConfig(themeName, isNewTheme)`：正确传递isNewTheme参数给条件读取函数
+- **FloodLight IsOn智能默认值**：当FloodLight状态为1但源数据无IsOn字段时，默认返回1（开启）
+
+#### 🆕 新增功能
+- **UGCTheme自动处理**：新建主题时Custom_Enemy_Color、Custom_Mover_Color、Custom_Mover_Auto_Color总是新建一行
+  - **简单复制模式**：这3个工作表只复制上一行数据（id+1），不进行复杂字段处理
+  - **不受映射模式限制**：无论直接映射还是间接映射，这3个工作表都会被处理
+  - **不影响现有逻辑**：仅在新建主题模式下生效，更新主题模式不受影响
+
+#### 📝 数据一致性保障
+- **UI显示 = 保存数据**：确保用户在UI上看到的参数值与最终保存到文件的数据完全一致
+- **条件读取统一应用**：UI加载和数据保存都使用相同的条件读取函数和参数
+- **智能回退机制**：如果源数据不可用，自动回退到默认值
+
 ### v1.6.3 (2025-09-25)
 **新增功能：VolumetricFog配置管理**
 

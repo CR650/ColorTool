@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status映射模式简单测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        .log { 
+            background-color: #f8f9fa; 
+            border: 1px solid #dee2e6; 
+            padding: 10px; 
+            max-height: 300px; 
+            overflow-y: auto; 
+            font-family: monospace; 
+            font-size: 12px; 
+            white-space: pre-wrap; 
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>Status工作表条件映射机制测试</h1>
+    
+    <div>
+        <button onclick="runAllTests()">运行所有测试</button>
+        <button onclick="clearLog()">清空日志</button>
+    </div>
+    
+    <div id="results"></div>
+    <div id="log" class="log"></div>
+
+    <script>
+        // 日志函数
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('log').textContent = '';
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        function showResult(message, isSuccess) {
+            const resultsDiv = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test-result ${isSuccess ? 'success' : 'error'}`;
+            div.textContent = message;
+            resultsDiv.appendChild(div);
+        }
+
+        // 模拟detectMappingMode函数（基于我们的修改）
+        function detectMappingMode(sourceData) {
+            log('=== 开始检测映射模式 ===');
+
+            if (!sourceData || !sourceData.workbook) {
+                log('源数据无效，使用JSON映射模式');
+                return 'json';
+            }
+
+            const sheetNames = sourceData.workbook.SheetNames;
+            log('源数据工作表列表: ' + sheetNames.join(', '));
+
+            // 第一优先级：检查是否包含"完整配色表"工作表
+            const hasCompleteColorSheet = sheetNames.includes('完整配色表');
+            if (hasCompleteColorSheet) {
+                log('✅ 找到"完整配色表"工作表，使用JSON间接映射模式');
+                return 'json';
+            }
+
+            // 第二优先级：检查是否包含"Status"工作表
+            const hasStatusSheet = sheetNames.includes('Status');
+            if (hasStatusSheet) {
+                log('✅ 找到"Status"工作表，使用直接映射模式');
+
+                try {
+                    const statusSheet = sourceData.workbook.Sheets['Status'];
+                    const statusData = XLSX.utils.sheet_to_json(statusSheet, {
+                        header: 1,
+                        defval: '',
+                        raw: false
+                    });
+
+                    if (!statusData || statusData.length < 2) {
+                        log('⚠️ Status工作表数据不足，回退到JSON映射模式');
+                        return 'json';
+                    }
+
+                    const headers = statusData[0];
+                    log('Status工作表表头: ' + headers.join(', '));
+
+                    if (headers && headers.length > 0) {
+                        log(`✅ 检测到直接映射模式：Status工作表包含${headers.length}个字段`);
+                        return 'direct';
+                    } else {
+                        log('⚠️ Status工作表表头为空，回退到JSON映射模式');
+                        return 'json';
+                    }
+
+                } catch (error) {
+                    log('读取Status工作表时出错: ' + error.message);
+                    log('⚠️ Status工作表读取失败，回退到JSON映射模式');
+                    return 'json';
+                }
+            }
+
+            log('未找到"完整配色表"或"Status"工作表，使用JSON映射模式');
+            return 'json';
+        }
+
+        // 模拟parseStatusSheet函数
+        function parseStatusSheet(sourceData) {
+            log('=== 开始解析Status工作表 ===');
+
+            if (!sourceData || !sourceData.workbook) {
+                log('源数据无效，无法解析Status工作表');
+                return { colorStatus: 0, hasColorField: false, error: '源数据无效' };
+            }
+
+            try {
+                const statusSheet = sourceData.workbook.Sheets['Status'];
+                if (!statusSheet) {
+                    log('Status工作表不存在');
+                    return { colorStatus: 0, hasColorField: false, error: 'Status工作表不存在' };
+                }
+
+                const statusData = XLSX.utils.sheet_to_json(statusSheet, {
+                    header: 1,
+                    defval: '',
+                    raw: false
+                });
+
+                if (!statusData || statusData.length < 2) {
+                    log('Status工作表数据不足');
+                    return { colorStatus: 0, hasColorField: false, error: 'Status工作表数据不足' };
+                }
+
+                const headers = statusData[0];
+                const statusRow = statusData[1];
+
+                log('Status工作表表头: ' + headers.join(', '));
+                log('Status工作表状态行: ' + statusRow.join(', '));
+
+                // 查找Color列的索引
+                const colorColumnIndex = headers.findIndex(header => {
+                    if (!header) return false;
+                    const headerStr = header.toString().trim().toUpperCase();
+                    return headerStr === 'COLOR';
+                });
+
+                if (colorColumnIndex === -1) {
+                    log('Status工作表中未找到Color列');
+                    return { colorStatus: 0, hasColorField: false, error: '未找到Color列' };
+                }
+
+                const colorStatusValue = statusRow[colorColumnIndex];
+                const colorStatus = parseInt(colorStatusValue) || 0;
+
+                log(`Color字段状态: ${colorStatus} (原始值: "${colorStatusValue}")`);
+
+                const result = {
+                    colorStatus: colorStatus,
+                    hasColorField: true,
+                    colorColumnIndex: colorColumnIndex,
+                    headers: headers,
+                    statusRow: statusRow,
+                    isColorValid: colorStatus === 1
+                };
+
+                log('Status工作表解析结果: ' + JSON.stringify(result, null, 2));
+                return result;
+
+            } catch (error) {
+                log('解析Status工作表时出错: ' + error.message);
+                return { colorStatus: 0, hasColorField: false, error: error.message };
+            }
+        }
+
+        // 创建测试工作簿
+        function createTestWorkbook(sheetData) {
+            const wb = XLSX.utils.book_new();
+            
+            Object.keys(sheetData).forEach(sheetName => {
+                const ws = XLSX.utils.aoa_to_sheet(sheetData[sheetName]);
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            });
+            
+            return wb;
+        }
+
+        // 运行所有测试
+        function runAllTests() {
+            clearLog();
+            log('🧪 开始Status工作表条件映射机制验证测试');
+            
+            let passedTests = 0;
+            let totalTests = 4;
+
+            // 测试1: Status工作表 + Color状态=1
+            log('\n=== 测试1: Status工作表 + Color状态=1 ===');
+            try {
+                const test1Data = {
+                    'Status': [
+                        ['Color', 'Light', 'FloodLight'],
+                        [1, 0, 1]
+                    ],
+                    'Color': [
+                        ['P1', 'P2', 'G1'],
+                        ['FF0000', '00FF00', '0000FF']
+                    ]
+                };
+                
+                const workbook1 = createTestWorkbook(test1Data);
+                const sourceData1 = { workbook: workbook1, fileName: 'test1.xlsx' };
+                
+                const mode1 = detectMappingMode(sourceData1);
+                const status1 = parseStatusSheet(sourceData1);
+                
+                if (mode1 === 'direct' && status1.isColorValid) {
+                    showResult('✅ 测试1通过: Status工作表 + Color状态=1', true);
+                    passedTests++;
+                } else {
+                    showResult('❌ 测试1失败: 期望direct模式且Color有效', false);
+                }
+            } catch (error) {
+                showResult('❌ 测试1异常: ' + error.message, false);
+                log('测试1异常: ' + error.message);
+            }
+
+            // 测试2: Status工作表 + Color状态=0
+            log('\n=== 测试2: Status工作表 + Color状态=0 ===');
+            try {
+                const test2Data = {
+                    'Status': [
+                        ['Color', 'Light', 'FloodLight'],
+                        [0, 1, 0]
+                    ],
+                    'Color': [
+                        ['P1', 'P2', 'G1'],
+                        ['FF0000', '00FF00', '0000FF']
+                    ]
+                };
+                
+                const workbook2 = createTestWorkbook(test2Data);
+                const sourceData2 = { workbook: workbook2, fileName: 'test2.xlsx' };
+                
+                const mode2 = detectMappingMode(sourceData2);
+                const status2 = parseStatusSheet(sourceData2);
+                
+                if (mode2 === 'direct' && !status2.isColorValid) {
+                    showResult('✅ 测试2通过: Status工作表 + Color状态=0', true);
+                    passedTests++;
+                } else {
+                    showResult('❌ 测试2失败: 期望direct模式且Color无效', false);
+                }
+            } catch (error) {
+                showResult('❌ 测试2异常: ' + error.message, false);
+                log('测试2异常: ' + error.message);
+            }
+
+            // 测试3: 完整配色表工作表
+            log('\n=== 测试3: 完整配色表工作表（JSON映射模式）===');
+            try {
+                const test3Data = {
+                    '完整配色表': [
+                        ['颜色代码', '16进制值'],
+                        ['P1', 'FF0000'],
+                        ['P2', '00FF00']
+                    ]
+                };
+                
+                const workbook3 = createTestWorkbook(test3Data);
+                const sourceData3 = { workbook: workbook3, fileName: 'test3.xlsx' };
+                
+                const mode3 = detectMappingMode(sourceData3);
+                
+                if (mode3 === 'json') {
+                    showResult('✅ 测试3通过: 完整配色表工作表使用JSON映射', true);
+                    passedTests++;
+                } else {
+                    showResult('❌ 测试3失败: 期望json模式', false);
+                }
+            } catch (error) {
+                showResult('❌ 测试3异常: ' + error.message, false);
+                log('测试3异常: ' + error.message);
+            }
+
+            // 测试4: 无特殊工作表
+            log('\n=== 测试4: 无特殊工作表（默认JSON映射）===');
+            try {
+                const test4Data = {
+                    'Sheet1': [
+                        ['普通数据'],
+                        ['测试']
+                    ]
+                };
+                
+                const workbook4 = createTestWorkbook(test4Data);
+                const sourceData4 = { workbook: workbook4, fileName: 'test4.xlsx' };
+                
+                const mode4 = detectMappingMode(sourceData4);
+                
+                if (mode4 === 'json') {
+                    showResult('✅ 测试4通过: 无特殊工作表使用默认JSON映射', true);
+                    passedTests++;
+                } else {
+                    showResult('❌ 测试4失败: 期望json模式', false);
+                }
+            } catch (error) {
+                showResult('❌ 测试4异常: ' + error.message, false);
+                log('测试4异常: ' + error.message);
+            }
+
+            // 总结
+            log(`\n🎯 测试完成! 通过: ${passedTests}/${totalTests}`);
+            if (passedTests === totalTests) {
+                showResult(`🎉 所有测试通过! (${passedTests}/${totalTests})`, true);
+            } else {
+                showResult(`⚠️ 部分测试失败 (${passedTests}/${totalTests})`, false);
+            }
+        }
+
+        // 页面加载完成后显示状态
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Status工作表条件映射测试页面已加载');
+            log('XLSX库: ' + (typeof XLSX !== 'undefined' ? '已加载' : '未加载'));
+        });
+    </script>
+</body>
+</html>
