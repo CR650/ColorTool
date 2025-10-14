@@ -17,13 +17,30 @@ window.App.Version = (function() {
 
     // 当前版本信息
     const VERSION_INFO = {
-        current: '1.6.4',
-        releaseDate: '2025-09-30',
+        current: '1.7.0',
+        releaseDate: '2025-10-14',
         buildNumber: '20250930001'
     };
 
     // 版本历史记录
     const VERSION_HISTORY = [
+        {
+            version: '1.7.0',
+            date: '2025-10-14',
+            changes: [
+                '🔧 重大修复：彻底解决新建主题时所有工作表的跳空行问题',
+                '✅ RSC_Theme表修复：Color、Light、ColorInfo、FloodLight、VolumetricFog表智能插入，不再跳空行',
+                '✅ UGCTheme表修复：所有UGC工作表（Custom_Ground_Color等）智能插入，不再跳空行',
+                '🎯 智能插入算法：自动查找最后有效数据行，新行紧接在有效行之后',
+                '🔄 空行利用：如果目标位置有空行，直接替换而不是跳过',
+                '📊 模板优化：总是使用有效数据行作为模板，避免复制空行数据',
+                '🆕 新建主题逻辑优化：新建主题时强制处理所有工作表，不受Status状态限制',
+                '🛡️ 数据保护增强：非目标工作表自动重置为原始数据，防止数据污染',
+                '🎨 默认颜色调整：未找到颜色数据时默认设置为蓝色（5C84F1）而非白色',
+                '📋 行号一致性：确保所有相关工作表的新主题都在相同行号，便于数据管理'
+            ],
+            type: 'minor'
+        },
         {
             version: '1.6.4',
             date: '2025-09-30',

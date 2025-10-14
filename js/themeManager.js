@@ -3937,9 +3937,17 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
         // 如果没有找到，创建新行
         console.log(`未找到现有主题，开始创建新行...`);
-        const newRowIndex = data.length;
+
+        // 🔧 修复：找到最后一个有效数据行，避免在空行后添加
+        let lastValidRowIndex = data.length - 1;
+        while (lastValidRowIndex > 0 && (!data[lastValidRowIndex] || data[lastValidRowIndex].every(cell => !cell || cell === ''))) {
+            lastValidRowIndex--;
+        }
+
+        const newRowIndex = lastValidRowIndex + 1;
         const newRow = new Array(headerRow.length).fill('');
 
+        console.log(`最后有效行索引: ${lastValidRowIndex}`);
         console.log(`新行索引: ${newRowIndex}`);
         console.log(`新行长度: ${newRow.length} (表头长度: ${headerRow.length})`);
 
@@ -3957,9 +3965,14 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         newRow[notesColumnIndex] = themeName;
         console.log(`设置notes字段: 列${notesColumnIndex} = ${themeName}`);
 
-        // 添加新行到数据数组
-        data.push(newRow);
-        console.log(`✅ 新行已添加到数据数组，当前总行数: ${data.length}`);
+        // 🔧 修复：如果新行索引小于当前数据长度，则替换现有空行；否则添加新行
+        if (newRowIndex < data.length) {
+            data[newRowIndex] = newRow;
+            console.log(`✅ 新行已替换空行，索引: ${newRowIndex}`);
+        } else {
+            data.push(newRow);
+            console.log(`✅ 新行已添加到数据数组，当前总行数: ${data.length}`);
+        }
 
         // 验证新行是否正确添加
         const addedRow = data[newRowIndex];
@@ -6322,13 +6335,21 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
     /**
      * 根据Status工作表状态获取需要处理的工作表列表
+     * @param {boolean} isNewTheme - 是否为新建主题
      * @returns {Array} 需要处理的工作表名称数组
      */
-    function getActiveSheetsByStatus() {
+    function getActiveSheetsByStatus(isNewTheme = false) {
         console.log('=== 开始根据Status工作表状态获取需要处理的工作表列表 ===');
+        console.log('是否新建主题:', isNewTheme);
 
         // 默认的所有可能工作表
         const allPossibleSheets = ['ColorInfo', 'Light', 'FloodLight', 'VolumetricFog'];
+
+        // 🔧 修复：新建主题时，总是处理所有工作表，不受映射模式和Status状态限制
+        if (isNewTheme) {
+            console.log('新建主题模式，处理所有工作表（不受Status状态限制）');
+            return allPossibleSheets;
+        }
 
         // 🔧 修复：只有在直接映射模式下，才严格按照Status工作表状态决定处理哪些工作表
         // 间接映射模式保持原逻辑，处理所有工作表
@@ -6479,7 +6500,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             console.log('RSC_Theme包含的sheet:', sheetNames);
 
             // 🔧 修复：根据Status工作表状态获取需要处理的工作表列表
-            const targetSheets = getActiveSheetsByStatus();
+            const targetSheets = getActiveSheetsByStatus(isNewTheme);
             console.log('🎯 根据Status状态确定的目标工作表:', targetSheets);
 
             if (targetSheets.length === 0) {
@@ -6573,7 +6594,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             console.log('RSC_Theme包含的sheet:', sheetNames);
 
             // 🔧 修复：根据Status工作表状态获取需要处理的工作表列表
-            const targetSheets = getActiveSheetsByStatus();
+            const targetSheets = getActiveSheetsByStatus(false); // 更新现有主题，传递false
             console.log('🎯 根据Status状态确定的目标工作表:', targetSheets);
 
             if (targetSheets.length === 0) {
@@ -6740,12 +6761,18 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             console.warn(`${sheetName} 中未找到notes列`);
         }
 
-        // 创建新行，复制最后一行的数据作为模板
-        const lastDataRowIndex = sheetData.length - 1;
-        const templateRow = sheetData[lastDataRowIndex];
-        const newRow = [...templateRow]; // 复制最后一行数据
+        // 🔧 修复：找到最后一个有效数据行，避免在空行后添加
+        let lastValidRowIndex = sheetData.length - 1;
+        while (lastValidRowIndex > 0 && (!sheetData[lastValidRowIndex] || sheetData[lastValidRowIndex].every(cell => !cell || cell === ''))) {
+            lastValidRowIndex--;
+        }
 
-        console.log(`使用第${lastDataRowIndex}行作为模板:`, templateRow);
+        // 创建新行，复制最后一个有效行的数据作为模板
+        const templateRow = sheetData[lastValidRowIndex];
+        const newRow = [...templateRow]; // 复制最后一个有效行数据
+
+        console.log(`最后有效行索引: ${lastValidRowIndex}`);
+        console.log(`使用第${lastValidRowIndex}行作为模板:`, templateRow);
 
         // 设置id字段（自动递增）
         let newId = null;
@@ -6774,10 +6801,17 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             applyVolumetricFogConfigToRow(headerRow, newRow, themeName, isNewTheme);
         }
 
-        // 添加新行到数据数组
-        const newRowIndex = sheetData.length;
-        sheetData.push(newRow);
-        console.log(`✅ 新行已添加到${sheetName}，行索引: ${newRowIndex}`);
+        // 🔧 修复：智能添加新行，避免跳空行
+        const newRowIndex = lastValidRowIndex + 1;
+
+        // 如果新行索引小于当前数据长度，则替换现有空行；否则添加新行
+        if (newRowIndex < sheetData.length) {
+            sheetData[newRowIndex] = newRow;
+            console.log(`✅ 新行已替换${sheetName}中的空行，索引: ${newRowIndex}`);
+        } else {
+            sheetData.push(newRow);
+            console.log(`✅ 新行已添加到${sheetName}，索引: ${newRowIndex}`);
+        }
         console.log(`新行数据:`, newRow);
 
         return {
@@ -8284,17 +8318,35 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
                 const newId = maxId + 1;
 
-                // 创建新行（复制上一行数据）
-                const lastRow = data[data.length - 1];
-                const newRow = [...lastRow]; // 复制上一行
+                // 🔧 修复：找到最后一个有效数据行，避免复制空行作为模板
+                let lastValidRowIndex = data.length - 1;
+                while (lastValidRowIndex > 0 && (!data[lastValidRowIndex] || data[lastValidRowIndex].every(cell => !cell || cell === ''))) {
+                    lastValidRowIndex--;
+                }
+
+                // 创建新行（复制最后一个有效行数据）
+                const lastRow = data[lastValidRowIndex];
+                const newRow = [...lastRow]; // 复制最后一个有效行
                 newRow[idColumnIndex] = newId.toString(); // 设置新的ID
+
+                console.log(`Sheet ${sheetName} 最后有效行索引: ${lastValidRowIndex}`);
+                console.log(`Sheet ${sheetName} 使用第${lastValidRowIndex}行作为模板`);
+
+                // 🔧 修复：计算新行应该插入的位置
+                const newRowIndex = lastValidRowIndex + 1;
 
                 // 🔧 检查是否为"总是处理"的工作表（只需简单复制上一行）
                 if (isAlwaysProcessSheet) {
                     console.log(`Sheet ${sheetName} 是总是处理的工作表，只复制上一行数据，id=${newId}`);
 
-                    // 添加新行到数据
-                    data.push(newRow);
+                    // 🔧 修复：智能添加新行，避免跳空行
+                    if (newRowIndex < data.length) {
+                        data[newRowIndex] = newRow;
+                        console.log(`✅ Sheet ${sheetName} 新行已替换空行，索引: ${newRowIndex}`);
+                    } else {
+                        data.push(newRow);
+                        console.log(`✅ Sheet ${sheetName} 新行已添加到末尾，索引: ${newRowIndex}`);
+                    }
 
                     // 更新工作表
                     const newWorksheet = XLSX.utils.aoa_to_sheet(data);
@@ -8508,8 +8560,14 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                         const targetLevelShowId = lastSimilarThemeId - 1;
                         console.log(`同系列最后主题ID: ${lastSimilarThemeId}, 目标Level_show_id: ${targetLevelShowId}`);
 
-                        // 添加新行到数据（先添加，再进行排序插入）
-                        data.push(newRow);
+                        // 🔧 修复：智能添加新行到数据（先添加，再进行排序插入）
+                        if (newRowIndex < data.length) {
+                            data[newRowIndex] = newRow;
+                            console.log(`Sheet ${sheetName} 新行已替换空行，索引: ${newRowIndex}`);
+                        } else {
+                            data.push(newRow);
+                            console.log(`Sheet ${sheetName} 新行已添加到末尾，索引: ${newRowIndex}`);
+                        }
 
                         // 执行排序插入操作
                         const sortResult = performSortedInsertion(data, headerRow, newId, targetLevelShowId, themeName);
@@ -8522,14 +8580,26 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                         }
                     } else {
                         console.log('未找到同系列最后主题ID，使用默认添加方式');
-                        // 添加新行到数据
-                        data.push(newRow);
+                        // 🔧 修复：智能添加新行到数据
+                        if (newRowIndex < data.length) {
+                            data[newRowIndex] = newRow;
+                            console.log(`Sheet ${sheetName} 新行已替换空行，索引: ${newRowIndex}`);
+                        } else {
+                            data.push(newRow);
+                            console.log(`Sheet ${sheetName} 新行已添加到末尾，索引: ${newRowIndex}`);
+                        }
                     }
                 } else {
                     // 非Custom_Ground_Color工作表或非同系列主题，使用默认添加方式
                     console.log(`Sheet ${sheetName}: 使用默认添加方式 (同系列: ${smartConfig.similarity.isSimilar})`);
-                    // 添加新行到数据
-                    data.push(newRow);
+                    // 🔧 修复：智能添加新行到数据
+                    if (newRowIndex < data.length) {
+                        data[newRowIndex] = newRow;
+                        console.log(`Sheet ${sheetName} 新行已替换空行，索引: ${newRowIndex}`);
+                    } else {
+                        data.push(newRow);
+                        console.log(`Sheet ${sheetName} 新行已添加到末尾，索引: ${newRowIndex}`);
+                    }
                 }
 
                 // 更新worksheet
@@ -8803,7 +8873,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         console.log('=== 🔧 开始重置非目标工作表数据 ===');
 
         // 获取需要处理的目标工作表列表
-        const targetSheets = getActiveSheetsByStatus();
+        const targetSheets = getActiveSheetsByStatus(false); // generateUpdatedWorkbook中传递false
         console.log('🎯 根据Status状态确定的目标工作表（generateUpdatedWorkbook）:', targetSheets);
 
         // 定义允许修改的工作表列表（主工作表 + 目标工作表）
@@ -11015,7 +11085,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             // 同步目标工作表（严格限制：仅限Light、ColorInfo、FloodLight、VolumetricFog）
             // 重要约束：不同步其他工作表，保持零影响原则
             // 🔧 修复：根据Status工作表状态获取需要处理的工作表列表
-            const targetSheets = getActiveSheetsByStatus();
+            const targetSheets = getActiveSheetsByStatus(false); // syncMemoryDataState中传递false
             console.log('🎯 根据Status状态确定的目标工作表（syncMemoryDataState）:', targetSheets);
 
             targetSheets.forEach(sheetName => {
