@@ -624,6 +624,59 @@ open http://localhost:8000
 
 ## 📋 版本历史
 
+### v1.7.1 (2025-10-27)
+**关键修复：直接映射模式下ColorInfo等工作表的所见即所得问题**
+
+#### 🔧 核心问题修复
+- **所见即所得完全实现**：修复直接映射模式下，用户在UI上修改的参数值未被保存到文件的问题
+  - **问题根源**：在文件保存阶段（`generateUpdatedWorkbook()`），系统根据Status工作表状态决定哪些工作表是"目标工作表"
+  - **数据覆盖问题**：非目标工作表会从原始备份数据（`rscOriginalSheetsData`）中重新读取，覆盖掉用户在UI上修改的值
+  - **具体表现**：ColorInfo状态为0时，即使用户修改了PickupDiffR等参数，最终保存的文件中仍然是原始值
+
+#### 🎯 技术改进
+- **修复 `generateUpdatedWorkbook()` 函数**（第8846行）
+  - **修改前**：`const targetSheets = getActiveSheetsByStatus(false);` 根据Status状态决定处理哪些工作表
+  - **修改后**：`const targetSheets = ['ColorInfo', 'Light', 'FloodLight', 'VolumetricFog'];` 总是包含所有UI配置的工作表
+  - **原理**：UI配置的工作表应该总是被认为是"目标工作表"，无论Status状态如何，防止被原始备份数据覆盖
+
+#### 📊 数据流程优化
+- **UI数据加载逻辑保持不变**
+  - ColorInfo状态为0时，UI从RSC_Theme.xls的ColorInfo工作表读取数据显示
+  - ColorInfo状态为1时，UI从源数据文件的ColorInfo工作表读取数据显示
+  - 这个逻辑完全保留，不做任何改动
+
+- **文件保存逻辑修复**
+  - 无论ColorInfo状态是0还是1，当用户点击"处理主题"时
+  - 系统总是读取UI上**当前显示**的值（用户可能已修改）
+  - 将这些UI值保存到RSC_Theme.xls文件中
+  - 实现真正的"所见即所得"
+
+#### ✨ 修复效果
+- **ColorInfo配置**：修改PickupDiffR、PickupDiffG等参数后，文件中的值与UI显示完全一致 ✅
+- **Light配置**：修改Max、Dark、Min等参数后，文件中的值与UI显示完全一致 ✅
+- **FloodLight配置**：修改Color、TippingPoint、Strength等参数后，文件中的值与UI显示完全一致 ✅
+- **VolumetricFog配置**：修改Color、X、Y、Z、Density等参数后，文件中的值与UI显示完全一致 ✅
+
+#### 🔍 测试验证
+- **测试场景**：直接映射模式，ColorInfo状态为0
+  - 修改UI上的PickupDiffR值为100
+  - 点击"处理主题"
+  - 查看生成的RSC_Theme文件
+  - **预期结果**：ColorInfo工作表中的PickupDiffR值为100 ✅
+
+#### 📝 相关代码修改
+- `generateUpdatedWorkbook()` 函数：修改targetSheets定义，总是包含所有UI配置的工作表
+- 添加调试日志：`getColorInfoConfigData()` 中添加日志，便于问题诊断
+- 添加调试日志：`validateRgbValue()` 中添加日志，便于值验证问题诊断
+
+#### 🎯 向后兼容性
+- ✅ 不影响其他工作表的处理逻辑
+- ✅ 不影响新建主题的流程
+- ✅ 不影响更新现有主题的流程
+- ✅ 完全兼容现有的Status状态检查机制
+
+---
+
 ### v1.7.0 (2025-01-14)
 **重大修复：彻底解决新建主题时所有工作表的跳空行问题**
 

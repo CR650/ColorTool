@@ -1666,6 +1666,10 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
     function validateRgbValue(value, defaultValue = 255) {
         const numValue = parseInt(value);
         if (isNaN(numValue) || numValue < 0 || numValue > 255) {
+            // 🔧 调试日志：检查为什么返回默认值
+            if (value !== undefined && value !== null && value !== '') {
+                console.warn(`⚠️ validateRgbValue: 输入值"${value}"无效，返回默认值${defaultValue}`);
+            }
             return defaultValue;
         }
         return numValue;
@@ -1795,6 +1799,11 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
      * 获取ColorInfo配置数据
      */
     function getColorInfoConfigData() {
+        // 🔧 调试日志：检查UI元素的值
+        const pickupDiffRElement = document.getElementById('PickupDiffR');
+        const pickupDiffRValue = pickupDiffRElement?.value;
+        console.log(`🔍 getColorInfoConfigData - PickupDiffR元素值: "${pickupDiffRValue}" (类型: ${typeof pickupDiffRValue})`);
+
         return {
             PickupDiffR: validateRgbValue(document.getElementById('PickupDiffR')?.value, 255),
             PickupDiffG: validateRgbValue(document.getElementById('PickupDiffG')?.value, 255),
@@ -6485,7 +6494,8 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         console.log('是否新增主题:', isNewTheme);
 
         if (!isNewTheme) {
-            console.log('更新现有主题，开始处理ColorInfo、Light和FloodLight sheet配置');
+            console.log('✅ 更新现有主题，总是处理所有UI配置的工作表（ColorInfo、Light、FloodLight、VolumetricFog）');
+            console.log('💡 原因：用户在UI上修改的值应该被保存，无论Status状态如何');
             return updateExistingThemeAdditionalSheets(themeName);
         }
 
@@ -6593,19 +6603,11 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             const sheetNames = workbook.SheetNames;
             console.log('RSC_Theme包含的sheet:', sheetNames);
 
-            // 🔧 修复：根据Status工作表状态获取需要处理的工作表列表
-            const targetSheets = getActiveSheetsByStatus(false); // 更新现有主题，传递false
-            console.log('🎯 根据Status状态确定的目标工作表:', targetSheets);
-
-            if (targetSheets.length === 0) {
-                console.log('⚠️ 没有需要处理的工作表，跳过处理');
-                return {
-                    success: true,
-                    action: 'skip_processing',
-                    message: 'Status工作表中没有状态为1的字段，跳过工作表处理',
-                    updatedSheets: []
-                };
-            }
+            // 🔧 修复：为了实现"所见即所得"，总是处理所有UI配置的工作表
+            // 即使Status状态为0，用户在UI上修改的值也应该被保存
+            // 在applyXXXConfigToRow函数中，会根据Status状态决定数据来源
+            const targetSheets = ['ColorInfo', 'Light', 'FloodLight', 'VolumetricFog'];
+            console.log('🎯 为了实现所见即所得，处理所有UI配置的工作表:', targetSheets);
 
             const updatedSheets = [];
 
@@ -6854,32 +6856,18 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 if (columnIndex !== -1) {
                     let value;
 
-                    if (isDirectMode && themeName) {
-                        // 直接映射模式：使用条件读取逻辑
-                        console.log(`直接映射模式：查找Light字段 ${columnName}`);
-                        const directValue = findLightValueDirect(columnName, isNewTheme, themeName);
+                    // 🔧 修复：所见即所得 - 优先使用UI上的值
+                    // 获取UI上当前显示的值
+                    const lightConfig = getLightConfigData();
+                    const uiValue = lightConfig[configKey];
 
-                        if (directValue !== null && directValue !== undefined && directValue !== '') {
-                            value = directValue;
-                            console.log(`✅ 直接映射找到Light字段值: ${columnName} = ${value}`);
-                        } else {
-                            // 使用默认值（从上一个主题获取）
-                            const defaultConfig = getLastThemeLightConfig();
-                            const defaultKey = {
-                                'Max': 'lightMax',
-                                'Dark': 'lightDark',
-                                'Min': 'lightMin',
-                                'SpecularLevel': 'lightSpecularLevel',
-                                'Gloss': 'lightGloss',
-                                'SpecularColor': 'lightSpecularColor'
-                            }[columnName];
-                            value = defaultConfig[defaultKey] || '0';
-                            console.log(`⚠️ 直接映射未找到Light字段值，使用默认值: ${columnName} = ${value}`);
-                        }
+                    if (isDirectMode && themeName) {
+                        // 直接映射模式：优先使用UI配置的值（所见即所得）
+                        console.log(`直接映射模式：优先使用UI配置值 ${columnName} = ${uiValue}`);
+                        value = uiValue;
                     } else {
                         // 非直接映射模式：使用用户配置的数据
-                        const lightConfig = getLightConfigData();
-                        value = lightConfig[configKey];
+                        value = uiValue;
                         console.log(`常规模式使用用户配置: ${columnName} = ${value}`);
                     }
 
@@ -6949,30 +6937,24 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                     const configKey = uiConfiguredFields[columnName];
                     console.log(`处理UI配置字段: ${columnName} -> ${configKey}`);
 
+                    // 🔧 修复：所见即所得 - 优先使用UI上的值
+                    // 获取UI上当前显示的值
+                    const floodLightConfig = getFloodLightConfigData();
+                    const uiValue = floodLightConfig[configKey] || '0';
+
                     if (isDirectMode && themeName) {
+                        // 直接映射模式：优先使用UI配置的值（所见即所得）
                         // 特殊处理IsOn字段：如果Status工作表中FloodLight状态为1，则自动设置为1
                         if (columnName === 'IsOn' && floodLightStatusFromStatus === 1) {
                             value = '1';
                             console.log(`✅ Status工作表FloodLight状态为1，自动设置IsOn: ${columnName} = ${value}`);
                         } else {
-                            // 直接映射模式：使用条件读取逻辑
-                            console.log(`直接映射模式：查找UI配置字段 ${columnName}`);
-                            const directValue = findFloodLightValueDirect(columnName, isNewTheme, themeName);
-
-                            if (directValue !== null && directValue !== undefined && directValue !== '') {
-                                value = directValue;
-                                console.log(`✅ 直接映射找到UI配置字段值: ${columnName} = ${value}`);
-                            } else {
-                                // 使用UI配置的值
-                                const floodLightConfig = getFloodLightConfigData();
-                                value = floodLightConfig[configKey] || '0';
-                                console.log(`使用UI配置值: ${columnName} = ${value}`);
-                            }
+                            value = uiValue;
+                            console.log(`✅ 直接映射模式使用UI配置值: ${columnName} = ${value}`);
                         }
                     } else {
                         // 非直接映射模式：使用UI配置的数据
-                        const floodLightConfig = getFloodLightConfigData();
-                        value = floodLightConfig[configKey] || '0';
+                        value = uiValue;
                         console.log(`非直接映射模式，使用UI配置: ${columnName} = ${value}`);
                     }
                 } else {
@@ -7074,30 +7056,24 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                     // UI配置字段：使用现有逻辑
                     const configKey = uiConfiguredFields[columnName];
 
+                    // 🔧 修复：所见即所得 - 优先使用UI上的值
+                    // 获取UI上当前显示的值
+                    const volumetricFogConfig = getVolumetricFogConfigData();
+                    const uiValue = volumetricFogConfig[configKey] || '0';
+
                     if (isDirectMode && themeName) {
+                        // 直接映射模式：优先使用UI配置的值（所见即所得）
                         // 特殊处理IsOn字段：如果Status工作表中VolumetricFog状态为1，则自动设置为1
                         if (columnName === 'IsOn' && volumetricFogStatusFromStatus === 1) {
                             value = '1';
                             console.log(`✅ Status工作表VolumetricFog状态为1，自动设置IsOn: ${columnName} = ${value}`);
                         } else {
-                            // 直接映射模式：使用条件读取逻辑
-                            console.log(`直接映射模式：查找UI配置字段 ${columnName}`);
-                            const directValue = findVolumetricFogValueDirect(columnName, isNewTheme, themeName);
-
-                            if (directValue !== null && directValue !== undefined && directValue !== '') {
-                                value = directValue;
-                                console.log(`✅ 直接映射找到UI配置字段值: ${columnName} = ${value}`);
-                            } else {
-                                // 使用UI配置的值
-                                const volumetricFogConfig = getVolumetricFogConfigData();
-                                value = volumetricFogConfig[configKey] || '0';
-                                console.log(`使用UI配置值: ${columnName} = ${value}`);
-                            }
+                            value = uiValue;
+                            console.log(`✅ 直接映射模式使用UI配置值: ${columnName} = ${value}`);
                         }
                     } else {
                         // 非直接映射模式：使用UI配置
-                        const volumetricFogConfig = getVolumetricFogConfigData();
-                        value = volumetricFogConfig[configKey] || '0';
+                        value = uiValue;
                         console.log(`非直接映射模式，使用UI配置: ${columnName} = ${value}`);
                     }
                 } else {
@@ -7200,24 +7176,18 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                     // UI配置的字段：使用现有逻辑
                     const configKey = uiConfiguredFields[columnName];
 
-                    if (isDirectMode && themeName) {
-                        // 直接映射模式：使用条件读取逻辑
-                        console.log(`直接映射模式：查找UI配置字段 ${columnName}`);
-                        const directValue = findColorInfoValueDirect(columnName, isNewTheme, themeName);
+                    // 🔧 修复：所见即所得 - 优先使用UI上的值
+                    // 获取UI上当前显示的值
+                    const colorInfoConfig = getColorInfoConfigData();
+                    const uiValue = colorInfoConfig[configKey];
 
-                        if (directValue !== null && directValue !== undefined && directValue !== '') {
-                            value = directValue;
-                            console.log(`✅ 直接映射找到UI配置字段值: ${columnName} = ${value}`);
-                        } else {
-                            // 使用默认值（从上一个主题获取）
-                            const defaultConfig = getLastThemeColorInfoConfig();
-                            value = defaultConfig[configKey] || '0';
-                            console.log(`⚠️ 直接映射未找到UI配置字段值，使用默认值: ${columnName} = ${value}`);
-                        }
+                    if (isDirectMode && themeName) {
+                        // 直接映射模式：优先使用UI配置的值（所见即所得）
+                        value = uiValue;
+                        console.log(`✅ 直接映射模式使用UI配置值: ${columnName} = ${value}`);
                     } else {
                         // 非直接映射模式：使用用户配置的数据
-                        const colorInfoConfig = getColorInfoConfigData();
-                        value = colorInfoConfig[configKey];
+                        value = uiValue;
                         console.log(`常规模式使用用户配置: ${columnName} = ${value}`);
                     }
                 } else {
@@ -8872,9 +8842,10 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         // 解决方案：只更新主工作表和targetSheets中的工作表，其他工作表从rscOriginalSheetsData中重新读取
         console.log('=== 🔧 开始重置非目标工作表数据 ===');
 
-        // 获取需要处理的目标工作表列表
-        const targetSheets = getActiveSheetsByStatus(false); // generateUpdatedWorkbook中传递false
-        console.log('🎯 根据Status状态确定的目标工作表（generateUpdatedWorkbook）:', targetSheets);
+        // 🔧 修复：为了实现"所见即所得"，总是包含所有UI配置的工作表
+        // 即使Status状态为0，用户在UI上修改的值也应该被保存
+        const targetSheets = ['ColorInfo', 'Light', 'FloodLight', 'VolumetricFog'];
+        console.log('🎯 为了实现所见即所得，总是处理所有UI配置的工作表:', targetSheets);
 
         // 定义允许修改的工作表列表（主工作表 + 目标工作表）
         const allowedSheets = [originalSheetName, ...targetSheets];

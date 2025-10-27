@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ColorInfo UI值调试工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .title {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #007bff;
+        }
+        .success {
+            border-left-color: #28a745;
+            background-color: #d4edda;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .code-block {
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        input[type="number"] {
+            width: 100px;
+            padding: 5px;
+            margin: 5px;
+        }
+        label {
+            display: inline-block;
+            width: 150px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 ColorInfo UI值调试工具</h1>
+    
+    <div class="section">
+        <h2 class="title">1. 检查UI元素</h2>
+        <button onclick="checkUIElements()">检查所有ColorInfo UI元素</button>
+        <div id="result1" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="section">
+        <h2 class="title">2. 模拟用户修改</h2>
+        <label for="testValue">输入测试值:</label>
+        <input type="number" id="testValue" min="0" max="255" value="100" placeholder="输入0-255">
+        <button onclick="setUIValue()">设置PickupDiffR值</button>
+        <div id="result2" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="section">
+        <h2 class="title">3. 读取UI值</h2>
+        <button onclick="readUIValues()">读取所有ColorInfo UI值</button>
+        <div id="result3" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="section">
+        <h2 class="title">4. 测试getColorInfoConfigData()</h2>
+        <button onclick="testGetColorInfoConfigData()">调用getColorInfoConfigData()</button>
+        <div id="result4" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="section">
+        <h2 class="title">5. 完整流程测试</h2>
+        <button onclick="completeTest()">运行完整测试</button>
+        <div id="result5" class="result" style="display:none;"></div>
+    </div>
+
+    <script>
+        function showResult(elementId, message, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.className = `result ${isSuccess ? 'success' : 'error'}`;
+            element.innerHTML = message;
+            element.style.display = 'block';
+        }
+
+        function checkUIElements() {
+            const colorInfoFields = [
+                'PickupDiffR', 'PickupDiffG', 'PickupDiffB',
+                'PickupReflR', 'PickupReflG', 'PickupReflB',
+                'BallSpecR', 'BallSpecG', 'BallSpecB',
+                'ForegroundFogR', 'ForegroundFogG', 'ForegroundFogB',
+                'FogStart', 'FogEnd'
+            ];
+
+            let html = '<h3>ColorInfo UI元素检查结果</h3>';
+            let foundCount = 0;
+            let notFoundCount = 0;
+
+            colorInfoFields.forEach(fieldId => {
+                const element = document.getElementById(fieldId);
+                if (element) {
+                    html += `<div class="code-block">✅ ${fieldId}: 找到 (类型: ${element.tagName}, 值: ${element.value})</div>`;
+                    foundCount++;
+                } else {
+                    html += `<div class="code-block">❌ ${fieldId}: 未找到</div>`;
+                    notFoundCount++;
+                }
+            });
+
+            html += `<div class="code-block"><strong>总计: 找到${foundCount}个, 未找到${notFoundCount}个</strong></div>`;
+            showResult('result1', html, notFoundCount === 0);
+        }
+
+        function setUIValue() {
+            const testValue = document.getElementById('testValue').value;
+            const pickupDiffRElement = document.getElementById('PickupDiffR');
+            
+            if (!pickupDiffRElement) {
+                showResult('result2', '❌ 未找到PickupDiffR元素', false);
+                return;
+            }
+
+            pickupDiffRElement.value = testValue;
+            showResult('result2', 
+                `✅ PickupDiffR值已设置为: ${testValue}<br>
+                <div class="code-block">element.value = "${pickupDiffRElement.value}"</div>`,
+                true
+            );
+        }
+
+        function readUIValues() {
+            const colorInfoFields = [
+                'PickupDiffR', 'PickupDiffG', 'PickupDiffB',
+                'PickupReflR', 'PickupReflG', 'PickupReflB',
+                'BallSpecR', 'BallSpecG', 'BallSpecB',
+                'ForegroundFogR', 'ForegroundFogG', 'ForegroundFogB',
+                'FogStart', 'FogEnd'
+            ];
+
+            let html = '<h3>ColorInfo UI值读取结果</h3>';
+            const values = {};
+
+            colorInfoFields.forEach(fieldId => {
+                const element = document.getElementById(fieldId);
+                if (element) {
+                    values[fieldId] = element.value;
+                    html += `<div class="code-block">${fieldId}: ${element.value}</div>`;
+                }
+            });
+
+            html += `<div class="code-block"><strong>完整对象:</strong><br>${JSON.stringify(values, null, 2)}</div>`;
+            showResult('result3', html, true);
+        }
+
+        function testGetColorInfoConfigData() {
+            try {
+                if (window.App && window.App.ThemeManager && typeof window.App.ThemeManager.getColorInfoConfigData === 'function') {
+                    const config = window.App.ThemeManager.getColorInfoConfigData();
+                    showResult('result4',
+                        `✅ getColorInfoConfigData()调用成功<br>
+                        <div class="code-block"><strong>返回值:</strong><br>${JSON.stringify(config, null, 2)}</div>`,
+                        true
+                    );
+                } else {
+                    showResult('result4', '⚠️ getColorInfoConfigData()函数不可访问（可能是私有函数）', false);
+                }
+            } catch (error) {
+                showResult('result4', `❌ 错误: ${error.message}`, false);
+            }
+        }
+
+        function completeTest() {
+            let html = '<h3>完整流程测试</h3>';
+
+            // 1. 检查UI元素
+            const pickupDiffRElement = document.getElementById('PickupDiffR');
+            if (!pickupDiffRElement) {
+                showResult('result5', '❌ 未找到PickupDiffR元素', false);
+                return;
+            }
+            html += '<div class="code-block">✅ 步骤1: 找到PickupDiffR元素</div>';
+
+            // 2. 设置值
+            const testValue = '123';
+            pickupDiffRElement.value = testValue;
+            html += `<div class="code-block">✅ 步骤2: 设置PickupDiffR值为 ${testValue}</div>`;
+
+            // 3. 读取值
+            const readValue = pickupDiffRElement.value;
+            html += `<div class="code-block">✅ 步骤3: 读取PickupDiffR值为 ${readValue}</div>`;
+
+            // 4. 验证值是否一致
+            if (readValue === testValue) {
+                html += `<div class="code-block">✅ 步骤4: 值一致 (${testValue} === ${readValue})</div>`;
+            } else {
+                html += `<div class="code-block">❌ 步骤4: 值不一致 (${testValue} !== ${readValue})</div>`;
+            }
+
+            // 5. 调用getColorInfoConfigData
+            try {
+                if (window.App && window.App.ThemeManager && typeof window.App.ThemeManager.getColorInfoConfigData === 'function') {
+                    const config = window.App.ThemeManager.getColorInfoConfigData();
+                    const configValue = config.PickupDiffR;
+                    html += `<div class="code-block">✅ 步骤5: getColorInfoConfigData()返回PickupDiffR = ${configValue}</div>`;
+                    
+                    if (configValue == testValue) {
+                        html += `<div class="code-block">✅ 步骤6: 配置值与UI值一致 (${configValue} == ${testValue})</div>`;
+                        showResult('result5', html, true);
+                    } else {
+                        html += `<div class="code-block">❌ 步骤6: 配置值与UI值不一致 (${configValue} != ${testValue})</div>`;
+                        showResult('result5', html, false);
+                    }
+                } else {
+                    html += '<div class="code-block">⚠️ 步骤5: getColorInfoConfigData()函数不可访问</div>';
+                    showResult('result5', html, false);
+                }
+            } catch (error) {
+                html += `<div class="code-block">❌ 步骤5: 错误 - ${error.message}</div>`;
+                showResult('result5', html, false);
+            }
+        }
+
+        // 页面加载时的初始化
+        window.addEventListener('load', () => {
+            console.log('ColorInfo UI值调试工具已加载');
+        });
+    </script>
+</body>
+</html>
+

@@ -17,13 +17,30 @@ window.App.Version = (function() {
 
     // 当前版本信息
     const VERSION_INFO = {
-        current: '1.7.0',
-        releaseDate: '2025-10-14',
-        buildNumber: '20250930001'
+        current: '1.7.1',
+        releaseDate: '2025-10-27',
+        buildNumber: '20251027001'
     };
 
     // 版本历史记录
     const VERSION_HISTORY = [
+        {
+            version: '1.7.1',
+            date: '2025-10-27',
+            changes: [
+                '🔧 关键修复：直接映射模式下ColorInfo等工作表的所见即所得问题',
+                '✅ 修复文件保存阶段的数据覆盖问题：修改generateUpdatedWorkbook()函数',
+                '✅ 总是包含所有UI配置的工作表：ColorInfo、Light、FloodLight、VolumetricFog',
+                '✅ 防止原始备份数据对修改值的覆盖：无论Status状态如何都保留用户修改',
+                '🎯 UI数据加载逻辑保持不变：根据Status状态决定从哪里读取数据显示',
+                '📊 文件保存逻辑修复：总是读取UI上当前显示的值（用户可能已修改）',
+                '✨ 完全实现所见即所得：UI上显示什么值，文件里就保存什么值',
+                '🔍 添加调试日志：getColorInfoConfigData()和validateRgbValue()中添加日志',
+                '🧪 测试验证：直接映射模式下修改ColorInfo参数后正确保存到文件',
+                '📝 向后兼容：不影响其他工作表和现有功能的处理逻辑'
+            ],
+            type: 'patch'
+        },
         {
             version: '1.7.0',
             date: '2025-10-14',
