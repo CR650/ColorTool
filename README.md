@@ -624,6 +624,42 @@ open http://localhost:8000
 
 ## 📋 版本历史
 
+### v1.7.3 (2025-10-28)
+**关键修复：直接映射模式下UGCTheme图案配置的所见即所得问题**
+
+#### 🔧 核心问题修复
+- **UGCTheme所见即所得完全实现**：修复直接映射模式下，用户在UI上修改UGCTheme图案参数值未被保存到文件的问题
+  - **问题根源**：在文件保存阶段（`updateExistingUGCTheme()`），系统根据Status工作表状态决定哪些UGC工作表是"目标工作表"
+  - **工作表跳过问题**：Status状态为0的工作表会被跳过，用户在UI上修改的值不会被保存
+  - **具体表现**：修改Custom_Ground_Color等工作表的参数后，最终保存的文件中仍然是原始值
+
+#### 🎯 技术改进
+- **修复 `updateExistingUGCTheme()` 函数**（第8022-8032行）
+  - **修改前**：`const activeUGCSheets = getActiveUGCSheetsByStatus();` 根据Status状态决定处理哪些工作表
+  - **修改后**：`const targetUGCSheets = ['Custom_Ground_Color', 'Custom_Fragile_Color', 'Custom_Fragile_Active_Color', 'Custom_Jump_Color', 'Custom_Jump_Active_Color'];` 总是包含所有UI配置的工作表
+  - **原理**：UI配置的工作表应该总是被认为是"目标工作表"，无论Status状态如何
+
+#### ✨ 修复效果
+- **Custom_Ground_Color**：修改参数后，文件中的值与UI显示完全一致 ✅
+- **Custom_Fragile_Color**：修改参数后，文件中的值与UI显示完全一致 ✅
+- **Custom_Fragile_Active_Color**：修改参数后，文件中的值与UI显示完全一致 ✅
+- **Custom_Jump_Color**：修改参数后，文件中的值与UI显示完全一致 ✅
+- **Custom_Jump_Active_Color**：修改参数后，文件中的值与UI显示完全一致 ✅
+
+#### 📝 相关代码修改
+- **UGCTheme修复**：
+  - `updateExistingUGCTheme()` 函数（第8022-8032行）：修改targetUGCSheets定义，总是包含所有UI配置的UGC工作表
+  - 修改前：`const activeUGCSheets = getActiveUGCSheetsByStatus();` 根据Status状态决定处理哪些工作表
+  - 修改后：`const targetUGCSheets = ['Custom_Ground_Color', 'Custom_Fragile_Color', 'Custom_Fragile_Active_Color', 'Custom_Jump_Color', 'Custom_Jump_Active_Color'];` 总是包含所有UI配置的工作表
+  - **关键说明**：只修改了保存逻辑中的工作表选择，UI初始值加载逻辑（`loadExistingUGCConfig()`）完全保持不变，不影响UI数据的初始刷新
+
+#### 🎯 向后兼容性
+- ✅ 不影响UI初始值刷新
+- ✅ 不影响其他工作表的处理逻辑
+- ✅ 完全兼容现有的Status状态检查机制
+
+---
+
 ### v1.7.1 (2025-10-27)
 **关键修复：直接映射模式下ColorInfo等工作表的所见即所得问题**
 
@@ -656,6 +692,7 @@ open http://localhost:8000
 - **Light配置**：修改Max、Dark、Min等参数后，文件中的值与UI显示完全一致 ✅
 - **FloodLight配置**：修改Color、TippingPoint、Strength等参数后，文件中的值与UI显示完全一致 ✅
 - **VolumetricFog配置**：修改Color、X、Y、Z、Density等参数后，文件中的值与UI显示完全一致 ✅
+- **UGCTheme图案配置**：修改Ground、Fragile、Jump等工作表的参数后，文件中的值与UI显示完全一致 ✅
 
 #### 🔍 测试验证
 - **测试场景**：直接映射模式，ColorInfo状态为0
@@ -665,9 +702,16 @@ open http://localhost:8000
   - **预期结果**：ColorInfo工作表中的PickupDiffR值为100 ✅
 
 #### 📝 相关代码修改
-- `generateUpdatedWorkbook()` 函数：修改targetSheets定义，总是包含所有UI配置的工作表
-- 添加调试日志：`getColorInfoConfigData()` 中添加日志，便于问题诊断
-- 添加调试日志：`validateRgbValue()` 中添加日志，便于值验证问题诊断
+- **RSC_Theme修复**：
+  - `generateUpdatedWorkbook()` 函数（第8846行）：修改targetSheets定义，总是包含所有UI配置的工作表
+  - 添加调试日志：`getColorInfoConfigData()` 中添加日志，便于问题诊断
+  - 添加调试日志：`validateRgbValue()` 中添加日志，便于值验证问题诊断
+
+- **UGCTheme修复**：
+  - `updateExistingUGCTheme()` 函数（第8022-8032行）：修改targetUGCSheets定义，总是包含所有UI配置的UGC工作表
+  - 修改前：`const activeUGCSheets = getActiveUGCSheetsByStatus();` 根据Status状态决定处理哪些工作表
+  - 修改后：`const targetUGCSheets = ['Custom_Ground_Color', 'Custom_Fragile_Color', 'Custom_Fragile_Active_Color', 'Custom_Jump_Color', 'Custom_Jump_Active_Color'];` 总是包含所有UI配置的工作表
+  - **关键说明**：只修改了保存逻辑中的工作表选择，UI初始值加载逻辑（`loadExistingUGCConfig()`）完全保持不变，不影响UI数据的初始刷新
 
 #### 🎯 向后兼容性
 - ✅ 不影响其他工作表的处理逻辑

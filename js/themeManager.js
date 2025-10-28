@@ -8022,13 +8022,14 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             const workbook = ugcThemeData.workbook;
             const processedSheets = [];
 
-            // 获取需要处理的UGC工作表列表（根据Status状态）
-            const activeUGCSheets = getActiveUGCSheetsByStatus();
-            console.log(`根据Status状态，需要处理的UGC工作表: [${activeUGCSheets.join(', ')}]`);
+            // 🔧 修复：为了实现"所见即所得"，总是处理所有UI配置的UGC工作表
+            // 即使Status状态为0，用户在UI上修改的值也应该被保存
+            const targetUGCSheets = ['Custom_Ground_Color', 'Custom_Fragile_Color', 'Custom_Fragile_Active_Color', 'Custom_Jump_Color', 'Custom_Jump_Active_Color'];
+            console.log('🎯 为了实现所见即所得，总是处理所有UI配置的UGC工作表:', targetUGCSheets);
 
-            // 第三步：更新每个相关的sheet（仅处理Status状态允许的工作表）
-            activeUGCSheets.forEach(sheetName => {
-                console.log(`\n--- ✅ 更新Sheet: ${sheetName} (Status状态允许) ---`);
+            // 第三步：更新每个相关的sheet（总是处理所有UI配置的工作表）
+            targetUGCSheets.forEach(sheetName => {
+                console.log(`\n--- ✅ 更新Sheet: ${sheetName} (总是处理所有UI配置的工作表) ---`);
 
                 const worksheet = workbook.Sheets[sheetName];
                 if (!worksheet) {

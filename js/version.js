@@ -17,13 +17,29 @@ window.App.Version = (function() {
 
     // 当前版本信息
     const VERSION_INFO = {
-        current: '1.7.2',
+        current: '1.7.3',
         releaseDate: '2025-10-28',
-        buildNumber: '20251028001'
+        buildNumber: '20251028003'
     };
 
     // 版本历史记录
     const VERSION_HISTORY = [
+        {
+            version: '1.7.3',
+            date: '2025-10-28',
+            changes: [
+                '🔧 关键修复：直接映射模式下UGCTheme图案配置的所见即所得问题',
+                '✅ 修复updateExistingUGCTheme()函数：总是处理所有UI配置的UGC工作表',
+                '✅ 修复工作表选择逻辑：无论Status状态如何都保留用户在UI上的修改',
+                '🎯 UGCTheme工作表修复范围：Custom_Ground_Color、Custom_Fragile_Color、Custom_Fragile_Active_Color、Custom_Jump_Color、Custom_Jump_Active_Color',
+                '📊 保存逻辑修复：总是读取UI上当前显示的参数值（用户可能已修改）',
+                '✨ 完全实现所见即所得：UI上显示什么值，文件里就保存什么值',
+                '🔍 关键说明：只修改了保存逻辑中的工作表选择，UI初始值加载逻辑完全保持不变',
+                '🧪 测试验证：直接映射模式下修改UGC参数后正确保存到文件',
+                '📝 向后兼容：不影响UI初始值刷新和其他功能的处理逻辑'
+            ],
+            type: 'patch'
+        },
         {
             version: '1.7.2',
             date: '2025-10-28',
