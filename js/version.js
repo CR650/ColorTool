@@ -17,13 +17,21 @@ window.App.Version = (function() {
 
     // 当前版本信息
     const VERSION_INFO = {
-        current: '1.7.1',
-        releaseDate: '2025-10-27',
-        buildNumber: '20251027001'
+        current: '1.7.2',
+        releaseDate: '2025-10-28',
+        buildNumber: '20251028001'
     };
 
     // 版本历史记录
     const VERSION_HISTORY = [
+        {
+            version: '1.7.2',
+            date: '2025-10-28',
+            changes: [
+                '图案图片资源更新'
+            ],
+            type: 'patch'
+        },
         {
             version: '1.7.1',
             date: '2025-10-27',
