@@ -34,7 +34,10 @@
 - **实时验证**：数值输入的实时范围检查和自动修正
 - **可视化配置**：图案选择器和颜色选择器的直观操作界面
 - **多工作表支持**：完整支持RSC_Theme文件的Color、Light、ColorInfo等多个工作表
-- **智能默认值**：新建主题时自动使用表中最后一个主题的配置作为默认值
+- **智能默认值**：新建主题时自动使用表中第一个主题的配置作为默认值
+  - **间接映射模式（JSON模式）**：从RSC_Theme工作表读取第一个主题（行索引5）的数据
+  - **直接映射模式**：根据Status工作表状态决定数据源，新建主题时优先读取第一个主题
+  - **特殊规则**：ColorInfo钻石颜色字段始终读取第一个主题，无论Status状态如何
 - **数据一致性保障**：确保内存数据与Excel文件数据完全同步
 - **响应式设计**：适配桌面和移动设备
 - **错误处理**：完善的错误提示和异常处理机制
@@ -623,6 +626,123 @@ open http://localhost:8000
 ---
 
 ## 📋 版本历史
+
+### v1.7.6 (2025-10-29)
+**关键修复：直接映射模式下新建主题时的UI初始值加载问题**
+
+#### 🔧 核心修复
+- **直接映射模式新建主题问题**：修复直接映射模式下新建主题时UI初始值显示错误的问题
+  - **问题现象**：间接映射模式（JSON模式）新建主题时UI显示正确，但直接映射模式显示错误
+  - **根本原因**：条件读取函数中所有数据读取逻辑都被 `if (!isNewTheme && themeName)` 条件保护，新建主题时条件永远为false
+  - **修复方案**：添加对 `isNewTheme=true` 的支持，新建主题时从第一个主题读取数据
+
+#### 📝 修复的函数
+
+**RSC_Theme配置函数（4个）：**
+- `findLightValueDirect()` - Light光照配置
+  - 新增：`findLightValueFromRSCThemeLightFirstTheme()` 辅助函数
+  - 新建主题时从RSC_Theme Light工作表读取第一个主题（行索引5）的数据
+
+- `findColorInfoValueDirect()` - ColorInfo钻石颜色配置
+  - 新增：`findColorInfoValueFromRSCThemeColorInfoFirstTheme()` 辅助函数
+  - 实现特殊规则：钻石颜色字段始终读取第一个主题，无论Status状态如何
+  - 钻石颜色字段：PickupDiffR/G/B、PickupReflR/G/B、BallSpecR/G/B
+
+- `findFloodLightValueDirect()` - FloodLight泛光灯配置
+  - 新增：`findFloodLightValueFromRSCThemeFloodLightFirstTheme()` 辅助函数
+  - 新建主题时从RSC_Theme FloodLight工作表读取第一个主题的数据
+
+- `findVolumetricFogValueDirect()` - VolumetricFog体积雾配置
+  - 新增：`findVolumetricFogValueFromRSCThemeVolumetricFogFirstTheme()` 辅助函数
+  - 新建主题时从RSC_Theme VolumetricFog工作表读取第一个主题的数据
+
+**UGCTheme配置函数（5个）：**
+- `findCustomGroundColorValueDirect()` - 地面颜色
+- `findCustomFragileColorValueDirect()` - 易碎块颜色
+- `findCustomFragileActiveColorValueDirect()` - 易碎块激活颜色
+- `findCustomJumpColorValueDirect()` - 跳跃块颜色
+- `findCustomJumpActiveColorValueDirect()` - 跳跃块激活颜色
+  - 修复条件判断逻辑，支持新建主题模式
+
+#### 🎯 修复逻辑
+
+**修复前的问题代码：**
+```javascript
+if (!isNewTheme && themeName) {
+    // 只有在更新现有主题时才执行
+    // 新建主题时 (isNewTheme=true) 这个条件永远是 false，导致返回 null
+}
+```
+
+**修复后的正确逻辑：**
+```javascript
+if (isNewTheme) {
+    // ✅ 新建主题模式：从RSC_Theme/UGCTheme读取第一个主题的数据
+    const value = findValueFromFirstTheme(field);
+    if (value) return value;
+} else if (themeName) {
+    // 更新现有主题模式：按原有逻辑处理
+    const value = findValueFromExistingTheme(field, themeName);
+    if (value) return value;
+}
+```
+
+#### ✨ 修复效果
+
+| 配置类型 | 修复前 | 修复后 |
+|---------|--------|--------|
+| **Light** | 新建主题返回null | 读取第一个主题 ✅ |
+| **ColorInfo** | 新建主题返回null | 读取第一个主题 ✅ |
+| **FloodLight** | 新建主题返回null | 读取第一个主题 ✅ |
+| **VolumetricFog** | 新建主题返回null | 读取第一个主题 ✅ |
+| **UGC配置** | 新建主题返回null | 按Status状态处理 ✅ |
+
+#### 🔍 测试验证
+
+**测试场景：直接映射模式 + 新建主题**
+1. 加载源数据文件（包含Color工作表）
+2. 选择Unity项目文件夹
+3. 输入新主题名称（如"测试主题1"）
+4. 查看UI各配置面板的初始值
+5. **预期结果**：UI显示第一个主题（赛博1）的数据 ✅
+
+#### 📊 影响范围
+- ✅ 仅影响直接映射模式下新建主题时的UI初始值显示
+- ✅ 不影响间接映射模式（JSON模式）
+- ✅ 不影响更新现有主题的逻辑
+- ✅ 不影响文件保存和数据处理流程
+- ✅ 完全兼容现有的Status状态检查机制
+
+#### 🛡️ 向后兼容性
+- ✅ 不影响其他工作表的处理逻辑
+- ✅ 不影响新建主题的其他流程
+- ✅ 不影响更新现有主题的流程
+- ✅ 完全兼容现有的映射模式检测机制
+
+---
+
+### v1.7.5 (2025-10-28)
+**优化新建主题的默认值取值逻辑**
+
+#### 🔧 核心改进
+- **默认值来源优化**：修改Light、FloodLight、VolumetricFog、ColorInfo的默认值取值逻辑
+  - **修改前**：新建主题时读取表中**最后一行**（最后一个主题）的配置作为默认值
+  - **修改后**：新建主题时读取表中**第6行**（行索引为5，第一个主题）的配置作为默认值
+  - **原理**：前5行是元数据，第6行才是第一个实际主题数据，更适合作为新建主题的默认值参考
+
+#### 📝 相关代码修改
+- **Light配置**：`getLastThemeLightConfig()` 函数改为读取行索引5的数据
+- **FloodLight配置**：`getLastThemeFloodLightConfig()` 函数改为读取行索引5的数据
+- **VolumetricFog配置**：`getLastThemeVolumetricFogConfig()` 函数改为读取行索引5的数据
+- **ColorInfo配置**：`getLastThemeColorInfoConfig()` 函数改为读取行索引5的数据
+- **UGC配置**：保持硬编码默认值不变（图案ID=0，透明度=50）
+
+#### 🎯 修改范围
+- 仅影响新建主题时的UI初始值显示
+- 不影响更新现有主题的逻辑
+- 不影响文件保存和数据处理流程
+
+---
 
 ### v1.7.3 (2025-10-28)
 **关键修复：直接映射模式下UGCTheme图案配置的所见即所得问题**

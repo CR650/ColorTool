@@ -17,13 +17,42 @@ window.App.Version = (function() {
 
     // 当前版本信息
     const VERSION_INFO = {
-        current: '1.7.4',
-        releaseDate: '2025-10-28',
-        buildNumber: '20251028004'
+        current: '1.7.6',
+        releaseDate: '2025-10-29',
+        buildNumber: '20251029001'
     };
 
     // 版本历史记录
     const VERSION_HISTORY = [
+        {
+            version: '1.7.6',
+            date: '2025-10-29',
+            changes: [
+                '🔧 关键修复：直接映射模式下新建主题时的UI初始值加载问题',
+                '✅ 修复RSC_Theme四个配置的条件读取函数：Light、ColorInfo、FloodLight、VolumetricFog',
+                '✅ 修复UGCTheme五个配置的条件读取函数：Custom_Ground_Color、Custom_Fragile_Color、Custom_Fragile_Active_Color、Custom_Jump_Color、Custom_Jump_Active_Color',
+                '🎯 新建主题模式支持：所有条件读取函数现在支持isNewTheme=true参数',
+                '📊 第一个主题数据读取：新建主题时从RSC_Theme工作表读取第一个主题（行索引5）的数据',
+                '🔄 特殊规则：ColorInfo钻石颜色字段始终读取第一个主题，无论Status状态如何',
+                '✨ 完整的辅助函数：为每个RSC_Theme工作表创建了FirstTheme版本的读取函数',
+                '🛡️ 条件判断优化：改进了isNewTheme和themeName的条件判断逻辑',
+                '📝 所见即所得：直接映射模式下新建主题时UI显示的默认值现在正确对应第一个主题'
+            ],
+            type: 'patch'
+        },
+        {
+            version: '1.7.5',
+            date: '2025-10-28',
+            changes: [
+                '🔧 优化新建主题的默认值取值逻辑',
+                '✅ 修改Light、FloodLight、VolumetricFog、ColorInfo的默认值来源',
+                '✅ 从"读取表中最后一行"改为"读取表中第6行"（行索引为5）',
+                '📊 新建主题时现在继承第一个实际主题的配置（前5行是元数据）',
+                '🎯 保持UGC配置的硬编码默认值不变（图案ID=0，透明度=50）',
+                '📝 所有getLastTheme*Config()函数逻辑已更新为读取行索引5'
+            ],
+            type: 'patch'
+        },
         {
             version: '1.7.4',
             date: '2025-10-28',

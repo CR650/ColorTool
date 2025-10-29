@@ -1147,7 +1147,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
     }
 
     /**
-     * 获取表中最后一个主题的Light配置数据
+     * 获取表中第一个主题的Light配置数据
      */
     function getLastThemeLightConfig() {
         if (!rscAllSheetsData || !rscAllSheetsData['Light']) {
@@ -1166,8 +1166,8 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         const lightHeaderRow = lightData[0];
         const lightNotesColumnIndex = lightHeaderRow.findIndex(col => col === 'notes');
 
-        if (lightNotesColumnIndex === -1 || lightData.length <= 1) {
-            console.log('RSC_Theme Light sheet没有notes列或没有数据，使用硬编码默认值');
+        if (lightNotesColumnIndex === -1 || lightData.length <= 5) {
+            console.log('RSC_Theme Light sheet没有notes列或数据不足（需要至少6行），使用硬编码默认值');
             return {
                 lightMax: '0',
                 lightDark: '0',
@@ -1178,11 +1178,11 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             };
         }
 
-        // 获取最后一行数据（跳过标题行）
-        const lastRowIndex = lightData.length - 1;
-        const lastRow = lightData[lastRowIndex];
+        // 获取第一个主题数据（第6行，行索引为5，前5行是元数据）
+        const firstRowIndex = 5;
+        const firstRow = lightData[firstRowIndex];
 
-        console.log(`读取表中最后一个主题的Light配置，行索引: ${lastRowIndex}`);
+        console.log(`读取表中第一个主题的Light配置，行索引: ${firstRowIndex}`);
 
         // 构建字段映射
         const lightFieldMapping = {
@@ -1194,12 +1194,12 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             'SpecularColor': 'lightSpecularColor'
         };
 
-        const lastThemeConfig = {};
+        const firstThemeConfig = {};
         Object.entries(lightFieldMapping).forEach(([columnName, fieldId]) => {
             const columnIndex = lightHeaderRow.findIndex(col => col === columnName);
             if (columnIndex !== -1) {
-                const value = lastRow[columnIndex];
-                lastThemeConfig[fieldId] = (value !== undefined && value !== null && value !== '') ? value.toString() : '0';
+                const value = firstRow[columnIndex];
+                firstThemeConfig[fieldId] = (value !== undefined && value !== null && value !== '') ? value.toString() : '0';
             } else {
                 // 如果找不到列，使用默认值
                 const defaults = {
@@ -1210,12 +1210,12 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                     'lightGloss': '100',
                     'lightSpecularColor': 'FFFFFF'
                 };
-                lastThemeConfig[fieldId] = defaults[fieldId] || '0';
+                firstThemeConfig[fieldId] = defaults[fieldId] || '0';
             }
         });
 
-        console.log('最后一个主题的Light配置:', lastThemeConfig);
-        return lastThemeConfig;
+        console.log('第一个主题的Light配置:', firstThemeConfig);
+        return firstThemeConfig;
     }
 
     /**
@@ -1240,7 +1240,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
     }
 
     /**
-     * 获取表中最后一个主题的FloodLight配置数据
+     * 获取表中第一个主题的FloodLight配置数据
      */
     function getLastThemeFloodLightConfig() {
         if (!rscAllSheetsData || !rscAllSheetsData['FloodLight']) {
@@ -1258,8 +1258,8 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         const floodLightHeaderRow = floodLightData[0];
         const floodLightNotesColumnIndex = floodLightHeaderRow.findIndex(col => col === 'notes');
 
-        if (floodLightNotesColumnIndex === -1 || floodLightData.length <= 1) {
-            console.log('RSC_Theme FloodLight sheet没有notes列或没有数据，使用硬编码默认值');
+        if (floodLightNotesColumnIndex === -1 || floodLightData.length <= 5) {
+            console.log('RSC_Theme FloodLight sheet没有notes列或数据不足（需要至少6行），使用硬编码默认值');
             return {
                 floodlightColor: 'FFFFFF',
                 floodlightTippingPoint: '2.5',
@@ -1278,24 +1278,24 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             'JumpActiveIsLightOn': 'floodlightJumpActiveIsLightOn'
         };
 
-        // 获取最后一行数据（最后一个主题）
-        const lastRow = floodLightData[floodLightData.length - 1];
+        // 获取第一个主题数据（第6行，行索引为5，前5行是元数据）
+        const firstRow = floodLightData[5];
 
-        const lastThemeConfig = {};
+        const firstThemeConfig = {};
         Object.entries(floodLightFieldMapping).forEach(([columnName, fieldId]) => {
             const columnIndex = floodLightHeaderRow.findIndex(col => col === columnName);
             if (columnIndex !== -1) {
-                const value = lastRow[columnIndex];
+                const value = firstRow[columnIndex];
                 if (fieldId === 'floodlightTippingPoint' || fieldId === 'floodlightStrength') {
                     // 将存储的整数值转换为小数显示（除以10）
                     const numValue = parseInt(value) || 0;
-                    lastThemeConfig[fieldId] = (numValue / 10).toFixed(1);
+                    firstThemeConfig[fieldId] = (numValue / 10).toFixed(1);
                 } else if (fieldId === 'floodlightIsOn' || fieldId === 'floodlightJumpActiveIsLightOn') {
                     // 转换为布尔值
-                    lastThemeConfig[fieldId] = value === 1 || value === '1' || value === true;
+                    firstThemeConfig[fieldId] = value === 1 || value === '1' || value === true;
                 } else {
                     // 颜色值
-                    lastThemeConfig[fieldId] = (value !== undefined && value !== null && value !== '') ? value.toString() : 'FFFFFF';
+                    firstThemeConfig[fieldId] = (value !== undefined && value !== null && value !== '') ? value.toString() : 'FFFFFF';
                 }
             } else {
                 // 如果找不到列，使用默认值
@@ -1306,16 +1306,16 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                     'floodlightIsOn': false,
                     'floodlightJumpActiveIsLightOn': false
                 };
-                lastThemeConfig[fieldId] = defaults[fieldId];
+                firstThemeConfig[fieldId] = defaults[fieldId];
             }
         });
 
-        console.log('最后一个主题的FloodLight配置:', lastThemeConfig);
-        return lastThemeConfig;
+        console.log('第一个主题的FloodLight配置:', firstThemeConfig);
+        return firstThemeConfig;
     }
 
     /**
-     * 获取表中最后一个主题的VolumetricFog配置数据
+     * 获取表中第一个主题的VolumetricFog配置数据
      */
     function getLastThemeVolumetricFogConfig() {
         if (!rscAllSheetsData || !rscAllSheetsData['VolumetricFog']) {
@@ -1332,8 +1332,8 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         }
 
         const volumetricFogData = rscAllSheetsData['VolumetricFog'];
-        if (volumetricFogData.length <= 1) {
-            console.log('VolumetricFog表没有数据行，使用硬编码默认值');
+        if (volumetricFogData.length <= 5) {
+            console.log('VolumetricFog表数据不足（需要至少6行），使用硬编码默认值');
             return {
                 volumetricfogColor: 'FFFFFF',
                 volumetricfogX: '50',
@@ -1346,12 +1346,12 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         }
 
         const headerRow = volumetricFogData[0];
-        const lastRowIndex = volumetricFogData.length - 1;
-        const lastRow = volumetricFogData[lastRowIndex];
+        const firstRowIndex = 5;
+        const firstRow = volumetricFogData[firstRowIndex];
 
-        console.log('VolumetricFog表最后一行数据:', lastRow);
+        console.log('VolumetricFog表第一个主题数据（第6行）:', firstRow);
 
-        const lastThemeConfig = {};
+        const firstThemeConfig = {};
 
         // VolumetricFog字段映射
         const volumetricFogFieldMapping = {
@@ -1366,8 +1366,8 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
         Object.entries(volumetricFogFieldMapping).forEach(([columnName, fieldId]) => {
             const columnIndex = headerRow.findIndex(col => col === columnName);
-            if (columnIndex !== -1 && lastRow[columnIndex] !== undefined && lastRow[columnIndex] !== '') {
-                let value = lastRow[columnIndex];
+            if (columnIndex !== -1 && firstRow[columnIndex] !== undefined && firstRow[columnIndex] !== '') {
+                let value = firstRow[columnIndex];
 
                 // 特殊处理：Density字段需要÷10显示
                 if (columnName === 'Density') {
@@ -1377,7 +1377,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                     value = value === 1 || value === '1' || value === true;
                 }
 
-                lastThemeConfig[fieldId] = value;
+                firstThemeConfig[fieldId] = value;
                 console.log(`VolumetricFog ${columnName} -> ${fieldId}: ${value}`);
             } else {
                 // 如果找不到列，使用默认值
@@ -1390,16 +1390,16 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                     'volumetricfogRotate': '0',
                     'volumetricfogIsOn': false
                 };
-                lastThemeConfig[fieldId] = defaults[fieldId];
+                firstThemeConfig[fieldId] = defaults[fieldId];
             }
         });
 
-        console.log('最后一个主题的VolumetricFog配置:', lastThemeConfig);
-        return lastThemeConfig;
+        console.log('第一个主题的VolumetricFog配置:', firstThemeConfig);
+        return firstThemeConfig;
     }
 
     /**
-     * 获取表中最后一个主题的ColorInfo配置数据
+     * 获取表中第一个主题的ColorInfo配置数据
      */
     function getLastThemeColorInfoConfig() {
         if (!rscAllSheetsData || !rscAllSheetsData['ColorInfo']) {
@@ -1426,8 +1426,8 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         const colorInfoHeaderRow = colorInfoData[0];
         const colorInfoNotesColumnIndex = colorInfoHeaderRow.findIndex(col => col === 'notes');
 
-        if (colorInfoNotesColumnIndex === -1 || colorInfoData.length <= 1) {
-            console.log('RSC_Theme ColorInfo sheet没有notes列或没有数据，使用硬编码默认值');
+        if (colorInfoNotesColumnIndex === -1 || colorInfoData.length <= 5) {
+            console.log('RSC_Theme ColorInfo sheet没有notes列或数据不足（需要至少6行），使用硬编码默认值');
             return {
                 PickupDiffR: '255',
                 PickupDiffG: '255',
@@ -1435,6 +1435,9 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 PickupReflR: '255',
                 PickupReflG: '255',
                 PickupReflB: '255',
+                BallSpecR: '255',
+                BallSpecG: '255',
+                BallSpecB: '255',
                 ForegroundFogR: '128',
                 ForegroundFogG: '128',
                 ForegroundFogB: '128',
@@ -1443,11 +1446,11 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             };
         }
 
-        // 获取最后一行数据（跳过标题行）
-        const lastRowIndex = colorInfoData.length - 1;
-        const lastRow = colorInfoData[lastRowIndex];
+        // 获取第一个主题数据（第6行，行索引为5，前5行是元数据）
+        const firstRowIndex = 5;
+        const firstRow = colorInfoData[firstRowIndex];
 
-        console.log(`读取表中最后一个主题的ColorInfo配置，行索引: ${lastRowIndex}`);
+        console.log(`读取表中第一个主题的ColorInfo配置，行索引: ${firstRowIndex}`);
 
         // 构建字段映射
         const colorInfoFieldMapping = {
@@ -1467,12 +1470,12 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             'FogEnd': 'FogEnd'
         };
 
-        const lastThemeConfig = {};
+        const firstThemeConfig = {};
         Object.entries(colorInfoFieldMapping).forEach(([columnName, fieldId]) => {
             const columnIndex = colorInfoHeaderRow.findIndex(col => col === columnName);
             if (columnIndex !== -1) {
-                const value = lastRow[columnIndex];
-                lastThemeConfig[fieldId] = (value !== undefined && value !== null && value !== '') ? value.toString() : '0';
+                const value = firstRow[columnIndex];
+                firstThemeConfig[fieldId] = (value !== undefined && value !== null && value !== '') ? value.toString() : '0';
             } else {
                 // 如果找不到列，使用默认值
                 const defaults = {
@@ -1491,12 +1494,12 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                     'FogStart': '10',
                     'FogEnd': '50'
                 };
-                lastThemeConfig[fieldId] = defaults[fieldId] || '0';
+                firstThemeConfig[fieldId] = defaults[fieldId] || '0';
             }
         });
 
-        console.log('最后一个主题的ColorInfo配置:', lastThemeConfig);
-        return lastThemeConfig;
+        console.log('第一个主题的ColorInfo配置:', firstThemeConfig);
+        return firstThemeConfig;
     }
 
     /**
@@ -4426,6 +4429,63 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
     }
 
     /**
+     * 从RSC_Theme ColorInfo工作表读取第一个主题的字段值（用于新建主题）
+     * @param {string} colorInfoField - ColorInfo字段名称
+     * @returns {string|null} ColorInfo字段值或null
+     */
+    function findColorInfoValueFromRSCThemeColorInfoFirstTheme(colorInfoField) {
+        console.log(`=== 从RSC_Theme ColorInfo工作表读取第一个主题的字段值: ${colorInfoField} ===`);
+
+        if (!rscAllSheetsData || !rscAllSheetsData['ColorInfo']) {
+            console.warn('RSC_Theme ColorInfo数据未加载');
+            return null;
+        }
+
+        try {
+            const colorInfoData = rscAllSheetsData['ColorInfo'];
+
+            // 检查数据是否足够（需要至少6行：表头+5行元数据+第一个主题）
+            if (colorInfoData.length <= 5) {
+                console.warn('RSC_Theme ColorInfo工作表数据不足（需要至少6行）');
+                return null;
+            }
+
+            const headerRow = colorInfoData[0];
+            console.log('RSC_Theme ColorInfo工作表表头:', headerRow);
+
+            // 查找目标字段列
+            const fieldColumnIndex = headerRow.findIndex(col => col === colorInfoField);
+            if (fieldColumnIndex === -1) {
+                console.log(`RSC_Theme ColorInfo工作表中未找到字段: ${colorInfoField}`);
+                return null;
+            }
+
+            // 读取第一个主题（行索引5，第6行）
+            const firstThemeRowIndex = 5;
+            const firstThemeRow = colorInfoData[firstThemeRowIndex];
+
+            if (!firstThemeRow) {
+                console.warn(`RSC_Theme ColorInfo工作表第一个主题行不存在（行索引: ${firstThemeRowIndex}）`);
+                return null;
+            }
+
+            const fieldValue = firstThemeRow[fieldColumnIndex];
+
+            if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                console.log(`✅ 从RSC_Theme ColorInfo工作表第一个主题找到: ${colorInfoField} = ${fieldValue}`);
+                return fieldValue.toString();
+            } else {
+                console.log(`RSC_Theme ColorInfo工作表第一个主题中未找到 ${colorInfoField} 字段值`);
+                return null;
+            }
+
+        } catch (error) {
+            console.error('从RSC_Theme ColorInfo工作表读取第一个主题的字段时出错:', error);
+            return null;
+        }
+    }
+
+    /**
      * 从RSC_Theme Light工作表中读取Light字段值
      * @param {string} lightField - Light字段名称（如Max, Dark, Min等）
      * @param {string} themeName - 主题名称
@@ -4503,6 +4563,72 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
     }
 
     /**
+     * 从RSC_Theme Light工作表读取第一个主题的字段值（用于新建主题）
+     * @param {string} lightField - Light字段名称
+     * @returns {string|null} Light字段值或null
+     */
+    function findLightValueFromRSCThemeLightFirstTheme(lightField) {
+        console.log(`=== 从RSC_Theme Light工作表读取第一个主题的字段值: ${lightField} ===`);
+
+        if (!rscAllSheetsData || !rscAllSheetsData['Light']) {
+            console.warn('RSC_Theme Light数据不可用');
+            return null;
+        }
+
+        try {
+            const lightData = rscAllSheetsData['Light'];
+            const lightHeaderRow = lightData[0];
+
+            // 检查数据是否足够（需要至少6行：表头+5行元数据+第一个主题）
+            if (!lightData || lightData.length <= 5) {
+                console.warn('RSC_Theme Light工作表数据不足（需要至少6行）');
+                return null;
+            }
+
+            console.log('RSC_Theme Light工作表表头:', lightHeaderRow);
+
+            // 查找Light字段列索引
+            const targetField = lightField.toString().trim();
+            const fieldColumnIndex = lightHeaderRow.findIndex(header => {
+                if (!header) return false;
+                const headerStr = header.toString().trim();
+                return headerStr === targetField;
+            });
+
+            if (fieldColumnIndex === -1) {
+                console.log(`RSC_Theme Light工作表中未找到字段 ${lightField}`);
+                return null;
+            }
+
+            // 读取第一个主题（行索引5，第6行）
+            const firstThemeRowIndex = 5;
+            const firstThemeRow = lightData[firstThemeRowIndex];
+
+            if (!firstThemeRow) {
+                console.warn(`RSC_Theme Light工作表第一个主题行不存在（行索引: ${firstThemeRowIndex}）`);
+                return null;
+            }
+
+            const lightValue = firstThemeRow[fieldColumnIndex];
+
+            if (lightValue !== undefined && lightValue !== null && lightValue !== '') {
+                // 清理Light值
+                let cleanValue = lightValue.toString().trim();
+
+                console.log(`✅ 从RSC_Theme Light工作表第一个主题找到 ${lightField} = ${cleanValue}`);
+                return cleanValue;
+            }
+
+            console.log(`RSC_Theme Light工作表第一个主题中未找到 ${lightField} 字段值`);
+            return null;
+
+        } catch (error) {
+            console.error(`从RSC_Theme Light工作表读取第一个主题的 ${lightField} 时出错:`, error);
+            return null;
+        }
+    }
+
+    /**
      * 在直接映射模式下查找ColorInfo字段值（带条件判断）
      * @param {string} colorInfoField - ColorInfo字段名称
      * @param {boolean} isNewTheme - 是否为新建主题
@@ -4518,6 +4644,26 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             return null;
         }
 
+        // ✅ 特殊规则：钻石颜色字段始终读取第一个主题（无论Status状态如何）
+        const diamondColorFields = ['PickupDiffR', 'PickupDiffG', 'PickupDiffB', 'PickupReflR', 'PickupReflG', 'PickupReflB', 'BallSpecR', 'BallSpecG', 'BallSpecB'];
+        if (diamondColorFields.includes(colorInfoField)) {
+            console.log(`✅ 钻石颜色字段 ${colorInfoField}：特殊规则，始终读取第一个主题`);
+            if (isNewTheme) {
+                const rscColorInfoValue = findColorInfoValueFromRSCThemeColorInfoFirstTheme(colorInfoField);
+                if (rscColorInfoValue) {
+                    console.log(`✅ 从RSC_Theme ColorInfo工作表第一个主题找到钻石颜色: ${colorInfoField} = ${rscColorInfoValue}`);
+                    return rscColorInfoValue;
+                }
+            } else if (themeName) {
+                const rscColorInfoValue = findColorInfoValueFromRSCThemeColorInfo(colorInfoField, themeName);
+                if (rscColorInfoValue) {
+                    console.log(`✅ 从RSC_Theme ColorInfo工作表找到钻石颜色: ${colorInfoField} = ${rscColorInfoValue}`);
+                    return rscColorInfoValue;
+                }
+            }
+            return null;
+        }
+
         // 解析Status工作表获取ColorInfo状态
         const statusInfo = parseStatusSheet(sourceData);
         console.log('ColorInfo状态信息:', {
@@ -4529,7 +4675,15 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         if (!statusInfo.hasColorInfoField) {
             console.warn('Status工作表中没有ColorInfo字段，根据主题类型处理');
 
-            if (!isNewTheme && themeName) {
+            if (isNewTheme) {
+                // ✅ 新建主题模式：从RSC_Theme ColorInfo工作表读取第一个主题的数据
+                console.log('新建主题且无ColorInfo字段，从RSC_Theme ColorInfo工作表读取第一个主题的字段值');
+                const rscColorInfoValue = findColorInfoValueFromRSCThemeColorInfoFirstTheme(colorInfoField);
+                if (rscColorInfoValue) {
+                    console.log(`✅ 从RSC_Theme ColorInfo工作表第一个主题找到: ${colorInfoField} = ${rscColorInfoValue}`);
+                    return rscColorInfoValue;
+                }
+            } else if (themeName) {
                 // 更新现有主题模式：直接从RSC_Theme ColorInfo工作表读取
                 console.log('更新现有主题且无ColorInfo字段，直接从RSC_Theme ColorInfo工作表读取字段值');
                 const rscColorInfoValue = findColorInfoValueFromRSCThemeColorInfo(colorInfoField, themeName);
@@ -4554,7 +4708,15 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             }
 
             // 如果从源数据ColorInfo工作表读取字段值没有找到字段，回退到RSC_Theme ColorInfo工作表
-            if (!isNewTheme && themeName) {
+            if (isNewTheme) {
+                // ✅ 新建主题模式：回退到RSC_Theme ColorInfo工作表的第一个主题
+                console.log('新建主题且源数据ColorInfo工作表未找到字段，回退到RSC_Theme ColorInfo工作表的第一个主题查找');
+                const rscColorInfoValue = findColorInfoValueFromRSCThemeColorInfoFirstTheme(colorInfoField);
+                if (rscColorInfoValue) {
+                    console.log(`✅ 从RSC_Theme ColorInfo工作表第一个主题找到: ${colorInfoField} = ${rscColorInfoValue}`);
+                    return rscColorInfoValue;
+                }
+            } else if (themeName) {
                 console.log('源数据ColorInfo工作表未找到字段，回退到RSC_Theme ColorInfo工作表查找');
                 const rscColorInfoValue = findColorInfoValueFromRSCThemeColorInfo(colorInfoField, themeName);
                 if (rscColorInfoValue) {
@@ -4569,7 +4731,15 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             // ColorInfo状态为无效(0)
             console.log('ColorInfo状态无效，忽略源数据ColorInfo工作表');
 
-            if (!isNewTheme && themeName) {
+            if (isNewTheme) {
+                // ✅ 新建主题模式：从RSC_Theme ColorInfo工作表读取第一个主题的数据
+                console.log('新建主题且ColorInfo状态无效，从RSC_Theme ColorInfo工作表读取第一个主题的字段值');
+                const rscColorInfoValue = findColorInfoValueFromRSCThemeColorInfoFirstTheme(colorInfoField);
+                if (rscColorInfoValue) {
+                    console.log(`✅ 从RSC_Theme ColorInfo工作表第一个主题找到: ${colorInfoField} = ${rscColorInfoValue}`);
+                    return rscColorInfoValue;
+                }
+            } else if (themeName) {
                 // 更新现有主题模式：直接从RSC_Theme ColorInfo工作表读取
                 console.log('直接从RSC_Theme ColorInfo工作表读取ColorInfo字段值');
                 const rscColorInfoValue = findColorInfoValueFromRSCThemeColorInfo(colorInfoField, themeName);
@@ -4706,6 +4876,62 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
     }
 
     /**
+     * 从RSC_Theme VolumetricFog工作表读取第一个主题的字段值（用于新建主题）
+     * @param {string} volumetricFogField - VolumetricFog字段名称
+     * @returns {string|null} VolumetricFog字段值或null
+     */
+    function findVolumetricFogValueFromRSCThemeVolumetricFogFirstTheme(volumetricFogField) {
+        console.log(`=== 从RSC_Theme VolumetricFog工作表读取第一个主题的字段值: ${volumetricFogField} ===`);
+
+        try {
+            if (!rscAllSheetsData || !rscAllSheetsData['VolumetricFog']) {
+                console.warn('RSC_Theme VolumetricFog数据未加载');
+                return null;
+            }
+
+            const volumetricFogData = rscAllSheetsData['VolumetricFog'];
+
+            // 检查数据是否足够（需要至少6行：表头+5行元数据+第一个主题）
+            if (!volumetricFogData || volumetricFogData.length <= 5) {
+                console.warn('RSC_Theme VolumetricFog工作表数据不足（需要至少6行）');
+                return null;
+            }
+
+            // 查找字段列索引
+            const headerRow = volumetricFogData[0];
+            const fieldColumnIndex = headerRow.findIndex(col => col === volumetricFogField);
+
+            if (fieldColumnIndex === -1) {
+                console.log(`RSC_Theme VolumetricFog工作表中未找到字段: ${volumetricFogField}`);
+                return null;
+            }
+
+            // 读取第一个主题（行索引5，第6行）
+            const firstThemeRowIndex = 5;
+            const firstThemeRow = volumetricFogData[firstThemeRowIndex];
+
+            if (!firstThemeRow) {
+                console.warn(`RSC_Theme VolumetricFog工作表第一个主题行不存在（行索引: ${firstThemeRowIndex}）`);
+                return null;
+            }
+
+            const fieldValue = firstThemeRow[fieldColumnIndex];
+
+            if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                console.log(`✅ 从RSC_Theme VolumetricFog工作表第一个主题找到: ${volumetricFogField} = ${fieldValue}`);
+                return fieldValue.toString();
+            } else {
+                console.log(`RSC_Theme VolumetricFog工作表第一个主题中未找到 ${volumetricFogField} 字段值`);
+                return null;
+            }
+
+        } catch (error) {
+            console.error('从RSC_Theme VolumetricFog工作表读取第一个主题的字段时出错:', error);
+            return null;
+        }
+    }
+
+    /**
      * 直接映射模式：VolumetricFog字段条件读取
      * @param {string} volumetricFogField - VolumetricFog字段名称（如Color, X, Y等）
      * @param {boolean} isNewTheme - 是否为新建主题
@@ -4732,7 +4958,15 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         if (!statusInfo.hasVolumetricFogField) {
             console.warn('Status工作表中没有VolumetricFog字段，根据主题类型处理');
 
-            if (!isNewTheme && themeName) {
+            if (isNewTheme) {
+                // ✅ 新建主题模式：从RSC_Theme VolumetricFog工作表读取第一个主题的数据
+                console.log('新建主题且无VolumetricFog字段，从RSC_Theme VolumetricFog工作表读取第一个主题的字段值');
+                const rscVolumetricFogValue = findVolumetricFogValueFromRSCThemeVolumetricFogFirstTheme(volumetricFogField);
+                if (rscVolumetricFogValue) {
+                    console.log(`✅ 从RSC_Theme VolumetricFog工作表第一个主题找到: ${volumetricFogField} = ${rscVolumetricFogValue}`);
+                    return rscVolumetricFogValue;
+                }
+            } else if (themeName) {
                 // 更新现有主题模式：直接从RSC_Theme VolumetricFog工作表读取
                 console.log('更新现有主题且无VolumetricFog字段，直接从RSC_Theme VolumetricFog工作表读取字段值');
                 const rscVolumetricFogValue = findVolumetricFogValueFromRSCThemeVolumetricFog(volumetricFogField, themeName);
@@ -4757,7 +4991,15 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             }
 
             // 如果从源数据VolumetricFog工作表读取字段值没有找到字段，回退到RSC_Theme VolumetricFog工作表
-            if (!isNewTheme && themeName) {
+            if (isNewTheme) {
+                // ✅ 新建主题模式：回退到RSC_Theme VolumetricFog工作表的第一个主题
+                console.log('新建主题且源数据VolumetricFog工作表未找到字段，回退到RSC_Theme VolumetricFog工作表的第一个主题查找');
+                const rscVolumetricFogValue = findVolumetricFogValueFromRSCThemeVolumetricFogFirstTheme(volumetricFogField);
+                if (rscVolumetricFogValue) {
+                    console.log(`✅ 从RSC_Theme VolumetricFog工作表第一个主题找到: ${volumetricFogField} = ${rscVolumetricFogValue}`);
+                    return rscVolumetricFogValue;
+                }
+            } else if (themeName) {
                 console.log('源数据VolumetricFog工作表未找到字段，回退到RSC_Theme VolumetricFog工作表查找');
                 const rscVolumetricFogValue = findVolumetricFogValueFromRSCThemeVolumetricFog(volumetricFogField, themeName);
                 if (rscVolumetricFogValue) {
@@ -4772,7 +5014,15 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             // VolumetricFog状态为无效(0)
             console.log('VolumetricFog状态无效，忽略源数据VolumetricFog工作表');
 
-            if (!isNewTheme && themeName) {
+            if (isNewTheme) {
+                // ✅ 新建主题模式：从RSC_Theme VolumetricFog工作表读取第一个主题的数据
+                console.log('新建主题且VolumetricFog状态无效，从RSC_Theme VolumetricFog工作表读取第一个主题的字段值');
+                const rscVolumetricFogValue = findVolumetricFogValueFromRSCThemeVolumetricFogFirstTheme(volumetricFogField);
+                if (rscVolumetricFogValue) {
+                    console.log(`✅ 从RSC_Theme VolumetricFog工作表第一个主题找到: ${volumetricFogField} = ${rscVolumetricFogValue}`);
+                    return rscVolumetricFogValue;
+                }
+            } else if (themeName) {
                 // 更新现有主题模式：直接从RSC_Theme VolumetricFog工作表读取
                 console.log('直接从RSC_Theme VolumetricFog工作表读取VolumetricFog字段值');
                 const rscVolumetricFogValue = findVolumetricFogValueFromRSCThemeVolumetricFog(volumetricFogField, themeName);
@@ -4909,6 +5159,62 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
     }
 
     /**
+     * 从RSC_Theme FloodLight工作表读取第一个主题的字段值（用于新建主题）
+     * @param {string} floodLightField - FloodLight字段名称
+     * @returns {string|null} FloodLight字段值或null
+     */
+    function findFloodLightValueFromRSCThemeFloodLightFirstTheme(floodLightField) {
+        console.log(`=== 从RSC_Theme FloodLight工作表读取第一个主题的字段值: ${floodLightField} ===`);
+
+        try {
+            if (!rscAllSheetsData || !rscAllSheetsData['FloodLight']) {
+                console.warn('RSC_Theme FloodLight数据未加载');
+                return null;
+            }
+
+            const floodLightData = rscAllSheetsData['FloodLight'];
+
+            // 检查数据是否足够（需要至少6行：表头+5行元数据+第一个主题）
+            if (!floodLightData || floodLightData.length <= 5) {
+                console.warn('RSC_Theme FloodLight工作表数据不足（需要至少6行）');
+                return null;
+            }
+
+            // 查找字段列索引
+            const headerRow = floodLightData[0];
+            const fieldColumnIndex = headerRow.findIndex(col => col === floodLightField);
+
+            if (fieldColumnIndex === -1) {
+                console.log(`RSC_Theme FloodLight工作表中未找到字段: ${floodLightField}`);
+                return null;
+            }
+
+            // 读取第一个主题（行索引5，第6行）
+            const firstThemeRowIndex = 5;
+            const firstThemeRow = floodLightData[firstThemeRowIndex];
+
+            if (!firstThemeRow) {
+                console.warn(`RSC_Theme FloodLight工作表第一个主题行不存在（行索引: ${firstThemeRowIndex}）`);
+                return null;
+            }
+
+            const fieldValue = firstThemeRow[fieldColumnIndex];
+
+            if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                console.log(`✅ 从RSC_Theme FloodLight工作表第一个主题找到: ${floodLightField} = ${fieldValue}`);
+                return fieldValue.toString();
+            } else {
+                console.log(`RSC_Theme FloodLight工作表第一个主题中未找到 ${floodLightField} 字段值`);
+                return null;
+            }
+
+        } catch (error) {
+            console.error('从RSC_Theme FloodLight工作表读取第一个主题的字段时出错:', error);
+            return null;
+        }
+    }
+
+    /**
      * 直接映射模式：FloodLight字段条件读取
      * @param {string} floodLightField - FloodLight字段名称（如Color, TippingPoint, Strength等）
      * @param {boolean} isNewTheme - 是否为新建主题
@@ -4935,7 +5241,15 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         if (!statusInfo.hasFloodLightField) {
             console.warn('Status工作表中没有FloodLight字段，根据主题类型处理');
 
-            if (!isNewTheme && themeName) {
+            if (isNewTheme) {
+                // ✅ 新建主题模式：从RSC_Theme FloodLight工作表读取第一个主题的数据
+                console.log('新建主题且无FloodLight字段，从RSC_Theme FloodLight工作表读取第一个主题的字段值');
+                const rscFloodLightValue = findFloodLightValueFromRSCThemeFloodLightFirstTheme(floodLightField);
+                if (rscFloodLightValue) {
+                    console.log(`✅ 从RSC_Theme FloodLight工作表第一个主题找到: ${floodLightField} = ${rscFloodLightValue}`);
+                    return rscFloodLightValue;
+                }
+            } else if (themeName) {
                 // 更新现有主题模式：直接从RSC_Theme FloodLight工作表读取
                 console.log('更新现有主题且无FloodLight字段，直接从RSC_Theme FloodLight工作表读取字段值');
                 const rscFloodLightValue = findFloodLightValueFromRSCThemeFloodLight(floodLightField, themeName);
@@ -4966,7 +5280,15 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             }
 
             // 如果从源数据FloodLight工作表读取字段值没有找到字段，回退到RSC_Theme FloodLight工作表
-            if (!isNewTheme && themeName) {
+            if (isNewTheme) {
+                // ✅ 新建主题模式：回退到RSC_Theme FloodLight工作表的第一个主题
+                console.log('新建主题且源数据FloodLight工作表未找到字段，回退到RSC_Theme FloodLight工作表的第一个主题查找');
+                const rscFloodLightValue = findFloodLightValueFromRSCThemeFloodLightFirstTheme(floodLightField);
+                if (rscFloodLightValue) {
+                    console.log(`✅ 从RSC_Theme FloodLight工作表第一个主题找到: ${floodLightField} = ${rscFloodLightValue}`);
+                    return rscFloodLightValue;
+                }
+            } else if (themeName) {
                 console.log('源数据FloodLight工作表未找到字段，回退到RSC_Theme FloodLight工作表查找');
                 const rscFloodLightValue = findFloodLightValueFromRSCThemeFloodLight(floodLightField, themeName);
                 if (rscFloodLightValue) {
@@ -4981,7 +5303,15 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             // FloodLight状态为无效(0)
             console.log('FloodLight状态无效，忽略源数据FloodLight工作表');
 
-            if (!isNewTheme && themeName) {
+            if (isNewTheme) {
+                // ✅ 新建主题模式：从RSC_Theme FloodLight工作表读取第一个主题的数据
+                console.log('新建主题且FloodLight状态无效，从RSC_Theme FloodLight工作表读取第一个主题的字段值');
+                const rscFloodLightValue = findFloodLightValueFromRSCThemeFloodLightFirstTheme(floodLightField);
+                if (rscFloodLightValue) {
+                    console.log(`✅ 从RSC_Theme FloodLight工作表第一个主题找到: ${floodLightField} = ${rscFloodLightValue}`);
+                    return rscFloodLightValue;
+                }
+            } else if (themeName) {
                 // 更新现有主题模式：直接从RSC_Theme FloodLight工作表读取
                 console.log('直接从RSC_Theme FloodLight工作表读取FloodLight字段值');
                 const rscFloodLightValue = findFloodLightValueFromRSCThemeFloodLight(floodLightField, themeName);
@@ -5132,13 +5462,14 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         if (!statusInfo.hasCustomGroundColorField) {
             console.log('Status工作表中没有Custom_Ground_Color字段');
             // 没有Custom_Ground_Color字段：更新现有主题时从UGCTheme读取，新建主题返回null
-            if (!isNewTheme && themeName) {
-                console.log('更新现有主题，从UGCTheme Custom_Ground_Color工作表读取');
-                return findCustomGroundColorValueFromUGCThemeCustomGroundColor(fieldName, themeName);
-            } else {
+            if (isNewTheme) {
                 console.log('新建主题且无Custom_Ground_Color字段，返回null');
                 return null;
+            } else if (themeName) {
+                console.log('更新现有主题，从UGCTheme Custom_Ground_Color工作表读取');
+                return findCustomGroundColorValueFromUGCThemeCustomGroundColor(fieldName, themeName);
             }
+            return null;
         }
 
         const customGroundColorStatus = statusInfo.customGroundColorStatus;
@@ -5301,13 +5632,14 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
         if (!statusInfo.hasCustomFragileColorField) {
             console.log('Status工作表中没有Custom_Fragile_Color字段');
-            if (!isNewTheme && themeName) {
-                console.log('更新现有主题，从UGCTheme Custom_Fragile_Color工作表读取');
-                return findCustomFragileColorValueFromUGCThemeCustomFragileColor(fieldName, themeName);
-            } else {
+            if (isNewTheme) {
                 console.log('新建主题且无Custom_Fragile_Color字段，返回null');
                 return null;
+            } else if (themeName) {
+                console.log('更新现有主题，从UGCTheme Custom_Fragile_Color工作表读取');
+                return findCustomFragileColorValueFromUGCThemeCustomFragileColor(fieldName, themeName);
             }
+            return null;
         }
 
         const customFragileColorStatus = statusInfo.customFragileColorStatus;
@@ -5467,13 +5799,14 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
         if (!statusInfo.hasCustomFragileActiveColorField) {
             console.log('Status工作表中没有Custom_Fragile_Active_Color字段');
-            if (!isNewTheme && themeName) {
-                console.log('更新现有主题，从UGCTheme Custom_Fragile_Active_Color工作表读取');
-                return findCustomFragileActiveColorValueFromUGCThemeCustomFragileActiveColor(fieldName, themeName);
-            } else {
+            if (isNewTheme) {
                 console.log('新建主题且无Custom_Fragile_Active_Color字段，返回null');
                 return null;
+            } else if (themeName) {
+                console.log('更新现有主题，从UGCTheme Custom_Fragile_Active_Color工作表读取');
+                return findCustomFragileActiveColorValueFromUGCThemeCustomFragileActiveColor(fieldName, themeName);
             }
+            return null;
         }
 
         const customFragileActiveColorStatus = statusInfo.customFragileActiveColorStatus;
@@ -5633,13 +5966,14 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
         if (!statusInfo.hasCustomJumpColorField) {
             console.log('Status工作表中没有Custom_Jump_Color字段');
-            if (!isNewTheme && themeName) {
-                console.log('更新现有主题，从UGCTheme Custom_Jump_Color工作表读取');
-                return findCustomJumpColorValueFromUGCThemeCustomJumpColor(fieldName, themeName);
-            } else {
+            if (isNewTheme) {
                 console.log('新建主题且无Custom_Jump_Color字段，返回null');
                 return null;
+            } else if (themeName) {
+                console.log('更新现有主题，从UGCTheme Custom_Jump_Color工作表读取');
+                return findCustomJumpColorValueFromUGCThemeCustomJumpColor(fieldName, themeName);
             }
+            return null;
         }
 
         const customJumpColorStatus = statusInfo.customJumpColorStatus;
@@ -5799,13 +6133,14 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
 
         if (!statusInfo.hasCustomJumpActiveColorField) {
             console.log('Status工作表中没有Custom_Jump_Active_Color字段');
-            if (!isNewTheme && themeName) {
-                console.log('更新现有主题，从UGCTheme Custom_Jump_Active_Color工作表读取');
-                return findCustomJumpActiveColorValueFromUGCThemeCustomJumpActiveColor(fieldName, themeName);
-            } else {
+            if (isNewTheme) {
                 console.log('新建主题且无Custom_Jump_Active_Color字段，返回null');
                 return null;
+            } else if (themeName) {
+                console.log('更新现有主题，从UGCTheme Custom_Jump_Active_Color工作表读取');
+                return findCustomJumpActiveColorValueFromUGCThemeCustomJumpActiveColor(fieldName, themeName);
             }
+            return null;
         }
 
         const customJumpActiveColorStatus = statusInfo.customJumpActiveColorStatus;
@@ -5855,7 +6190,15 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
         if (!statusInfo.hasLightField) {
             console.warn('Status工作表中没有Light字段，根据主题类型处理');
 
-            if (!isNewTheme && themeName) {
+            if (isNewTheme) {
+                // ✅ 新建主题模式：从RSC_Theme Light工作表读取第一个主题的数据
+                console.log('新建主题且无Light字段，从RSC_Theme Light工作表读取第一个主题的字段值');
+                const rscLightValue = findLightValueFromRSCThemeLightFirstTheme(lightField);
+                if (rscLightValue) {
+                    console.log(`✅ 从RSC_Theme Light工作表第一个主题找到: ${lightField} = ${rscLightValue}`);
+                    return rscLightValue;
+                }
+            } else if (themeName) {
                 // 更新现有主题模式：直接从RSC_Theme Light工作表读取
                 console.log('更新现有主题且无Light字段，直接从RSC_Theme Light工作表读取字段值');
                 const rscLightValue = findLightValueFromRSCThemeLight(lightField, themeName);
@@ -5865,7 +6208,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 }
             }
 
-            // 新建主题模式或未找到：返回null，使用默认值
+            // 未找到：返回null，使用默认值
             console.log(`⚠️ 无Light字段，${isNewTheme ? '新建主题' : '现有主题'}未找到Light字段值: ${lightField}`);
             return null;
         }
@@ -5885,7 +6228,15 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 return sourceLightValue;
             }
 
-            if (!isNewTheme && themeName) {
+            if (isNewTheme) {
+                // ✅ 新建主题模式：回退到RSC_Theme Light工作表的第一个主题
+                console.log('新建主题且源数据Light工作表未找到，回退到RSC_Theme Light工作表的第一个主题查找');
+                const rscLightValue = findLightValueFromRSCThemeLightFirstTheme(lightField);
+                if (rscLightValue) {
+                    console.log(`✅ 从RSC_Theme Light工作表第一个主题找到: ${lightField} = ${rscLightValue}`);
+                    return rscLightValue;
+                }
+            } else if (themeName) {
                 // 更新现有主题模式：回退到RSC_Theme Light工作表
                 console.log('源数据Light工作表未找到，回退到RSC_Theme Light工作表查找');
                 const rscLightValue = findLightValueFromRSCThemeLight(lightField, themeName);
@@ -5902,7 +6253,15 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
             // Light状态为无效(0)
             console.log('Light状态无效，忽略源数据Light工作表');
 
-            if (!isNewTheme && themeName) {
+            if (isNewTheme) {
+                // ✅ 新建主题模式：从RSC_Theme Light工作表读取第一个主题的数据
+                console.log('新建主题且Light状态无效，从RSC_Theme Light工作表读取第一个主题的字段值');
+                const rscLightValue = findLightValueFromRSCThemeLightFirstTheme(lightField);
+                if (rscLightValue) {
+                    console.log(`✅ 从RSC_Theme Light工作表第一个主题找到: ${lightField} = ${rscLightValue}`);
+                    return rscLightValue;
+                }
+            } else if (themeName) {
                 // 更新现有主题模式：直接从RSC_Theme Light工作表读取
                 console.log('直接从RSC_Theme Light工作表读取Light字段值');
                 const rscLightValue = findLightValueFromRSCThemeLight(lightField, themeName);
@@ -5912,7 +6271,7 @@ https://www.kdocs.cn/l/cuwWQPWT7HPY
                 }
             }
 
-            // 新建主题模式或未找到：返回null，使用默认值
+            // 未找到：返回null，使用默认值
             console.log(`⚠️ Light状态无效，${isNewTheme ? '新建主题' : '现有主题'}未找到Light字段值: ${lightField}`);
             return null;
         }
